@@ -37,7 +37,7 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
               const SizedBox(height: 24),
 
               // Tracking Cards
-              Obx(() => _buildTrackingCards()),
+              _buildTrackingCards(),
 
               const SizedBox(height: 24),
 
@@ -461,7 +461,10 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
 
   Widget _buildTrackingCards() {
     return Obx(() {
-      final ibadahData = controller.todayIbadah.value;
+      // Pastikan kita mengakses observable langsung, bukan hanya .value
+      final ibadahData = controller.todayIbadah();
+      final selectedDate = controller.selectedDate();
+      
       return Column(
         children: [
           SholatWajibCard(
@@ -470,7 +473,7 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
           ),
           AmalanHarianCard(
             ibadahData: ibadahData,
-            selectedDate: controller.selectedDate.value,
+            selectedDate: selectedDate,
             onUpdate: (updated) => controller.updateIbadah(updated),
           ),
           FisikCard(
