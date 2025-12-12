@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 
-import '../../core/utils/date_utils.dart';
 import '../../core/utils/logger.dart';
 import '../../data/models/daily_ibadah_model.dart';
 import '../../data/services/auth_service.dart';

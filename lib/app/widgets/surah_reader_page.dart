@@ -139,7 +139,7 @@ class SurahReaderPage extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           height: 1.6,
-                          color: AppColors.text.withOpacity(0.8),
+                          color: AppColors.text.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -168,7 +168,7 @@ class SurahReaderPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -224,13 +224,13 @@ class SurahReaderPage extends StatelessWidget {
   Widget _buildInfoItem(BuildContext context, IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Colors.white.withOpacity(0.9), size: 18),
+        Icon(icon, color: Colors.white.withValues(alpha: 0.9), size: 18),
         const SizedBox(width: 6),
         Text(
           text,
           style: GoogleFonts.poppins(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
       ],

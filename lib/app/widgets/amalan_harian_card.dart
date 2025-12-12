@@ -35,7 +35,7 @@ class AmalanHarianCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -186,10 +186,10 @@ class AmalanHarianCard extends StatelessWidget {
         width: 100,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isChecked ? color.withOpacity(0.15) : Colors.grey.withOpacity(0.05),
+          color: isChecked ? color.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isChecked ? color : Colors.grey.withOpacity(0.2),
+            color: isChecked ? color : Colors.grey.withValues(alpha: 0.2),
             width: isChecked ? 2 : 1,
           ),
         ),

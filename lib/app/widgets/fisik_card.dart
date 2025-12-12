@@ -51,7 +51,7 @@ class FisikCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -104,7 +104,7 @@ class FisikCard extends StatelessWidget {
                   overlayRadius: 28.0,
                 ),
                 activeTrackColor: AppColors.primaryBlue,
-                inactiveTrackColor: Colors.grey.withOpacity(0.2),
+                inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
                 thumbColor: AppColors.primaryBlue,
                 valueIndicatorColor: AppColors.primaryBlue,
                 valueIndicatorTextStyle: const TextStyle(
@@ -151,18 +151,18 @@ class FisikCard extends StatelessWidget {
                 hintText: 'Tulis catatan harian...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
                 ),
                 filled: true,
-                fillColor: Colors.grey.withOpacity(0.05),
+                fillColor: Colors.grey.withValues(alpha: 0.05),
                 contentPadding: const EdgeInsets.all(12),
               ),
               controller: TextEditingController(text: currentNotes)

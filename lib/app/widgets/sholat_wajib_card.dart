@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import '../core/theme/app_colors.dart';
 import '../data/models/daily_ibadah_model.dart';
@@ -26,7 +25,7 @@ class SholatWajibCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -238,11 +237,11 @@ class SholatWajibCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: isChecked
-              ? color.withOpacity(0.1)
-              : Colors.grey.withOpacity(0.05),
+              ? color.withValues(alpha: 0.1)
+              : Colors.grey.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isChecked ? color : Colors.grey.withOpacity(0.2),
+            color: isChecked ? color : Colors.grey.withValues(alpha: 0.2),
             width: isChecked ? 2 : 1,
           ),
         ),
