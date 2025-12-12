@@ -193,11 +193,21 @@ class StatisticsController extends GetxController {
       totalPushupCount += dayData.pushup ?? 0;
       totalPercentageSum += dayData.calculateLevelPercentage();
 
-      if (dayData.tahajud == true) amalanCounts['Tahajud'] = (amalanCounts['Tahajud'] ?? 0) + 1;
-      if (dayData.sholatDhuha == true) amalanCounts['Dhuha'] = (amalanCounts['Dhuha'] ?? 0) + 1;
-      if (dayData.alMulk == true) amalanCounts['Al-Mulk (67)'] = (amalanCounts['Al-Mulk (67)'] ?? 0) + 1;
-      if (dayData.surah56 == true) amalanCounts['Al-Waqi\'ah (56)'] = (amalanCounts['Al-Waqi\'ah (56)'] ?? 0) + 1;
-      if (dayData.alkahfiOrYasin == true) amalanCounts['Al-Kahfi / Yasin'] = (amalanCounts['Al-Kahfi / Yasin'] ?? 0) + 1;
+      if (dayData.tahajud == true) {
+        amalanCounts['Tahajud'] = (amalanCounts['Tahajud'] ?? 0) + 1;
+      }
+      if (dayData.sholatDhuha == true) {
+        amalanCounts['Dhuha'] = (amalanCounts['Dhuha'] ?? 0) + 1;
+      }
+      if (dayData.alMulk == true) {
+        amalanCounts['Al-Mulk (67)'] = (amalanCounts['Al-Mulk (67)'] ?? 0) + 1;
+      }
+      if (dayData.surah56 == true) {
+        amalanCounts['Al-Waqi\'ah (56)'] = (amalanCounts['Al-Waqi\'ah (56)'] ?? 0) + 1;
+      }
+      if (dayData.alkahfiOrYasin == true) {
+        amalanCounts['Al-Kahfi / Yasin'] = (amalanCounts['Al-Kahfi / Yasin'] ?? 0) + 1;
+      }
     }
 
     totalPushups.value = totalPushupCount;
@@ -253,7 +263,9 @@ class StatisticsController extends GetxController {
     for (var dayData in sortedData.reversed) {
       if (dayData.calculateLevelPercentage() > 0) {
         tempStreak++;
-        if (tempStreak > best) best = tempStreak;
+        if (tempStreak > best) {
+          best = tempStreak;
+        }
       } else {
         tempStreak = 0;
       }
@@ -280,19 +292,37 @@ class StatisticsController extends GetxController {
 
     for (var dayData in data) {
       // Count Jamaah
-      if (dayData.subuhJamaah == true) totalJamaah++;
-      if (dayData.dzuhurJamaah == true) totalJamaah++;
-      if (dayData.asharJamaah == true) totalJamaah++;
-      if (dayData.maghribJamaah == true) totalJamaah++;
-      if (dayData.isyaJamaah == true) totalJamaah++;
+      if (dayData.subuhJamaah == true) {
+        totalJamaah++;
+      }
+      if (dayData.dzuhurJamaah == true) {
+        totalJamaah++;
+      }
+      if (dayData.asharJamaah == true) {
+        totalJamaah++;
+      }
+      if (dayData.maghribJamaah == true) {
+        totalJamaah++;
+      }
+      if (dayData.isyaJamaah == true) {
+        totalJamaah++;
+      }
 
       // Count Qobliyah
-      if (dayData.subuhQobliyah == true) totalQobliyah++;
+      if (dayData.subuhQobliyah == true) {
+        totalQobliyah++;
+      }
 
       // Count Badiyah
-      if (dayData.dzuhurBadiyah == true) totalBadiyah++;
-      if (dayData.maghribBadiyah == true) totalBadiyah++;
-      if (dayData.isyaBadiyah == true) totalBadiyah++;
+      if (dayData.dzuhurBadiyah == true) {
+        totalBadiyah++;
+      }
+      if (dayData.maghribBadiyah == true) {
+        totalBadiyah++;
+      }
+      if (dayData.isyaBadiyah == true) {
+        totalBadiyah++;
+      }
     }
 
     final totalDays = data.length;
