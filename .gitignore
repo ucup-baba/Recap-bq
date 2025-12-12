@@ -43,3 +43,19 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# APK builds
+*.apk
+*.aab
+build/app/outputs/
+
+# Node modules (functions)
+functions/node_modules/
+functions/.eslintcache
