@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user role from users collection
+    function getUserRole() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc != null && userDoc.data != null ? userDoc.data.role : null;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    // Helper function to check if user is koordinator
+    function isKoordinator() {
+      return isAuthenticated() && getUserRole() == 'koordinator';
+    }
+    
+    // Helper function to get user kelompok_id
+    function getUserKelompokId() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc != null && userDoc.data != null ? userDoc.data.kelompok_id : null;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone authenticated can read their own profile
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Anyone authenticated can read all users (for leaderboard)
+      allow list: if isAuthenticated();
+      
+      // Admin can create/update any user
+      allow create, update: if isAdmin();
+      
+      // Users can update their own profile (limited fields)
+      allow update: if isAuthenticated() 
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).unchangedKeys().hasAll(['email', 'displayName', 'role', 'kelompok_id']);
+    }
+    
+    // Daily reports collection
+    match /daily_reports/{reportId} {
+      // Koordinator can read reports from their own kelompok
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        (isKoordinator() && resource.data.kelompok_id == getUserKelompokId())
+      );
+      
+      // Koordinator can create reports for their own kelompok
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        (isKoordinator() && request.resource.data.kelompok_id == getUserKelompokId())
+      );
+      
+      // Admin can update any report (for validation)
+      // Koordinator can update laporan sendiri hanya jika masih draft atau sudah ditolak.
+      // Pending/verified harus terkunci.
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isKoordinator() 
+          && request.resource.data.kelompok_id == getUserKelompokId()
+          && (
+            // Allow if document doesn't exist (first save as draft)
+            !resource.exists ||
+            // Allow if status is draft (auto-save while editing)
+            resource.data.status == 'draft' ||
+            // Allow if status is rejected (resubmit after admin rejection)
+            resource.data.status == 'rejected'
+          ))
+      );
+      
+      // Admin can delete reports
+      allow delete: if isAdmin();
+    }
+    
+    // Area tasks collection (managed by admin)
+    match /area_tasks/{area} {
+      // Everyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // Only admin can create/update/delete
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Kelompok members collection (managed by admin)
+    match /kelompok_members/{kelompokId} {
+      // Everyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // Only admin can create/update/delete
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Groups collection (for weekly scores)
+    match /groups/{groupId} {
+      // Everyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // Admin can create/update (for score updates)
+      allow create, update: if isAdmin();
+    }
+  }
+}
+

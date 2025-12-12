@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "733581949032",
+    "project_id": "recap-bq",
+    "storage_bucket": "recap-bq.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733581949032:android:6cb0417e68d591536123dd",
+        "android_client_info": {
+          "package_name": "recap.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "733581949032-q0ub7ejjb1ikp40eqrqalpdofbsirsif.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "recap.app",
+            "certificate_hash": "d8c4130740b5b9073244fe015fb17206223f1c8a"
+          }
+        },
+        {
+          "client_id": "733581949032-v9f28blp6fkh571qehrpn2rgulenr67c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxr8VKk9m2_CZehvr7Y0yyrwd6uQCbz-s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "733581949032-v9f28blp6fkh571qehrpn2rgulenr67c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

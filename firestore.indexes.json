@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "daily_reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "kelompok_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
