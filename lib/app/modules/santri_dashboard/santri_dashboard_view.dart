@@ -4,6 +4,11 @@ import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_pages.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/logger.dart';
+import '../../data/services/rotation_service.dart';
+import '../../widgets/amalan_harian_card.dart';
+import '../../widgets/fisik_card.dart';
+import '../../widgets/sholat_wajib_card.dart';
 import 'santri_dashboard_controller.dart';
 
 class SantriDashboardView extends GetView<SantriDashboardController> {
@@ -31,122 +36,163 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
 
               const SizedBox(height: 24),
 
+              // Tracking Cards
+              Obx(() => _buildTrackingCards()),
+
+              const SizedBox(height: 24),
+
               // Action Button (Input Laporan)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Obx(() {
-                  // Hitung status di level Obx agar widget terdaftar sebagai listener
-                  final status = controller.reportStatus.value;
-                  late final String statusText;
-                  late final Color statusColor;
+                child: Container(
+                  width: double.infinity,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Obx(() {
+                      final user = controller.user.value;
+                      final kelompokId = user?.kelompokId;
+                      var area = controller.areaTugas.value;
 
-                  if (status.isEmpty) {
-                    statusText = 'Belum ada laporan';
-                    statusColor = Colors.grey;
-                  } else if (status == AppConstants.reportStatusDraft) {
-                    statusText = 'Draft - Belum dikirim';
-                    statusColor = AppColors.primaryBlue;
-                  } else if (status == AppConstants.reportStatusPending) {
-                    statusText = 'Pending - Menunggu verifikasi oleh admin';
-                    statusColor = AppColors.primaryBlue;
-                  } else if (status == AppConstants.reportStatusVerified) {
-                    statusText = 'Terverifikasi';
-                    statusColor = AppColors.successGreen;
-                  } else if (status == AppConstants.reportStatusRejected) {
-                    statusText = 'Ditolak - Mohon perbaiki dan kirim ulang';
-                    statusColor = AppColors.alertRed;
-                  } else {
-                    statusText = 'Status: ${status.toUpperCase()}';
-                    statusColor = AppColors.alertRed;
-                  }
+                      // Debug logging
+                      Logger.info(
+                        'Dashboard Obx: user=${user != null}, kelompokId=$kelompokId, area=$area',
+                      );
 
-                  return Container(
-                    width: double.infinity,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
+                      // Fallback: hitung area langsung jika kosong
+                      if (area.isEmpty && kelompokId != null) {
+                        final rotation = RotationService();
+                        area = rotation.getAreaForGroup(
+                          kelompokId,
+                          DateTime.now(),
+                        );
+                        Logger.info('Area calculated from kelompokId: $area');
+                      }
+
+                      // Enable tombol jika user sudah ter-load
+                      // KelompokId akan di-handle di report input controller sebagai fallback
+                      final isDataReady = user != null;
+
+                      // Hitung status untuk display
+                      final status = controller.reportStatus.value;
+                      late final String statusText;
+                      late final Color statusColor;
+
+                      if (status.isEmpty) {
+                        statusText = 'Belum ada laporan';
+                        statusColor = Colors.grey;
+                      } else if (status == AppConstants.reportStatusDraft) {
+                        statusText = 'Draft - Belum dikirim';
+                        statusColor = AppColors.primaryBlue;
+                      } else if (status == AppConstants.reportStatusPending) {
+                        statusText = 'Pending - Menunggu verifikasi oleh admin';
+                        statusColor = AppColors.primaryBlue;
+                      } else if (status == AppConstants.reportStatusVerified) {
+                        statusText = 'Terverifikasi';
+                        statusColor = AppColors.successGreen;
+                      } else if (status == AppConstants.reportStatusRejected) {
+                        statusText = 'Ditolak - Mohon perbaiki dan kirim ulang';
+                        statusColor = AppColors.alertRed;
+                      } else {
+                        statusText = 'Status: ${status.toUpperCase()}';
+                        statusColor = AppColors.alertRed;
+                      }
+
+                      return InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: () => Get.toNamed(
-                          AppRoutes.reportInput,
-                          arguments: {
-                            'area': controller.areaTugas.value,
-                            'kelompokId': controller.user.value?.kelompokId,
-                            'date': controller.today,
-                          },
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryBlue.withValues(
-                                    alpha: 0.1,
+                        onTap: isDataReady
+                            ? () {
+                                Logger.info(
+                                  'Navigating to report input: area=$area, kelompokId=$kelompokId, date=${controller.today}',
+                                );
+                                Get.toNamed(
+                                  AppRoutes.reportInput,
+                                  arguments: {
+                                    'area': area,
+                                    'kelompokId': kelompokId,
+                                    'date': controller.today,
+                                  },
+                                );
+                              }
+                            : null, // Disable jika user belum ter-load
+                        child: Opacity(
+                          opacity: isDataReady
+                              ? 1.0
+                              : 0.6, // Visual feedback jika disabled
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryBlue.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
+                                  child: const Icon(
+                                    Icons.assignment_add,
+                                    color: AppColors.primaryBlue,
+                                    size: 28,
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.assignment_add,
-                                  color: AppColors.primaryBlue,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Input Laporan Hari Ini',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.text,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Flexible(
-                                      child: Text(
-                                        statusText,
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Input Laporan Hari Ini',
                                         style: TextStyle(
-                                          fontSize: 12,
-                                          color: statusColor,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.text,
                                         ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 4),
+                                      Flexible(
+                                        child: Text(
+                                          statusText,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: statusColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                            ],
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                }),
+                      );
+                    }),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -411,5 +457,28 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
         ),
       ),
     );
+  }
+
+  Widget _buildTrackingCards() {
+    return Obx(() {
+      final ibadahData = controller.todayIbadah.value;
+      return Column(
+        children: [
+          SholatWajibCard(
+            ibadahData: ibadahData,
+            onUpdate: (updated) => controller.updateIbadah(updated),
+          ),
+          AmalanHarianCard(
+            ibadahData: ibadahData,
+            selectedDate: controller.selectedDate.value,
+            onUpdate: (updated) => controller.updateIbadah(updated),
+          ),
+          FisikCard(
+            ibadahData: ibadahData,
+            onUpdate: (updated) => controller.updateIbadah(updated),
+          ),
+        ],
+      );
+    });
   }
 }

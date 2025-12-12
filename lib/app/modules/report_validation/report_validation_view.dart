@@ -228,37 +228,37 @@ class ReportValidationView extends GetView<ReportValidationController> {
                                                               ),
                                                           shape:
                                                               BoxShape.circle,
-                                                        ),
-                                                        child: Center(
-                                                          child: Text(
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
                                                             executor[0]
-                                                                .toUpperCase(),
+                                                          .toUpperCase(),
                                                             style:
                                                                 const TextStyle(
                                                                   fontSize: 7,
                                                                   color: Colors
                                                                       .white,
-                                                                  fontWeight:
+                                                        fontWeight:
                                                                       FontWeight
                                                                           .bold,
-                                                                ),
-                                                          ),
-                                                        ),
                                                       ),
+                                                    ),
+                                                  ),
+                                                ),
                                                       const SizedBox(width: 3),
-                                                      Text(
+                                                Text(
                                                         executor,
-                                                        style: TextStyle(
+                                                  style: TextStyle(
                                                           color:
                                                               _getAvatarColor(
                                                                 executor,
-                                                              ),
+                                                    ),
                                                           fontSize: 10,
                                                           fontWeight:
                                                               FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                                   ),
                                                 );
                                               }).toList(),

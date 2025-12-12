@@ -40,17 +40,39 @@ service cloud.firestore {
       allow create, update: if isAdmin();
       
       // Users can update their own profile (limited fields)
+      // Allow update kelompok_id only if it's currently null (for auto-fix)
       allow update: if isAuthenticated() 
         && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).unchangedKeys().hasAll(['email', 'displayName', 'role', 'kelompok_id']);
+        && (
+          // Normal update: can't change email, displayName, role, kelompok_id
+          (request.resource.data.diff(resource.data).unchangedKeys().hasAll(['email', 'displayName', 'role', 'kelompok_id']))
+          ||
+          // Auto-fix: can update kelompok_id if it's currently null
+          (resource.data.kelompok_id == null 
+           && request.resource.data.kelompok_id != null
+           && request.resource.data.diff(resource.data).unchangedKeys().hasAll(['email', 'displayName', 'role']))
+        );
     }
     
     // Daily reports collection
     match /daily_reports/{reportId} {
       // Koordinator can read reports from their own kelompok
-      allow read: if isAuthenticated() && (
+      // Allow read if document exists and user has permission
+      allow get: if isAuthenticated() && (
         isAdmin() || 
-        (isKoordinator() && resource.data.kelompok_id == getUserKelompokId())
+        (isKoordinator() && (
+          !resource.exists || 
+          resource.data.kelompok_id == getUserKelompokId()
+        ))
+      );
+      
+      // Koordinator can list/query reports from their own kelompok
+      allow list: if isAuthenticated() && (
+        isAdmin() || 
+        (isKoordinator() && (
+          request.query.limit == null ||
+          request.query.limit <= 100
+        ))
       );
       
       // Koordinator can create reports for their own kelompok

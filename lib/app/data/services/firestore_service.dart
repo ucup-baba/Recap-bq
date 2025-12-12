@@ -6,10 +6,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/area_tasks_model.dart';
 import '../models/daily_report_model.dart';
+import '../models/daily_ibadah_model.dart';
 import '../models/group_model.dart';
 import '../models/kelompok_members_model.dart';
 import '../models/user_model.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/date_utils.dart';
 
 class FirestoreService {
   FirestoreService._();
@@ -253,26 +255,45 @@ class FirestoreService {
       }
     }
 
-    // Update streak dan total_poin untuk semua user di kelompok
-    // total_poin adalah poin kelompok yang sama untuk semua anggota
+    // Update streak untuk semua user di kelompok
+    // total_poin akan di-sync dengan total_weekly_score setelah batch commit
     for (final userRef in userRefsForStreak) {
       batch.update(userRef, {
         'stats.current_streak': FieldValue.increment(1),
-        'stats.total_poin': FieldValue.increment(
-          finalScore,
-        ), // Tambahkan final_score ke total_poin
+        // Jangan update total_poin di sini, akan di-sync setelah batch commit
       });
     }
 
     // Commit semua update dalam satu batch
     await batch.commit();
 
+    // Setelah batch commit, sync total_poin dengan total_weekly_score
+    // total_poin = total_weekly_score (per week, bukan akumulasi)
+    final groupDoc = await groupRef.get();
+    final currentTotalWeeklyScore = groupDoc.exists
+        ? ((groupDoc.data()?['total_weekly_score'] ?? 0) as num).toInt()
+        : finalScore;
+
+    // Update total_poin untuk semua user di kelompok agar sama dengan total_weekly_score
+    if (userRefsForStreak.isNotEmpty) {
+      final syncBatch = _db.batch();
+      for (final userRef in userRefsForStreak) {
+        syncBatch.update(userRef, {
+          'stats.total_poin': currentTotalWeeklyScore,
+        });
+      }
+      await syncBatch.commit();
+      Logger.info(
+        'Synced total_poin to total_weekly_score ($currentTotalWeeklyScore) for ${userRefsForStreak.length} users in kelompok $kelompokId',
+      );
+    }
+
     final totalPersonalPoints = userTaskCount.values.fold<int>(
       0,
       (total, taskCount) => total + (taskCount * 5),
     );
     Logger.info(
-      'Updated scores: finalScore=$finalScore, totalPersonalPoints=$totalPersonalPoints (${userRefsForPersonalPoints.length} users, ${userRefsForPersonalPoints.where((r) => existingUserRefs.contains(r)).length} existing, ${userRefsForPersonalPoints.where((r) => !existingUserRefs.contains(r)).length} new), hasAllTeam=$hasAllTeamTask',
+      'Updated scores: finalScore=$finalScore, totalWeeklyScore=$currentTotalWeeklyScore, totalPersonalPoints=$totalPersonalPoints (${userRefsForPersonalPoints.length} users, ${userRefsForPersonalPoints.where((r) => existingUserRefs.contains(r)).length} existing, ${userRefsForPersonalPoints.where((r) => !existingUserRefs.contains(r)).length} new), hasAllTeam=$hasAllTeamTask',
     );
 
     // Log detail untuk setiap user yang di-update
@@ -299,22 +320,62 @@ class FirestoreService {
     });
   }
 
+  /// Update kelompokId for a user
+  Future<void> updateUserKelompokId(String uid, int kelompokId) async {
+    await _db.collection('users').doc(uid).update({'kelompok_id': kelompokId});
+    Logger.info('Updated kelompokId to $kelompokId for user $uid');
+  }
+
   Future<void> ensureDummyUsers(List<UserModel> users) async {
     final batch = _db.batch();
     for (final user in users) {
       final ref = _db.collection('users').doc(user.uid);
-      batch.set(ref, user.toMap(), SetOptions(merge: true));
+      final userMap = user.toMap();
+
+      // Pastikan kelompok_id selalu di-set dengan benar
+      // Untuk koordinator, kelompok_id harus ada (1-5)
+      // Untuk admin, kelompok_id boleh null
+      if (user.role == 'koordinator' &&
+          (user.kelompokId == null || user.kelompokId! <= 0)) {
+        Logger.error(
+          'Koordinator user ${user.uid} (${user.email}) tidak punya kelompokId yang valid. '
+          'Ini tidak seharusnya terjadi. Pastikan data seed sudah benar.',
+        );
+      }
+
+      // Pastikan kelompok_id selalu di-include dalam update
+      // Gunakan merge: true untuk mempertahankan field lain yang sudah ada,
+      // tapi kelompok_id akan selalu di-update sesuai dengan data seed
+      userMap['kelompok_id'] = user.kelompokId;
+
+      batch.set(ref, userMap, SetOptions(merge: true));
     }
     await batch.commit();
+    Logger.info(
+      'Ensured ${users.length} users in Firestore. '
+      'Koordinator users: ${users.where((u) => u.role == 'koordinator').length}, '
+      'Admin users: ${users.where((u) => u.role == 'admin').length}',
+    );
   }
 
   /// Daily reports
   Future<DailyReportModel?> getDailyReportById(String reportId) async {
-    final doc = await _db.collection('daily_reports').doc(reportId).get();
-    if (!doc.exists) return null;
-    final data = doc.data();
-    if (data == null) return null;
-    return DailyReportModel.fromMap(data, doc.id);
+    // Validasi reportId tidak kosong
+    if (reportId.isEmpty) {
+      Logger.error('getDailyReportById: reportId is empty');
+      throw ArgumentError('Report ID must be a non-empty string');
+    }
+
+    try {
+      final doc = await _db.collection('daily_reports').doc(reportId).get();
+      if (!doc.exists) return null;
+      final data = doc.data();
+      if (data == null) return null;
+      return DailyReportModel.fromMap(data, doc.id);
+    } catch (e) {
+      Logger.error('Error getting daily report by ID: $reportId', e);
+      rethrow;
+    }
   }
 
   Future<void> saveDailyReport(DailyReportModel report) {
@@ -337,19 +398,32 @@ class FirestoreService {
     int kelompokId,
     dynamic date, // Accept both String and DateTime
   ) {
+    // Validasi kelompokId
+    if (kelompokId <= 0) {
+      Logger.error('reportsByGroupAndDate: Invalid kelompokId: $kelompokId');
+      return Stream.value(<DailyReportModel>[]);
+    }
+
     DateTime dateTime;
     if (date is String) {
-      // Parse string date (format: yyyy-MM-dd)
-      final parts = date.split('-');
-      if (parts.length == 3) {
-        dateTime = DateTime(
-          int.parse(parts[0]),
-          int.parse(parts[1]),
-          int.parse(parts[2]),
+      if (date.isEmpty) {
+        Logger.warning(
+          'reportsByGroupAndDate: Date string is empty, using today',
         );
+        dateTime = DateTime.now();
       } else {
-        // Fallback: try to parse as ISO string
-        dateTime = DateTime.parse(date);
+        // Parse string date (format: yyyy-MM-dd)
+        final parts = date.split('-');
+        if (parts.length == 3) {
+          dateTime = DateTime(
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            int.parse(parts[2]),
+          );
+        } else {
+          // Fallback: try to parse as ISO string
+          dateTime = DateTime.parse(date);
+        }
       }
     } else if (date is DateTime) {
       dateTime = date;
@@ -364,6 +438,14 @@ class FirestoreService {
     final dateString =
         '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
     final reportId = '$kelompokId-$dateString';
+
+    // Validasi reportId
+    if (reportId.isEmpty || reportId == '-') {
+      Logger.error(
+        'reportsByGroupAndDate: Invalid reportId generated: $reportId (kelompokId=$kelompokId, date=$date)',
+      );
+      return Stream.value(<DailyReportModel>[]);
+    }
 
     // Gunakan Stream.multi untuk memastikan selalu emit value meski ada error
     return Stream.multi((controller) {
@@ -400,6 +482,8 @@ class FirestoreService {
         );
 
         // Listener query dengan index (lebih cepat jika field bertipe Timestamp)
+        // Catatan: Query ini mungkin gagal jika index belum dibuat atau permission denied
+        // Fallback ke direct document read sudah tersedia
         querySubscription = _db
             .collection('daily_reports')
             .where('kelompok_id', isEqualTo: kelompokId)
@@ -421,9 +505,12 @@ class FirestoreService {
               },
               onError: (error) {
                 Logger.error('Error in reportsByGroupAndDate query', error);
-                // Fallback: gunakan document ID langsung jika query gagal
-                Logger.info('Falling back to direct document read: $reportId');
-                _fallbackReadReport(reportDocRef, controller);
+                // Jika error permission denied, gunakan direct document read saja
+                // Direct document read sudah di-handle oleh docSubscription di atas
+                Logger.info(
+                  'Query failed, using direct document read: $reportId',
+                );
+                // Tidak perlu memanggil _fallbackReadReport karena docSubscription sudah handle
               },
             );
       } catch (e) {
@@ -930,6 +1017,167 @@ class FirestoreService {
     await batch.commit();
   }
 
+  /// Recalculate personal points dari semua laporan yang sudah di-verify
+  /// Method ini akan menghitung ulang personal points dari semua laporan verified
+  /// dan meng-update personal points untuk setiap executor
+  Future<void> recalculatePersonalPointsFromVerifiedReports() async {
+    Logger.info(
+      'Starting recalculation of personal points from verified reports',
+    );
+
+    // Query semua laporan dengan status 'verified'
+    final verifiedReports = await _db
+        .collection('daily_reports')
+        .where('status', isEqualTo: 'verified')
+        .get();
+
+    Logger.info('Found ${verifiedReports.docs.length} verified reports');
+
+    // Map untuk menyimpan total task per user per kelompok
+    // Struktur: kelompokId -> executorName -> taskCount
+    final Map<int, Map<String, int>> kelompokExecutorTaskCount = {};
+
+    // Process setiap laporan verified
+    for (final doc in verifiedReports.docs) {
+      try {
+        final data = doc.data();
+        final report = DailyReportModel.fromMap(data, doc.id);
+        final kelompokId = report.kelompokId;
+
+        if (kelompokId <= 0) continue;
+
+        // Hitung executor dan task count dari tasks yang valid
+        final executorTaskCount = <String, int>{};
+        bool hasAllTeamTask = false;
+
+        for (final task in report.tasks) {
+          // Cek apakah task valid (isValid = true)
+          if (task.isValid == true) {
+            // Cek apakah ada "Semua Tim"
+            if (task.executors.contains('Semua Tim (Gotong Royong)') ||
+                task.executors.contains('ALL TEAM')) {
+              hasAllTeamTask = true;
+            }
+
+            // Hitung executor individual
+            for (final executor in task.executors) {
+              if (executor.isNotEmpty &&
+                  executor != 'Semua Tim (Gotong Royong)' &&
+                  executor != 'ALL TEAM') {
+                executorTaskCount[executor] =
+                    (executorTaskCount[executor] ?? 0) + 1;
+              }
+            }
+          }
+        }
+
+        // Simpan ke map
+        if (!kelompokExecutorTaskCount.containsKey(kelompokId)) {
+          kelompokExecutorTaskCount[kelompokId] = {};
+        }
+
+        // Tambahkan task count per executor
+        for (final entry in executorTaskCount.entries) {
+          kelompokExecutorTaskCount[kelompokId]![entry.key] =
+              (kelompokExecutorTaskCount[kelompokId]![entry.key] ?? 0) +
+              entry.value;
+        }
+
+        // Handle "Semua Tim" - semua anggota dapat poin
+        if (hasAllTeamTask) {
+          final membersData = await getMembers(kelompokId);
+          final membersList = membersData?.members ?? [];
+          for (final member in membersList) {
+            if (!member.toLowerCase().contains('ketua')) {
+              kelompokExecutorTaskCount[kelompokId]![member] =
+                  (kelompokExecutorTaskCount[kelompokId]![member] ?? 0) + 1;
+            }
+          }
+        }
+      } catch (e) {
+        Logger.error('Error processing report ${doc.id}', e);
+        continue;
+      }
+    }
+
+    // Reset personal points dulu untuk menghindari duplikasi
+    Logger.info('Resetting personal points to 0 before recalculation');
+    final resetBatch = _db.batch();
+    final allUsers = await _db.collection('users').get();
+    for (final doc in allUsers.docs) {
+      final data = doc.data();
+      final kelompokId = data['kelompok_id'];
+      if (kelompokId != null && kelompokId is int && kelompokId > 0) {
+        resetBatch.update(doc.reference, {'stats.personal_points': 0});
+      }
+    }
+    await resetBatch.commit();
+    Logger.info('Reset personal points for ${allUsers.docs.length} users');
+
+    // Update personal points untuk semua executor
+    final updateBatch = _db.batch();
+    int totalUpdated = 0;
+
+    for (final kelompokEntry in kelompokExecutorTaskCount.entries) {
+      final kelompokId = kelompokEntry.key;
+      final executorTaskCount = kelompokEntry.value;
+
+      // Get semua user di kelompok
+      final usersInGroup = await _db
+          .collection('users')
+          .where('kelompok_id', isEqualTo: kelompokId)
+          .get();
+
+      // Update personal points untuk setiap executor
+      for (final executorEntry in executorTaskCount.entries) {
+        final executorName = executorEntry.key;
+        final taskCount = executorEntry.value;
+        final pointsToAdd = taskCount * 5;
+
+        // Cari user yang match dengan executor name
+        DocumentReference? matchedUserRef;
+        for (final doc in usersInGroup.docs) {
+          final data = doc.data();
+          final displayName = (data['displayName'] ?? '') as String;
+          final role = (data['role'] ?? '') as String;
+
+          // Skip ketua kelompok
+          if (role == 'koordinator' &&
+              displayName.toLowerCase().contains('ketua')) {
+            continue;
+          }
+
+          // Exact match atau partial match
+          if (displayName.toLowerCase().trim() ==
+              executorName.toLowerCase().trim()) {
+            matchedUserRef = doc.reference;
+            break;
+          }
+        }
+
+        if (matchedUserRef != null) {
+          // Update dengan increment
+          updateBatch.update(matchedUserRef, {
+            'stats.personal_points': FieldValue.increment(pointsToAdd),
+          });
+          totalUpdated++;
+          Logger.info(
+            'Updating personal points for $executorName: +$pointsToAdd (from $taskCount tasks)',
+          );
+        } else {
+          Logger.warning(
+            'No user found for executor: $executorName in kelompok $kelompokId',
+          );
+        }
+      }
+    }
+
+    await updateBatch.commit();
+    Logger.info(
+      'Recalculated personal points: Updated $totalUpdated users from ${verifiedReports.docs.length} verified reports',
+    );
+  }
+
   /// Delete all daily_reports
   Future<void> deleteAllDailyReports() async {
     final reportsSnapshot = await _db.collection('daily_reports').get();
@@ -1198,31 +1446,133 @@ class FirestoreService {
   Future<void> saveDailyIbadah(
     String userId,
     String date, {
+    // Sholat Wajib
+    bool? subuhQobliyah,
+    bool? subuhJamaah,
+    bool? dzuhurJamaah,
+    bool? dzuhurBadiyah,
+    bool? asharJamaah,
+    bool? maghribJamaah,
+    bool? maghribBadiyah,
+    bool? isyaJamaah,
+    bool? isyaBadiyah,
+    // Amalan Harian
     bool? sholatDhuha,
     bool? alMulk,
+    bool? tahajud,
+    bool? surah56,
+    bool? alkahfiOrYasin,
+    // Fisik
+    int? pushup,
+    String? notes,
   }) async {
     final id = '$userId-$date';
     final now = FieldValue.serverTimestamp();
     await _db.collection('daily_ibadah').doc(id).set({
       'user_id': userId,
       'date': date,
+      // Sholat Wajib
+      if (subuhQobliyah != null) 'subuh_qobliyah': subuhQobliyah,
+      if (subuhJamaah != null) 'subuh_jamaah': subuhJamaah,
+      if (dzuhurJamaah != null) 'dzuhur_jamaah': dzuhurJamaah,
+      if (dzuhurBadiyah != null) 'dzuhur_badiyah': dzuhurBadiyah,
+      if (asharJamaah != null) 'ashar_jamaah': asharJamaah,
+      if (maghribJamaah != null) 'maghrib_jamaah': maghribJamaah,
+      if (maghribBadiyah != null) 'maghrib_badiyah': maghribBadiyah,
+      if (isyaJamaah != null) 'isya_jamaah': isyaJamaah,
+      if (isyaBadiyah != null) 'isya_badiyah': isyaBadiyah,
+      // Amalan Harian
       if (sholatDhuha != null) 'sholat_dhuha': sholatDhuha,
       if (alMulk != null) 'al_mulk': alMulk,
+      if (tahajud != null) 'tahajud': tahajud,
+      if (surah56 != null) 'surah56': surah56,
+      if (alkahfiOrYasin != null) 'alkahfi_or_yasin': alkahfiOrYasin,
+      // Fisik
+      if (pushup != null) 'pushup': pushup,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
       'updated_at': now,
     }, SetOptions(merge: true));
   }
 
-  Future<Map<String, bool?>> getDailyIbadah(String userId, String date) async {
+  Future<DailyIbadahModel?> getDailyIbadah(String userId, String date) async {
     final id = '$userId-$date';
     final doc = await _db.collection('daily_ibadah').doc(id).get();
     if (!doc.exists) {
-      return {'sholat_dhuha': null, 'al_mulk': null};
+      return null;
     }
-    final data = doc.data() ?? {};
-    return {
-      'sholat_dhuha': data['sholat_dhuha'] as bool?,
-      'al_mulk': data['al_mulk'] as bool?,
-    };
+    return DailyIbadahModel.fromMap(doc.data()!, doc.id);
+  }
+
+  /// Get weekly ibadah data (7 days ending at endDate)
+  Future<List<DailyIbadahModel>> getWeeklyIbadahData(
+    String userId,
+    DateTime endDate,
+  ) async {
+    final List<DailyIbadahModel> data = [];
+    for (int i = 6; i >= 0; i--) {
+      final date = endDate.subtract(Duration(days: i));
+      final dateStr = AppDateUtils.formatDate(date);
+      final ibadah = await getDailyIbadah(userId, dateStr);
+      if (ibadah != null) {
+        data.add(ibadah);
+      } else {
+        // Create empty entry for missing days
+        final emptyModel = DailyIbadahModel(
+          id: '$userId-$dateStr',
+          userId: userId,
+          date: dateStr,
+        );
+        data.add(emptyModel);
+      }
+    }
+    return data;
+  }
+
+  /// Get monthly ibadah data
+  Future<Map<DateTime, DailyIbadahModel>> getMonthlyIbadahData(
+    String userId,
+    DateTime month,
+  ) async {
+    final Map<DateTime, DailyIbadahModel> data = {};
+    final firstDay = DateTime(month.year, month.month, 1);
+    final lastDay = DateTime(month.year, month.month + 1, 0);
+
+    for (var day = firstDay.day; day <= lastDay.day; day++) {
+      final date = DateTime(month.year, month.month, day);
+      final dateStr = AppDateUtils.formatDate(date);
+      final ibadah = await getDailyIbadah(userId, dateStr);
+      final normalizedDate = DateTime.utc(date.year, date.month, date.day);
+      if (ibadah != null) {
+        data[normalizedDate] = ibadah;
+      } else {
+        data[normalizedDate] = DailyIbadahModel(
+          id: '$userId-$dateStr',
+          userId: userId,
+          date: dateStr,
+        );
+      }
+    }
+    return data;
+  }
+
+  /// Get all users ibadah data for a specific date (for leaderboard)
+  Future<Map<String, DailyIbadahModel>> getAllUsersIbadahData(
+    String date,
+  ) async {
+    final snapshot = await _db
+        .collection('daily_ibadah')
+        .where('date', isEqualTo: date)
+        .get();
+
+    final Map<String, DailyIbadahModel> data = {};
+    for (var doc in snapshot.docs) {
+      final ibadah = DailyIbadahModel.fromMap(doc.data(), doc.id);
+      // Get user name from users collection
+      final userDoc = await _db.collection('users').doc(ibadah.userId).get();
+      final userName = userDoc.data()?['displayName'] ?? 'Unknown';
+      data[userName] = ibadah;
+    }
+    return data;
   }
 
   /// Upload photo to Firebase Storage

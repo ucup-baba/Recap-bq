@@ -52,6 +52,29 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                 ),
                 Row(
                   children: [
+                    // Recalculate Personal Points Button
+                    Obx(
+                      () => IconButton(
+                        onPressed: controller.isRecalculating.value
+                            ? null
+                            : controller.showRecalculateDialog,
+                        icon: controller.isRecalculating.value
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.calculate,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                        tooltip: 'Recalculate Personal Points',
+                      ),
+                    ),
                     // Reset Button
                     Obx(
                       () => IconButton(

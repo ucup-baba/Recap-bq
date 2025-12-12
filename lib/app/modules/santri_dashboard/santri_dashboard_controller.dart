@@ -6,16 +6,19 @@ import '../../core/routes/app_pages.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/snackbar_helper.dart';
+import '../../data/models/daily_ibadah_model.dart';
 import '../../data/models/daily_report_model.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/services/ibadah_tracking_service.dart';
 import '../../data/services/rotation_service.dart';
 
 class SantriDashboardController extends GetxController {
   final _authService = AuthService.instance;
   final _firestore = FirestoreService.instance;
   final _rotation = RotationService();
+  final _ibadahService = IbadahTrackingService.instance;
 
   final user = Rxn<UserModel>();
   final areaTugas = ''.obs;
@@ -25,6 +28,10 @@ class SantriDashboardController extends GetxController {
   final reportStatus = ''.obs;
   final _hasFetchedOnce = false.obs;
   final kelompokIdStr = '-'.obs; // String untuk tampilan kelompok
+
+  // Ibadah tracking
+  final todayIbadah = Rxn<DailyIbadahModel>();
+  final selectedDate = DateTime.now().obs;
 
   StreamSubscription<UserModel?>? _userSubscription;
   StreamSubscription<List<DailyReportModel>>? _reportSubscription;
@@ -49,6 +56,7 @@ class SantriDashboardController extends GetxController {
       Logger.info('Dashboard onInit - arguments is null or not a Map');
     }
     _loadUser();
+    _loadTodayIbadah();
   }
 
   @override
@@ -65,23 +73,40 @@ class SantriDashboardController extends GetxController {
       return;
     }
     _userSubscription?.cancel();
-    _userSubscription = _firestore.watchUser(firebaseUser.uid).listen((
-      profile,
-    ) {
-      if (profile == null) return;
-      user.value = profile;
-      poin.value = profile.totalPoin;
-      streak.value = profile.currentStreak;
-      personalPoints.value = profile.personalPoints;
-      kelompokIdStr.value = profile.kelompokId?.toString() ?? '-';
-      if (profile.kelompokId != null) {
-        areaTugas.value = _rotation.getAreaForGroup(
-          profile.kelompokId!,
-          DateTime.now(),
+    _userSubscription = _firestore
+        .watchUser(firebaseUser.uid)
+        .listen(
+          (profile) {
+            if (profile == null) {
+              Logger.warning('User profile is null in watchUser stream');
+              return;
+            }
+            Logger.info(
+              'User profile loaded: uid=${profile.uid}, kelompokId=${profile.kelompokId}, role=${profile.role}',
+            );
+            user.value = profile;
+            poin.value = profile.totalPoin;
+            streak.value = profile.currentStreak;
+            personalPoints.value = profile.personalPoints;
+            kelompokIdStr.value = profile.kelompokId?.toString() ?? '-';
+            if (profile.kelompokId != null) {
+              areaTugas.value = _rotation.getAreaForGroup(
+                profile.kelompokId!,
+                DateTime.now(),
+              );
+              Logger.info(
+                'Area tugas set: ${areaTugas.value} for kelompok ${profile.kelompokId}',
+              );
+              _watchTodayReport(profile.kelompokId!);
+            } else {
+              Logger.warning('User profile has no kelompokId');
+              areaTugas.value = '';
+            }
+          },
+          onError: (error) {
+            Logger.error('Error in watchUser stream', error);
+          },
         );
-        _watchTodayReport(profile.kelompokId!);
-      }
-    });
   }
 
   String get today => AppDateUtils.formatDate(DateTime.now());
@@ -160,4 +185,26 @@ class SantriDashboardController extends GetxController {
       SnackbarHelper.showError('Gagal logout');
     }
   }
+
+  // Ibadah tracking methods
+  Future<void> _loadTodayIbadah() async {
+    try {
+      final ibadah = await _ibadahService.getTodayIbadah();
+      todayIbadah.value = ibadah;
+    } catch (e) {
+      Logger.error('Error loading today ibadah', e);
+    }
+  }
+
+  Future<void> updateIbadah(DailyIbadahModel updatedIbadah) async {
+    try {
+      todayIbadah.value = updatedIbadah;
+      // Data sudah disimpan via service di widget cards
+      await _loadTodayIbadah(); // Reload untuk memastikan sync
+    } catch (e) {
+      Logger.error('Error updating ibadah', e);
+    }
+  }
+
+  bool get isFriday => selectedDate.value.weekday == DateTime.friday;
 }

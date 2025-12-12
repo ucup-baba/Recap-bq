@@ -15,6 +15,7 @@ class AdminDashboardController extends GetxController {
   final _authService = AuthService.instance;
   final _rotation = RotationService();
   final isResetting = false.obs;
+  final isRecalculating = false.obs;
 
   Stream<List<DailyReportModel>> get pendingReportsStream =>
       _firestore.pendingReportsStream();
@@ -125,6 +126,84 @@ class AdminDashboardController extends GetxController {
       );
     } finally {
       isResetting.value = false;
+    }
+  }
+
+  Future<void> recalculatePersonalPoints() async {
+    isRecalculating.value = true;
+    try {
+      await _firestore.recalculatePersonalPointsFromVerifiedReports();
+      Logger.info('Personal points recalculation successful');
+      SnackbarHelper.showSuccess(
+        'Personal points berhasil dihitung ulang dari semua laporan yang sudah di-verify',
+      );
+    } catch (e) {
+      Logger.error('Error recalculating personal points', e);
+      SnackbarHelper.showError(
+        '${ErrorHandler.getErrorMessage(e)}\n\nGagal menghitung ulang personal points.',
+      );
+    } finally {
+      isRecalculating.value = false;
+    }
+  }
+
+  Future<void> showRecalculateDialog() async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.calculate, color: Colors.blue, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Recalculate Personal Points',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Hitung ulang personal points?',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Text('Tindakan ini akan:', style: TextStyle(fontSize: 14)),
+            SizedBox(height: 8),
+            Text('• Reset semua personal points ke 0'),
+            Text(
+              '• Hitung ulang personal points dari semua laporan yang sudah di-verify',
+            ),
+            Text('• Setiap executor mendapat +5 poin per task yang dikerjakan'),
+            SizedBox(height: 12),
+            Text(
+              'Ini berguna jika ada laporan yang sudah di-verify tapi personal points tidak terhitung dengan benar.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Ya, Hitung Ulang'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await recalculatePersonalPoints();
     }
   }
 

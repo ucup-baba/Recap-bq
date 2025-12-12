@@ -2,6 +2,7 @@ import '../../core/utils/date_utils.dart';
 import '../../core/utils/logger.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
+import '../models/daily_ibadah_model.dart';
 
 class IbadahTrackingService {
   IbadahTrackingService._();
@@ -10,10 +11,27 @@ class IbadahTrackingService {
   final _firestore = FirestoreService.instance;
   final _authService = AuthService.instance;
 
-  /// Save/update daily ibadah
+  /// Save/update daily ibadah with all fields
   Future<void> saveDailyIbadah({
+    // Sholat Wajib
+    bool? subuhQobliyah,
+    bool? subuhJamaah,
+    bool? dzuhurJamaah,
+    bool? dzuhurBadiyah,
+    bool? asharJamaah,
+    bool? maghribJamaah,
+    bool? maghribBadiyah,
+    bool? isyaJamaah,
+    bool? isyaBadiyah,
+    // Amalan Harian
     bool? sholatDhuha,
     bool? alMulk,
+    bool? tahajud,
+    bool? surah56,
+    bool? alkahfiOrYasin,
+    // Fisik
+    int? pushup,
+    String? notes,
   }) async {
     try {
       final user = _authService.currentUser;
@@ -26,10 +44,27 @@ class IbadahTrackingService {
       await _firestore.saveDailyIbadah(
         user.uid,
         today,
+        // Sholat Wajib
+        subuhQobliyah: subuhQobliyah,
+        subuhJamaah: subuhJamaah,
+        dzuhurJamaah: dzuhurJamaah,
+        dzuhurBadiyah: dzuhurBadiyah,
+        asharJamaah: asharJamaah,
+        maghribJamaah: maghribJamaah,
+        maghribBadiyah: maghribBadiyah,
+        isyaJamaah: isyaJamaah,
+        isyaBadiyah: isyaBadiyah,
+        // Amalan Harian
         sholatDhuha: sholatDhuha,
         alMulk: alMulk,
+        tahajud: tahajud,
+        surah56: surah56,
+        alkahfiOrYasin: alkahfiOrYasin,
+        // Fisik
+        pushup: pushup,
+        notes: notes,
       );
-      Logger.info('Daily ibadah saved: sholatDhuha=$sholatDhuha, alMulk=$alMulk');
+      Logger.info('Daily ibadah saved successfully');
     } catch (e) {
       Logger.error('Error saving daily ibadah', e);
       rethrow;
@@ -37,28 +72,131 @@ class IbadahTrackingService {
   }
 
   /// Get daily ibadah for today
-  Future<Map<String, bool?>> getTodayIbadah() async {
+  Future<DailyIbadahModel?> getTodayIbadah() async {
     try {
       final user = _authService.currentUser;
       if (user == null) {
-        return {'sholat_dhuha': null, 'al_mulk': null};
+        return null;
       }
 
       final today = AppDateUtils.formatDate(DateTime.now());
       return await _firestore.getDailyIbadah(user.uid, today);
     } catch (e) {
       Logger.error('Error getting today ibadah', e);
-      return {'sholat_dhuha': null, 'al_mulk': null};
+      return null;
     }
   }
 
-  /// Update sholat dhuha status
+  /// Get daily ibadah for specific date
+  Future<DailyIbadahModel?> getDailyIbadahForDate(DateTime date) async {
+    try {
+      final user = _authService.currentUser;
+      if (user == null) {
+        return null;
+      }
+
+      final dateStr = AppDateUtils.formatDate(date);
+      return await _firestore.getDailyIbadah(user.uid, dateStr);
+    } catch (e) {
+      Logger.error('Error getting ibadah for date', e);
+      return null;
+    }
+  }
+
+  /// Get weekly ibadah data
+  Future<List<DailyIbadahModel>> getWeeklyIbadahData() async {
+    try {
+      final user = _authService.currentUser;
+      if (user == null) {
+        return [];
+      }
+
+      return await _firestore.getWeeklyIbadahData(user.uid, DateTime.now());
+    } catch (e) {
+      Logger.error('Error getting weekly ibadah data', e);
+      return [];
+    }
+  }
+
+  /// Get monthly ibadah data
+  Future<Map<DateTime, DailyIbadahModel>> getMonthlyIbadahData(
+    DateTime month,
+  ) async {
+    try {
+      final user = _authService.currentUser;
+      if (user == null) {
+        return {};
+      }
+
+      return await _firestore.getMonthlyIbadahData(user.uid, month);
+    } catch (e) {
+      Logger.error('Error getting monthly ibadah data', e);
+      return {};
+    }
+  }
+
+  // Helper methods for individual fields update
+  Future<void> updateSubuhQobliyah(bool value) async {
+    await saveDailyIbadah(subuhQobliyah: value);
+  }
+
+  Future<void> updateSubuhJamaah(bool value) async {
+    await saveDailyIbadah(subuhJamaah: value);
+  }
+
+  Future<void> updateDzuhurJamaah(bool value) async {
+    await saveDailyIbadah(dzuhurJamaah: value);
+  }
+
+  Future<void> updateDzuhurBadiyah(bool value) async {
+    await saveDailyIbadah(dzuhurBadiyah: value);
+  }
+
+  Future<void> updateAsharJamaah(bool value) async {
+    await saveDailyIbadah(asharJamaah: value);
+  }
+
+  Future<void> updateMaghribJamaah(bool value) async {
+    await saveDailyIbadah(maghribJamaah: value);
+  }
+
+  Future<void> updateMaghribBadiyah(bool value) async {
+    await saveDailyIbadah(maghribBadiyah: value);
+  }
+
+  Future<void> updateIsyaJamaah(bool value) async {
+    await saveDailyIbadah(isyaJamaah: value);
+  }
+
+  Future<void> updateIsyaBadiyah(bool value) async {
+    await saveDailyIbadah(isyaBadiyah: value);
+  }
+
   Future<void> updateSholatDhuha(bool value) async {
     await saveDailyIbadah(sholatDhuha: value);
   }
 
-  /// Update al-mulk status
   Future<void> updateAlMulk(bool value) async {
     await saveDailyIbadah(alMulk: value);
+  }
+
+  Future<void> updateTahajud(bool value) async {
+    await saveDailyIbadah(tahajud: value);
+  }
+
+  Future<void> updateSurah56(bool value) async {
+    await saveDailyIbadah(surah56: value);
+  }
+
+  Future<void> updateAlkahfiOrYasin(bool value) async {
+    await saveDailyIbadah(alkahfiOrYasin: value);
+  }
+
+  Future<void> updatePushup(int value) async {
+    await saveDailyIbadah(pushup: value);
+  }
+
+  Future<void> updateNotes(String value) async {
+    await saveDailyIbadah(notes: value);
   }
 }
