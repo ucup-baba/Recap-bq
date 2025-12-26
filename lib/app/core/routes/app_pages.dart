@@ -44,6 +44,10 @@ import '../../modules/manage_weekend_tasks/manage_weekend_tasks_binding.dart';
 import '../../modules/manage_weekend_tasks/manage_weekend_tasks_view.dart';
 import '../../modules/weekend_schedule/weekend_schedule_binding.dart';
 import '../../modules/weekend_schedule/weekend_schedule_view.dart';
+import '../../modules/weekend_report_input/weekend_report_input_binding.dart';
+import '../../modules/weekend_report_input/weekend_report_input_view.dart';
+import '../../modules/weekend_report_validation/weekend_report_validation_binding.dart';
+import '../../modules/weekend_report_validation/weekend_report_validation_view.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -68,6 +72,8 @@ class AppRoutes {
   static const String notificationSettings = '/notification-settings';
   static const String manageWeekendTasks = '/manage-weekend-tasks';
   static const String weekendSchedule = '/weekend-schedule';
+  static const String weekendReportInput = '/weekend-report-input';
+  static const String weekendReportValidation = '/weekend-report-validation';
 }
 
 class AppPages {
@@ -181,6 +187,16 @@ class AppPages {
       name: AppRoutes.weekendSchedule,
       page: () => const WeekendScheduleView(),
       binding: WeekendScheduleBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.weekendReportInput,
+      page: () => const WeekendReportInputView(),
+      binding: WeekendReportInputBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.weekendReportValidation,
+      page: () => const WeekendReportValidationView(),
+      binding: WeekendReportValidationBinding(),
     ),
   ];
 }
