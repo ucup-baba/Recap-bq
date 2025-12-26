@@ -30,6 +30,22 @@ class AdminDashboardController extends GetxController {
 
   void openLeaderboard() => Get.toNamed(AppRoutes.leaderboard);
 
+  void openIbadahTracking() => Get.toNamed(AppRoutes.adminIbadah);
+
+  Future<void> createKedisiplinanUser() async {
+    try {
+      await _authService.createKedisiplinanUser();
+      SnackbarHelper.showSuccess(
+        'User kedisiplinan berhasil dibuat!\nEmail: disiplinbq@bqmail.com\nPassword: disiplinbq',
+      );
+    } catch (e) {
+      Logger.error('Error creating kedisiplinan user', e);
+      SnackbarHelper.showError(
+        'Gagal membuat user kedisiplinan: ${ErrorHandler.getErrorMessage(e)}',
+      );
+    }
+  }
+
   Future<void> showResetDialog() async {
     final confirmed = await Get.dialog<bool>(
       AlertDialog(

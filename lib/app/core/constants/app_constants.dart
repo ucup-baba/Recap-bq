@@ -9,8 +9,10 @@ class AppConstants {
   static const String reportStatusRejected = 'rejected';
 
   // User Roles
+  static const String userRoleSuperAdmin = 'super_admin';
   static const String userRoleAdmin = 'admin';
   static const String userRoleKoordinator = 'koordinator';
+  static const String userRoleKedisplinan = 'kedisplinan';
 
   // Firestore Collections
   static const String collectionUsers = 'users';
@@ -18,6 +20,8 @@ class AppConstants {
   static const String collectionAreaTasks = 'area_tasks';
   static const String collectionKelompokMembers = 'kelompok_members';
   static const String collectionGroups = 'groups';
+  static const String collectionViolationRules = 'violation_rules';
+  static const String collectionViolationCases = 'violation_cases';
 
   // Firestore Fields
   static const String fieldKelompokId = 'kelompok_id';

@@ -7,45 +7,59 @@ import '../../data/models/user_model.dart';
 import 'leaderboard_controller.dart';
 
 class LeaderboardView extends GetView<LeaderboardController> {
-  const LeaderboardView({super.key});
+  final bool hideAppBar;
+  
+  const LeaderboardView({super.key, this.hideAppBar = false});
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.only(
-                top: 40,
-                bottom: 20,
-                left: 16,
-                right: 16,
-              ),
-              decoration: const BoxDecoration(
-                gradient: AppColors.headerGradient,
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(24),
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Get.back(),
-                          icon: const Icon(
-                            Icons.arrow_back_ios,
-                            color: Colors.white,
-                          ),
+    final bodyContent = _buildBodyContent();
+    
+    if (hideAppBar) {
+      // Return only body without Scaffold/header
+      return Container(
+        color: AppColors.background,
+        child: bodyContent,
+      );
+    }
+    
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: bodyContent,
+    );
+  }
+
+  Widget _buildBodyContent() {
+    return Column(
+      children: [
+        if (!hideAppBar)
+          Container(
+            padding: const EdgeInsets.only(
+              top: 40,
+              bottom: 20,
+              left: 16,
+              right: 16,
+            ),
+            decoration: const BoxDecoration(
+              gradient: AppColors.headerGradient,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
                         ),
-                        const SizedBox(width: 8),
-                        const Column(
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -65,215 +79,226 @@ class LeaderboardView extends GetView<LeaderboardController> {
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    TabBar(
-                      indicatorColor: Colors.white,
-                      indicatorWeight: 3,
-                      labelColor: Colors.white,
-                      unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
-                      tabs: const [
-                        Tab(text: 'Individual'),
-                        Tab(text: 'Kelompok'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  // Tab Individual
-                  Column(
-                    children: [
-                      // Filter Dropdown untuk Individual Leaderboard
-                      Obx(() {
-                        if (controller.isAdmin.value) {
-                          return Container(
-                            margin: const EdgeInsets.all(16),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.filter_list,
-                                  color: AppColors.primaryBlue,
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Filter:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: StreamBuilder<Map<int, Map<String, int>>>(
-                                    stream:
-                                        controller.groupedContributionsStream,
-                                    builder: (context, snapshot) {
-                                      if (!snapshot.hasData) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final groups =
-                                          snapshot.data?.keys.toList() ?? [];
-                                      groups.sort();
-
-                                      // Pastikan value yang dipilih ada di items
-                                      final currentValue =
-                                          controller.selectedKelompok.value;
-                                      final validValue =
-                                          (currentValue == null ||
-                                              groups.contains(currentValue))
-                                          ? currentValue
-                                          : null;
-
-                                      // Jika value tidak valid, set ke null
-                                      if (validValue != currentValue) {
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback((_) {
-                                              controller.setKelompokFilter(
-                                                null,
-                                              );
-                                            });
-                                      }
-
-                                      return DropdownButton<int?>(
-                                        value: validValue,
-                                        isExpanded: true,
-                                        underline: const SizedBox(),
-                                        items: [
-                                          const DropdownMenuItem<int?>(
-                                            value: null,
-                                            child: Text('Semua Kelompok'),
-                                          ),
-                                          ...groups.map(
-                                            (kelompokId) =>
-                                                DropdownMenuItem<int?>(
-                                                  value: kelompokId,
-                                                  child: Text(
-                                                    'Kelompok $kelompokId',
-                                                  ),
-                                                ),
-                                          ),
-                                        ],
-                                        onChanged: (value) {
-                                          controller.setKelompokFilter(value);
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          // Koordinator: tampilkan info kelompok saja
-                          return Container(
-                            margin: const EdgeInsets.all(16),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.info_outline,
-                                  color: AppColors.primaryBlue,
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Kelompok Anda:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Obx(
-                                  () => Text(
-                                    'Kelompok ${controller.selectedKelompok.value ?? "-"}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primaryBlue,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                      }),
-                      Expanded(child: _buildIndividualLeaderboard()),
+                      ),
                     ],
                   ),
-                  // Tab Kelompok
-                  _buildGroupLeaderboard(),
+                  // Dropdown filter untuk admin (hanya di tab Individual)
+                  Obx(() {
+                    if (controller.isAdmin.value &&
+                        controller.currentTabIndex.value == 0) {
+                      return Container(
+                        margin: const EdgeInsets.only(top: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.filter_list,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Filter:',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButton<int?>(
+                                value: controller.selectedKelompok.value,
+                                isExpanded: true,
+                                underline: const SizedBox(),
+                                dropdownColor: Colors.white,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                                icon: const Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Colors.white,
+                                ),
+                                items: [
+                                  const DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text(
+                                      'Semua Kelompok',
+                                      style: TextStyle(color: AppColors.text),
+                                    ),
+                                  ),
+                                  ...List.generate(5, (index) {
+                                    final kelompokId = index + 1;
+                                    return DropdownMenuItem<int?>(
+                                      value: kelompokId,
+                                      child: Text(
+                                        'Kelompok $kelompokId',
+                                        style: const TextStyle(
+                                          color: AppColors.text,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (val) {
+                                  controller.setKelompokFilter(val);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
                 ],
               ),
             ),
-          ],
+          ),
+        // Filter dropdown untuk admin/super_admin saat hideAppBar (embedded di Super Admin Dashboard)
+        if (hideAppBar)
+          Obx(() {
+            if (controller.isAdmin.value &&
+                controller.currentTabIndex.value == 0) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.filter_list,
+                      color: AppColors.primaryBlue,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Filter:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButton<int?>(
+                        value: controller.selectedKelompok.value,
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        dropdownColor: Colors.white,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.text,
+                        ),
+                        icon: const Icon(
+                          Icons.arrow_drop_down,
+                          color: AppColors.primaryBlue,
+                        ),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text(
+                              'Semua Kelompok',
+                              style: TextStyle(color: AppColors.text),
+                            ),
+                          ),
+                          ...List.generate(5, (index) {
+                            final kelompokId = index + 1;
+                            return DropdownMenuItem<int?>(
+                              value: kelompokId,
+                              child: Text(
+                                'Kelompok $kelompokId',
+                                style: const TextStyle(
+                                  color: AppColors.text,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          controller.setKelompokFilter(val);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+        // Tab Bar
+        Container(
+          color: Colors.white,
+          child: TabBar(
+            controller: controller.tabController,
+            labelColor: AppColors.primaryBlue,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: AppColors.primaryBlue,
+            tabs: const [
+              Tab(text: 'Individual'),
+              Tab(text: 'Kelompok'),
+            ],
+          ),
         ),
-      ),
+        Expanded(
+          child: TabBarView(
+            controller: controller.tabController,
+            children: [
+              _buildIndividualLeaderboard(),
+              _buildGroupLeaderboard(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildIndividualLeaderboard() {
     return StreamBuilder<List<UserModel>>(
       stream: controller.individualLeaderboardStream,
-      initialData: controller.cachedIndividualData, // Gunakan cached data
+      initialData: controller.cachedIndividualData,
       builder: (context, snapshot) {
-        // Gunakan cached data jika stream belum emit
-        final data = snapshot.data?.isNotEmpty == true
-            ? snapshot.data!
-            : controller.cachedIndividualData;
-
-        // Jika masih loading dan belum ada data sama sekali
         if (snapshot.connectionState == ConnectionState.waiting &&
-            data.isEmpty) {
+            snapshot.data == null) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (data.isEmpty) {
-          return _buildEmptyState('Belum ada data papan peringkat');
+        final users = snapshot.data ?? [];
+        if (users.isEmpty) {
+          return _buildEmptyState('Belum ada data papan peringkat individual');
         }
+
         return RefreshIndicator(
           onRefresh: () async {
-            await Future.delayed(const Duration(milliseconds: 500));
+            // Refresh individual leaderboard - stream akan otomatis update
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: data.length,
+            itemCount: users.length,
             itemBuilder: (context, index) {
-              final user = data[index];
+              final user = users[index];
               final rank = index + 1;
               final rankColor = _getRankColor(rank);
 
@@ -282,8 +307,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 rankColor: rankColor,
                 title: user.displayName,
                 subtitle:
-                    'Kelompok ${user.kelompokId ?? "-"} • Streak: ${user.currentStreak} hari',
-                points: '${user.personalPoints} Pts',
+                    'Kelompok ${user.kelompokId ?? '-'} • Poin: ${user.personalPoints}',
+                points: '${user.personalPoints}',
                 icon: Icons.person,
               );
             },
@@ -297,22 +322,28 @@ class LeaderboardView extends GetView<LeaderboardController> {
     return StreamBuilder<List<GroupModel>>(
       stream: controller.groupLeaderboardStream,
       builder: (context, snapshot) {
-        final data = snapshot.data ?? [];
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (data.isEmpty) {
-          return _buildEmptyState('Belum ada data kelompok');
+
+        if (snapshot.hasError) {
+          return _buildEmptyState('Error: ${snapshot.error}');
         }
+
+        final groups = snapshot.data ?? [];
+        if (groups.isEmpty) {
+          return _buildEmptyState('Belum ada data papan peringkat kelompok');
+        }
+
         return RefreshIndicator(
           onRefresh: () async {
-            await Future.delayed(const Duration(milliseconds: 500));
+            // Refresh group leaderboard - stream akan otomatis update
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: data.length,
+            itemCount: groups.length,
             itemBuilder: (context, index) {
-              final group = data[index];
+              final group = groups[index];
               final rank = index + 1;
               final rankColor = _getRankColor(rank);
 
@@ -320,8 +351,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 rank: rank,
                 rankColor: rankColor,
                 title: 'Kelompok ${group.groupId}',
-                subtitle: 'Total poin minggu ini',
-                points: '${group.totalWeeklyScore} Pts',
+                subtitle: 'Total Poin: ${group.totalWeeklyScore}',
+                points: '${group.totalWeeklyScore}',
                 icon: Icons.groups,
               );
             },

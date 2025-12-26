@@ -156,6 +156,21 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          // Second row for Amalan Ibadah
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _buildMenuCard(
+                  title: 'Amalan Ibadah',
+                  icon: Icons.mosque,
+                  color: Colors.green,
+                  onTap: controller.openIbadahTracking,
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 24),
 

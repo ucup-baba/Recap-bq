@@ -12,14 +12,24 @@ service cloud.firestore {
       return userDoc != null && userDoc.data != null ? userDoc.data.role : null;
     }
     
+    // Helper function to check if user is super admin
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super_admin';
+    }
+    
     // Helper function to check if user is admin
     function isAdmin() {
-      return isAuthenticated() && getUserRole() == 'admin';
+      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'super_admin');
     }
     
     // Helper function to check if user is koordinator
     function isKoordinator() {
       return isAuthenticated() && getUserRole() == 'koordinator';
+    }
+    
+    // Helper function to check if user is kedisiplinan
+    function isKedisiplinan() {
+      return isAuthenticated() && getUserRole() == 'kedisplinan';
     }
     
     // Helper function to get user kelompok_id
@@ -31,13 +41,27 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Anyone authenticated can read their own profile
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      // Admin and super_admin can read any user (for account management)
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isAdmin()
+      );
       
       // Anyone authenticated can read all users (for leaderboard)
       allow list: if isAuthenticated();
       
       // Admin can create/update any user
       allow create, update: if isAdmin();
+      
+      // Users can create their own profile if it doesn't exist yet
+      // This is needed for auto-creation during first login (e.g., kedisiplinan user)
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && !exists(/databases/$(database)/documents/users/$(userId))
+        && request.resource.data.keys().hasAll(['email', 'displayName', 'role'])
+        && request.resource.data.email is string
+        && request.resource.data.displayName is string
+        && request.resource.data.role is string;
       
       // Users can update their own profile (limited fields)
       // Allow update kelompok_id only if it's currently null (for auto-fix)
@@ -56,13 +80,25 @@ service cloud.firestore {
     
     // Daily reports collection
     match /daily_reports/{reportId} {
+      // Helper to extract kelompok_id from document ID (format: {kelompokId}-{date})
+      function getKelompokIdFromReportId() {
+        return int(reportId.split('-')[0]);
+      }
+      
+      // Helper to check if report belongs to user's kelompok
+      function belongsToUserKelompok() {
+        return getKelompokIdFromReportId() == getUserKelompokId();
+      }
+      
       // Koordinator can read reports from their own kelompok
-      // Allow read if document exists and user has permission
+      // Allow read if document exists and user has permission, or if document doesn't exist but ID matches user's kelompok
       allow get: if isAuthenticated() && (
         isAdmin() || 
         (isKoordinator() && (
-          !resource.exists || 
-          resource.data.kelompok_id == getUserKelompokId()
+          // Document doesn't exist but ID format matches user's kelompok
+          (!resource.exists && belongsToUserKelompok()) ||
+          // Document exists and kelompok_id matches
+          (resource.exists && resource.data.kelompok_id == getUserKelompokId())
         ))
       );
       
@@ -127,6 +163,110 @@ service cloud.firestore {
       
       // Admin can create/update (for score updates)
       allow create, update: if isAdmin();
+    }
+    
+    // Daily ibadah collection (personal tracking per user)
+    match /daily_ibadah/{ibadahId} {
+      // Helper to extract userId from document ID (format: {userId}-{date})
+      function getUserIdFromId() {
+        return ibadahId.split('-')[0];
+      }
+      
+      // Check if document ID belongs to authenticated user
+      function belongsToUser() {
+        return getUserIdFromId() == request.auth.uid;
+      }
+      
+      // User can read their own ibadah data
+      // Document ID format: {userId}-{date}
+      allow get: if isAuthenticated() && (
+        // Admin can read all data
+        isAdmin() ||
+        // Kedisiplinan can read all data (for leaderboard)
+        isKedisiplinan() ||
+        // Koordinator (ketua kelompok) can read all data (for leaderboard)
+        isKoordinator() ||
+        // User can read if document ID belongs to them
+        // This works even if document doesn't exist (for checking before creating)
+        belongsToUser()
+      );
+      
+      // User can list/query their own ibadah data
+      allow list: if isAuthenticated() && (
+        // Admin can query all
+        isAdmin() ||
+        // Kedisiplinan can query all (for leaderboard)
+        isKedisiplinan() ||
+        // Koordinator (ketua kelompok) can query all (for leaderboard)
+        isKoordinator() ||
+        // Regular users can query (with reasonable limit)
+        // Note: Actual filtering by user_id should be done in the query
+        (request.query.limit == null || request.query.limit <= 100)
+      );
+      
+      // User can create/update their own ibadah data
+      allow create, update: if isAuthenticated() && (
+        // Validate user_id field matches authenticated user
+        // Also check document ID starts with user's ID
+        request.resource.data.user_id == request.auth.uid &&
+        belongsToUser()
+      );
+      
+      // Only admin can delete ibadah data
+      allow delete: if isAdmin();
+    }
+    
+    // Violation rules collection (master data)
+    match /violation_rules/{ruleId} {
+      // Everyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // Only admin and kedisiplinan can create/update/delete
+      allow create, update, delete: if isAdmin() || isKedisiplinan();
+    }
+    
+    // Violation cases collection (case records)
+    match /violation_cases/{caseId} {
+      // Everyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // Only admin and kedisiplinan can create
+      allow create: if isAdmin() || isKedisiplinan();
+      
+      // Only admin can update/delete
+      allow update, delete: if isAdmin();
+    }
+    
+    // Notification reminders collection
+    match /notification_reminders/{reminderId} {
+      // Super Admin can read all reminders
+      allow read: if isSuperAdmin();
+      
+      // Regular users can read their own reminders
+      allow read: if isAuthenticated() 
+        && resource.data.user_id == request.auth.uid;
+      
+      // Super Admin can create reminders for any user
+      allow create: if isSuperAdmin();
+      
+      // Regular users can create reminders for themselves
+      allow create: if isAuthenticated() 
+        && request.resource.data.user_id == request.auth.uid;
+      
+      // Super Admin can update all reminders
+      allow update: if isSuperAdmin();
+      
+      // Regular users can update their own reminders
+      allow update: if isAuthenticated() 
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == request.auth.uid;
+      
+      // Super Admin can delete all reminders
+      allow delete: if isSuperAdmin();
+      
+      // Regular users can delete their own reminders
+      allow delete: if isAuthenticated() 
+        && resource.data.user_id == request.auth.uid;
     }
   }
 }

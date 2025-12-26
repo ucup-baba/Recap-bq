@@ -34,6 +34,18 @@ class SplashController extends GetxController {
     currentHadits.value = hadits;
     Logger.info('Splash screen initialized with hadits: $hadits');
 
+    // Auto-create kedisiplinan user (if not exists) - don't block startup
+    _authService.createKedisiplinanUser().catchError((e) {
+      Logger.error('Error auto-creating kedisiplinan user', e);
+      // Don't block app startup if user creation fails
+    });
+
+    // Auto-create super admin user (if not exists) - don't block startup
+    _authService.createSuperAdminUser().catchError((e) {
+      Logger.error('Error auto-creating super admin user', e);
+      // Don't block app startup if user creation fails
+    });
+
     // Start timer untuk 3 detik
     _timer = Timer(const Duration(seconds: 3), () {
       _navigateToNext();
@@ -50,8 +62,12 @@ class SplashController extends GetxController {
       try {
         final profile = await _authService.loadUserProfile(user.uid);
         if (profile != null) {
-          if (profile.role == AppConstants.userRoleAdmin) {
+          if (profile.role == AppConstants.userRoleSuperAdmin) {
+            Get.offAllNamed(AppRoutes.superAdminDashboard);
+          } else if (profile.role == AppConstants.userRoleAdmin) {
             Get.offAllNamed(AppRoutes.adminDashboard);
+          } else if (profile.role == AppConstants.userRoleKedisplinan) {
+            Get.offAllNamed(AppRoutes.kedisiplinanDashboard);
           } else {
             Get.offAllNamed(AppRoutes.santriDashboard);
           }

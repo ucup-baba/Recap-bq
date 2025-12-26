@@ -344,6 +344,19 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
+                    onPressed: () => Get.toNamed(AppRoutes.statistics),
+                    icon: const Icon(
+                      Icons.bar_chart_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    tooltip: 'Statistik Amalan',
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
                     onPressed: controller.logout,
                     icon: const Icon(
                       Icons.logout,
@@ -464,7 +477,7 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
       // Pastikan kita mengakses observable langsung, bukan hanya .value
       final ibadahData = controller.todayIbadah();
       final selectedDate = controller.selectedDate();
-      
+
       return Column(
         children: [
           SholatWajibCard(

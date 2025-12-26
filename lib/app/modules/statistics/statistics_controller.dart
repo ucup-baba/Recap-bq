@@ -1,7 +1,9 @@
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import '../../core/utils/logger.dart';
 import '../../data/models/daily_ibadah_model.dart';
+import '../../data/models/user_model.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/ibadah_tracking_service.dart';
@@ -15,6 +17,10 @@ class StatisticsController extends GetxController {
   final selectedKelompok = Rxn<int>();
   // Role user: true jika admin, false jika koordinator
   final isAdmin = false.obs;
+
+  // Multi-user selection
+  final RxList<UserModel> availableUsers = <UserModel>[].obs;
+  final Rxn<UserModel> selectedUser = Rxn<UserModel>();
 
   // Tab controller
   final selectedTabIndex = 0.obs; // 0: Individual, 1: Kelompok, 2: Amalan Yaumi
@@ -34,24 +40,35 @@ class StatisticsController extends GetxController {
   final RxInt bestStreak = 0.obs;
   final RxMap<String, double> sholatStatistics = <String, double>{}.obs;
 
+  // User ranking
+  final RxInt userRank = 0.obs;
+  final RxInt totalUsersInGroup = 0.obs;
+
   // Bulan yang sedang dilihat di kalender heatmap
   final Rx<DateTime> focusedDay = DateTime.now().obs;
 
   @override
   void onInit() {
     super.onInit();
+    // Initialize locale for table_calendar
+    _initializeLocale();
     // Load user info dan set filter sesuai role
     _loadUserInfo();
+  }
+
+  Future<void> _initializeLocale() async {
+    try {
+      await initializeDateFormatting('id_ID', null);
+    } catch (e) {
+      Logger.warning('Error initializing locale: $e');
+    }
   }
 
   @override
   void onReady() {
     super.onReady();
-    // Load amalan yaumi data jika tab aktif
-    if (selectedTabIndex.value == 2) {
-      loadWeeklyIbadahData();
-      loadMonthlyIbadahData(DateTime.now());
-    }
+    // Load amalan yaumi data saat halaman dibuka (weekly only)
+    loadWeeklyIbadahData().then((_) => loadUserRanking());
   }
 
   void changeTab(int index) {
@@ -74,19 +91,26 @@ class StatisticsController extends GetxController {
       final user = await _firestore.fetchUser(firebaseUser.uid);
       if (user != null) {
         // Cek role: admin bisa lihat semua, koordinator hanya kelompok sendiri
-        isAdmin.value = user.role == 'admin';
+        isAdmin.value = user.role == 'admin' || user.role == 'super_admin';
 
-        if (user.role == 'admin') {
+        if (user.role == 'admin' || user.role == 'super_admin') {
           // Admin: default tampilkan semua kelompok (null)
           selectedKelompok.value = null;
           Logger.info('User is admin, showing all groups');
+          // Load all users for filter
+          loadAvailableUsers();
         } else if (user.kelompokId != null) {
           // Koordinator: force tampilkan kelompok sendiri
-        selectedKelompok.value = user.kelompokId;
+          selectedKelompok.value = user.kelompokId;
           Logger.info('User is koordinator kelompok ${user.kelompokId}');
-      } else {
+          // Load users in group
+          loadAvailableUsers();
+        } else {
           Logger.warning('User has no kelompokId and is not admin');
         }
+
+        // Set default selected user to self
+        selectedUser.value = user;
       }
     } catch (e) {
       Logger.error('Error loading user info', e);
@@ -135,12 +159,112 @@ class StatisticsController extends GetxController {
   Stream<Map<int, Map<String, int>>> get groupedContributionsStream =>
       _firestore.personalContributionByGroup();
 
+  Future<void> loadAvailableUsers() async {
+    try {
+      final currentUser = await _firestore.fetchUser(
+        _authService.currentUser?.uid ?? '',
+      );
+      if (currentUser == null) return;
+
+      List<UserModel> users = [];
+      if (isAdmin.value) {
+        // Admin: load all users but filter for leaderboard-relevant accounts
+        // (Super Admin, Admin, Kedisiplinan, Ketua Kelompok)
+        final all = await _firestore.getAllUsers();
+        users = all.where((user) {
+          final role = user.role;
+          final name = user.displayName.toLowerCase();
+
+          // Always include these roles
+          if (role == 'admin' ||
+              role == 'super_admin' ||
+              role == 'kedisplinan') {
+            return true;
+          }
+
+          // For koordinator/others, only include if "Ketua"
+          if (name.contains('ketua') || user.uid.startsWith('ketuakel')) {
+            return true;
+          }
+
+          return false;
+        }).toList();
+      } else {
+        // Koordinator: load users in group
+        // Note: FirestoreService might not have getUsersByGroup, checking...
+        // If not, we can filter getAllUsers or add method.
+        // Assuming we can use getAllUsers and filter for now as it's safer than adding new service method blindly
+        // But wait, getAllUsers might be heavy. Let's check if we can optimize.
+        // Actually, let's just fetch all for now or filter if possible.
+        // Better: use Existing method or fetch all and filter.
+        final all = await _firestore.getAllUsers();
+        users = all
+            .where((u) => u.kelompokId == currentUser.kelompokId)
+            .toList();
+      }
+
+      // Sort: Admin/Super Admin first, then Alpha
+      users.sort((a, b) {
+        if (a.role.contains('admin') && !b.role.contains('admin')) return -1;
+        if (!a.role.contains('admin') && b.role.contains('admin')) return 1;
+        return a.displayName.compareTo(b.displayName);
+      });
+
+      availableUsers.value = users;
+    } catch (e) {
+      Logger.error('Error loading available users', e);
+    }
+  }
+
+  void changeTargetUser(UserModel? user) {
+    if (user == null) return;
+    selectedUser.value = user;
+    // Reload stats
+    loadWeeklyIbadahData();
+    if (selectedTabIndex.value == 2) {
+      loadMonthlyIbadahData(focusedDay.value);
+    }
+    // Also reload ranking if needed, though ranking is usually global
+    // loadUserRanking(); // Ranking might be specific to the logged in user context?
+    // Usually ranking shows where "I" am. If viewing others, maybe show "Their" rank.
+    _loadUserRankingForTarget(user);
+  }
+
+  Future<void> _loadUserRankingForTarget(UserModel target) async {
+    // Logic similar to loadUserRanking but for specific user
+    try {
+      // Ambil leaderboard semua users individual (ketua kelompok 1-5 + admin + kedisiplinan + super admin)
+      final leaderboard = await _firestore.getLevelBasedLeaderboard();
+      // Total users adalah jumlah semua users di leaderboard (maksimal 8: 5 ketua + admin + kedisiplinan + super admin)
+      totalUsersInGroup.value = leaderboard.length;
+
+      // Cari ranking user target
+      for (int i = 0; i < leaderboard.length; i++) {
+        if (leaderboard[i]['userId'] == target.uid) {
+          userRank.value = i + 1;
+          break;
+        }
+      }
+
+      // Jika tidak ditemukan, set rank ke 0
+      if (userRank.value == 0 && leaderboard.isNotEmpty) {
+        userRank.value = 0;
+      }
+    } catch (e) {
+      Logger.error('Error loading user ranking', e);
+      userRank.value = 0;
+      totalUsersInGroup.value = 0;
+    }
+  }
+
   // Amalan Yaumi methods
   Future<void> loadWeeklyIbadahData() async {
     try {
       isLoadingWeeklyIbadah.value = true;
-      final data = await _ibadahService.getWeeklyIbadahData();
-      weeklyIbadahData.value = data.reversed.toList();
+      final targetUid = selectedUser.value?.uid;
+      final data = await _ibadahService.getWeeklyIbadahData(userId: targetUid);
+      // Keep original order: oldest day (left) → newest day (right)
+      weeklyIbadahData.value = data;
       _calculateIbadahStatistics(weeklyIbadahData);
       _calculateIbadahStreak(weeklyIbadahData);
       _calculateIbadahSholatStatistics(weeklyIbadahData);
@@ -155,7 +279,11 @@ class StatisticsController extends GetxController {
   Future<void> loadMonthlyIbadahData(DateTime month) async {
     try {
       isLoadingMonthlyIbadah.value = true;
-      final data = await _ibadahService.getMonthlyIbadahData(month);
+      final targetUid = selectedUser.value?.uid;
+      final data = await _ibadahService.getMonthlyIbadahData(
+        month,
+        userId: targetUid,
+      );
       monthlyIbadahData.value = data;
     } catch (e) {
       Logger.error('Error loading monthly ibadah data', e);
@@ -203,10 +331,12 @@ class StatisticsController extends GetxController {
         amalanCounts['Al-Mulk (67)'] = (amalanCounts['Al-Mulk (67)'] ?? 0) + 1;
       }
       if (dayData.surah56 == true) {
-        amalanCounts['Al-Waqi\'ah (56)'] = (amalanCounts['Al-Waqi\'ah (56)'] ?? 0) + 1;
+        amalanCounts['Al-Waqi\'ah (56)'] =
+            (amalanCounts['Al-Waqi\'ah (56)'] ?? 0) + 1;
       }
       if (dayData.alkahfiOrYasin == true) {
-        amalanCounts['Al-Kahfi / Yasin'] = (amalanCounts['Al-Kahfi / Yasin'] ?? 0) + 1;
+        amalanCounts['Al-Kahfi / Yasin'] =
+            (amalanCounts['Al-Kahfi / Yasin'] ?? 0) + 1;
       }
     }
 
@@ -230,11 +360,12 @@ class StatisticsController extends GetxController {
     }
 
     // Sort by date descending (newest first)
-    final sortedData = List<DailyIbadahModel>.from(data)..sort((a, b) {
-      final dateA = DateTime.parse(a.date);
-      final dateB = DateTime.parse(b.date);
-      return dateB.compareTo(dateA);
-    });
+    final sortedData = List<DailyIbadahModel>.from(data)
+      ..sort((a, b) {
+        final dateA = DateTime.parse(a.date);
+        final dateB = DateTime.parse(b.date);
+        return dateB.compareTo(dateA);
+      });
 
     int current = 0;
     int best = 0;
@@ -247,12 +378,17 @@ class StatisticsController extends GetxController {
     for (int i = 0; i < sortedData.length; i++) {
       final dayData = sortedData[i];
       final dateParsed = DateTime.parse(dayData.date);
-      final dayNormalized = DateTime.utc(dateParsed.year, dateParsed.month, dateParsed.day);
+      final dayNormalized = DateTime.utc(
+        dateParsed.year,
+        dateParsed.month,
+        dateParsed.day,
+      );
 
       // Check if this is a consecutive day
       final expectedDate = todayNormalized.subtract(Duration(days: i));
 
-      if (dayNormalized == expectedDate && dayData.calculateLevelPercentage() > 0) {
+      if (dayNormalized == expectedDate &&
+          dayData.calculateLevelPercentage() > 0) {
         current++;
       } else {
         break; // Streak broken
@@ -276,8 +412,10 @@ class StatisticsController extends GetxController {
   }
 
   void _calculateIbadahSholatStatistics(List<DailyIbadahModel> data) {
+    // Always initialize with all three statistics
+    sholatStatistics.value = {'jamaah': 0.0, 'qobliyah': 0.0, 'badiyah': 0.0};
+
     if (data.isEmpty) {
-      sholatStatistics.value = {'jamaah': 0.0, 'qobliyah': 0.0, 'badiyah': 0.0};
       return;
     }
 
@@ -332,5 +470,38 @@ class StatisticsController extends GetxController {
       'qobliyah': totalQobliyah / (totalDays * maxQobliyahPerDay),
       'badiyah': totalBadiyah / (totalDays * maxBadiyahPerDay),
     };
+  }
+
+  /// Load user ranking berdasarkan level individual user
+  /// Menghitung ketua kelompok 1-5 + admin + kedisiplinan + super admin (maksimal 8 users)
+  Future<void> loadUserRanking() async {
+    try {
+      final user = _authService.currentUser;
+      if (user == null) {
+        return;
+      }
+
+      // Ambil leaderboard semua users individual (ketua kelompok 1-5 + admin + kedisiplinan + super admin)
+      final leaderboard = await _firestore.getLevelBasedLeaderboard();
+      // Total users adalah jumlah semua users di leaderboard (maksimal 8: 5 ketua + admin + kedisiplinan + super admin)
+      totalUsersInGroup.value = leaderboard.length;
+
+      // Cari ranking user saat ini (berdasarkan userId, bukan kelompokId)
+      for (int i = 0; i < leaderboard.length; i++) {
+        if (leaderboard[i]['userId'] == user.uid) {
+          userRank.value = i + 1;
+          break;
+        }
+      }
+
+      // Jika tidak ditemukan, set rank ke 0
+      if (userRank.value == 0 && leaderboard.isNotEmpty) {
+        userRank.value = 0;
+      }
+    } catch (e) {
+      Logger.error('Error loading user ranking', e);
+      userRank.value = 0;
+      totalUsersInGroup.value = 0;
+    }
   }
 }

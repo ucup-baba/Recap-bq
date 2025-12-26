@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_pages.dart';
@@ -13,8 +15,10 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/ibadah_tracking_service.dart';
 import '../../data/services/rotation_service.dart';
+import '../../core/interfaces/ibadah_controller_interface.dart';
 
-class SantriDashboardController extends GetxController {
+class SantriDashboardController extends GetxController
+    implements IbadahControllerInterface {
   final _authService = AuthService.instance;
   final _firestore = FirestoreService.instance;
   final _rotation = RotationService();
@@ -30,8 +34,17 @@ class SantriDashboardController extends GetxController {
   final kelompokIdStr = '-'.obs; // String untuk tampilan kelompok
 
   // Ibadah tracking
-  final todayIbadah = Rxn<DailyIbadahModel>();
+  final _todayIbadah = Rxn<DailyIbadahModel>();
   final selectedDate = DateTime.now().obs;
+  @override
+  final pushupMotivation = ''.obs;
+
+  // Getter untuk observable (untuk reactive UI)
+  Rxn<DailyIbadahModel> get todayIbadahRx => _todayIbadah;
+
+  // Method untuk compatibility dengan widget cards
+  @override
+  DailyIbadahModel? todayIbadah() => _todayIbadah.value;
 
   StreamSubscription<UserModel?>? _userSubscription;
   StreamSubscription<List<DailyReportModel>>? _reportSubscription;
@@ -187,23 +200,124 @@ class SantriDashboardController extends GetxController {
   }
 
   // Ibadah tracking methods
-  Future<void> _loadTodayIbadah() async {
+  @override
+  Future<void> loadTodayIbadah() async {
     try {
       final ibadah = await _ibadahService.getTodayIbadah();
-      todayIbadah.value = ibadah;
+      _todayIbadah.value = ibadah;
+      if (ibadah != null) {
+        _updatePushupMotivation(ibadah.pushup ?? 0);
+      }
     } catch (e) {
       Logger.error('Error loading today ibadah', e);
     }
   }
 
+  Future<void> _loadTodayIbadah() async => loadTodayIbadah();
+
+  @override
   Future<void> updateIbadah(DailyIbadahModel updatedIbadah) async {
     try {
-      todayIbadah.value = updatedIbadah;
+      _todayIbadah.value = updatedIbadah;
+      _updatePushupMotivation(updatedIbadah.pushup ?? 0);
       // Data sudah disimpan via service di widget cards
       await _loadTodayIbadah(); // Reload untuk memastikan sync
     } catch (e) {
       Logger.error('Error updating ibadah', e);
     }
+  }
+
+  void _updatePushupMotivation(int count) {
+    if (count == 0) {
+      pushupMotivation.value = 'Omong kosong... Target 25x!';
+    } else if (count == 25) {
+      pushupMotivation.value = 'Ehem, baru sama dengan anak-anak...';
+    } else if (count > 25 && count < 40) {
+      pushupMotivation.value = 'Lumayan, otot mulai terbentuk.';
+    } else if (count >= 40) {
+      pushupMotivation.value = 'Bagus! Jaga konsistensinya.';
+    }
+  }
+
+  @override
+  void showSholatMotivation() {
+    const motivations = [
+      {
+        'title': 'Kenapa Harus Sholat?',
+        'body':
+            'Karena sholat adalah tiang agama dan koneksi utama kita dengan Allah. Ini adalah hal pertama yang akan dihisab.',
+      },
+      {
+        'title': 'Merasa Berat Sholat?',
+        'body':
+            'Ingat, sholat itu hanya beberapa menit. Waktu yang kita habiskan untuk media sosial jauh lebih lama. Prioritaskan yang abadi.',
+      },
+    ];
+    final randomMotivation = motivations[Random().nextInt(motivations.length)];
+    Get.defaultDialog(
+      title: randomMotivation['title']!,
+      middleText: randomMotivation['body']!,
+      backgroundColor: Get.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+      titleStyle: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: Get.isDarkMode ? Colors.white : Colors.black,
+      ),
+      middleTextStyle: TextStyle(
+        color: Get.isDarkMode ? Colors.white70 : Colors.black87,
+      ),
+      radius: 16,
+      textConfirm: 'Siap!',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.deepPurple.shade600,
+    );
+  }
+
+  @override
+  void showAmalanMotivation() {
+    const motivations = [
+      {
+        'title': 'Malas Tahajud?',
+        'body':
+            'Tahajud adalah waktu terbaik untuk curhat dengan Allah. Saat orang lain tidur, doa Anda menembus langit.',
+      },
+      {
+        'title': 'Ragu Sholat Dhuha?',
+        'body':
+            'Cukup 2 rakaat sholat Dhuha sebagai sedekah untuk seluruh sendi di tubuh Anda. Pembuka pintu rezeki!',
+      },
+      {
+        'title': 'Berat Baca Al-Mulk (S.67)?',
+        'body':
+            'Hanya 30 ayat, kurang dari 5 menit. Tapi bisa menyelamatkan Anda dari siksa kubur. Sangat setimpal!',
+      },
+      {
+        'title': 'Lupa Al-Waqi\'ah (S.56)?',
+        'body':
+            'Surat ini dikenal sebagai surat "kecukupan". Membacanya setiap malam menjauhkan kita dari kefakiran.',
+      },
+      {
+        'title': 'Melewatkan Yasin (S.36)?',
+        'body':
+            'Yasin adalah jantung Al-Quran. Membacanya di pagi hari akan mempermudah semua urusan Anda hari itu.',
+      },
+    ];
+    final randomMotivation = motivations[Random().nextInt(motivations.length)];
+    Get.defaultDialog(
+      title: randomMotivation['title']!,
+      middleText: randomMotivation['body']!,
+      backgroundColor: Get.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+      titleStyle: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: Get.isDarkMode ? Colors.white : Colors.black,
+      ),
+      middleTextStyle: TextStyle(
+        color: Get.isDarkMode ? Colors.white70 : Colors.black87,
+      ),
+      radius: 16,
+      textConfirm: 'Oke!',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.deepPurple.shade600,
+    );
   }
 
   bool get isFriday => selectedDate.value.weekday == DateTime.friday;

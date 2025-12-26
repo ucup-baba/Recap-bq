@@ -104,14 +104,16 @@ class IbadahTrackingService {
   }
 
   /// Get weekly ibadah data
-  Future<List<DailyIbadahModel>> getWeeklyIbadahData() async {
+  Future<List<DailyIbadahModel>> getWeeklyIbadahData({String? userId}) async {
     try {
       final user = _authService.currentUser;
-      if (user == null) {
+      final targetUid = userId ?? user?.uid;
+
+      if (targetUid == null) {
         return [];
       }
 
-      return await _firestore.getWeeklyIbadahData(user.uid, DateTime.now());
+      return await _firestore.getWeeklyIbadahData(targetUid, DateTime.now());
     } catch (e) {
       Logger.error('Error getting weekly ibadah data', e);
       return [];
@@ -120,15 +122,18 @@ class IbadahTrackingService {
 
   /// Get monthly ibadah data
   Future<Map<DateTime, DailyIbadahModel>> getMonthlyIbadahData(
-    DateTime month,
-  ) async {
+    DateTime month, {
+    String? userId,
+  }) async {
     try {
       final user = _authService.currentUser;
-      if (user == null) {
+      final targetUid = userId ?? user?.uid;
+
+      if (targetUid == null) {
         return {};
       }
 
-      return await _firestore.getMonthlyIbadahData(user.uid, month);
+      return await _firestore.getMonthlyIbadahData(targetUid, month);
     } catch (e) {
       Logger.error('Error getting monthly ibadah data', e);
       return {};

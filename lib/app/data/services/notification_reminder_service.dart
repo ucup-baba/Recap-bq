@@ -1,0 +1,213 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/utils/logger.dart';
+import '../models/notification_reminder_model.dart';
+
+class NotificationReminderService {
+  NotificationReminderService._();
+  static final NotificationReminderService instance =
+      NotificationReminderService._();
+
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  static const String _collection = 'notification_reminders';
+
+  /// Get all reminder settings for a user
+  Future<List<NotificationReminderModel>> getReminderSettings(
+    String userId,
+  ) async {
+    try {
+      final snapshot = await _db
+          .collection(_collection)
+          .where('user_id', isEqualTo: userId)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => NotificationReminderModel.fromMap({
+                ...doc.data(),
+                'id': doc.id,
+              }))
+          .toList();
+    } catch (e) {
+      Logger.error('Error getting reminder settings', e);
+      return [];
+    }
+  }
+
+  /// Get all reminder settings (for Super Admin)
+  Future<List<NotificationReminderModel>> getAllReminderSettings() async {
+    try {
+      final snapshot = await _db.collection(_collection).get();
+
+      return snapshot.docs
+          .map((doc) => NotificationReminderModel.fromMap({
+                ...doc.data(),
+                'id': doc.id,
+              }))
+          .toList();
+    } catch (e) {
+      Logger.error('Error getting all reminder settings', e);
+      return [];
+    }
+  }
+
+  /// Get reminder setting by type
+  Future<NotificationReminderModel?> getReminderByType(
+    String userId,
+    String type,
+  ) async {
+    try {
+      final snapshot = await _db
+          .collection(_collection)
+          .where('user_id', isEqualTo: userId)
+          .where('type', isEqualTo: type)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = snapshot.docs.first;
+      return NotificationReminderModel.fromMap({
+        ...doc.data(),
+        'id': doc.id,
+      });
+    } catch (e) {
+      Logger.error('Error getting reminder by type', e);
+      return null;
+    }
+  }
+
+  /// Save or update reminder setting
+  Future<void> saveReminderSetting(
+    NotificationReminderModel reminder,
+  ) async {
+    try {
+      final reminderMap = reminder.toMap();
+      // Remove 'id' from map karena Firestore akan generate sendiri
+      final id = reminderMap.remove('id');
+      // Remove timestamp fields karena akan di-set dengan FieldValue.serverTimestamp()
+      reminderMap.remove('created_at');
+      reminderMap.remove('updated_at');
+
+      if (id != null && id.isNotEmpty) {
+        // Update existing
+        await _db.collection(_collection).doc(id).update({
+          ...reminderMap,
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+        Logger.info('Reminder setting updated: ${reminder.type}');
+      } else {
+        // Create new
+        final docRef = await _db.collection(_collection).add({
+          ...reminderMap,
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+        Logger.info('Reminder setting created: ${reminder.type} (${docRef.id})');
+      }
+    } catch (e) {
+      Logger.error('Error saving reminder setting', e);
+      rethrow;
+    }
+  }
+
+  /// Delete reminder setting
+  Future<void> deleteReminderSetting(String reminderId) async {
+    try {
+      await _db.collection(_collection).doc(reminderId).delete();
+      Logger.info('Reminder setting deleted: $reminderId');
+    } catch (e) {
+      Logger.error('Error deleting reminder setting', e);
+      rethrow;
+    }
+  }
+
+  /// Enable/disable reminder
+  Future<void> enableReminder(String reminderId, bool enabled) async {
+    try {
+      await _db.collection(_collection).doc(reminderId).update({
+        'enabled': enabled,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      Logger.info('Reminder $reminderId ${enabled ? 'enabled' : 'disabled'}');
+    } catch (e) {
+      Logger.error('Error enabling/disabling reminder', e);
+      rethrow;
+    }
+  }
+
+  /// Update reminder time
+  Future<void> updateReminderTime(
+    String reminderId,
+    TimeOfDay time,
+  ) async {
+    try {
+      await _db.collection(_collection).doc(reminderId).update({
+        'time_hour': time.hour,
+        'time_minute': time.minute,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      Logger.info('Reminder time updated: $reminderId to ${time.hour}:${time.minute}');
+    } catch (e) {
+      Logger.error('Error updating reminder time', e);
+      rethrow;
+    }
+  }
+
+  /// Create default reminder settings for a user
+  Future<void> createDefaultReminders(
+    String userId,
+    int? kelompokId,
+  ) async {
+    try {
+      final now = DateTime.now();
+      final defaults = [
+        NotificationReminderModel(
+          id: '', // Will be generated by Firestore
+          type: 'daily_report',
+          enabled: kelompokId != null, // Only enable if user has kelompokId
+          time: const TimeOfDay(hour: 7, minute: 0),
+          userId: userId,
+          kelompokId: kelompokId,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        NotificationReminderModel(
+          id: '',
+          type: 'sholat_dhuha',
+          enabled: true,
+          time: const TimeOfDay(hour: 9, minute: 0),
+          userId: userId,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        NotificationReminderModel(
+          id: '',
+          type: 'al_mulk',
+          enabled: true,
+          time: const TimeOfDay(hour: 21, minute: 30),
+          userId: userId,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ];
+
+      // Check if reminders already exist
+      for (final reminder in defaults) {
+        final existing = await getReminderByType(userId, reminder.type);
+        if (existing == null) {
+          await saveReminderSetting(reminder);
+        }
+      }
+
+      Logger.info('Default reminders created for user: $userId');
+    } catch (e) {
+      Logger.error('Error creating default reminders', e);
+      rethrow;
+    }
+  }
+}
+

@@ -10,6 +10,9 @@ import '../models/daily_ibadah_model.dart';
 import '../models/group_model.dart';
 import '../models/kelompok_members_model.dart';
 import '../models/user_model.dart';
+import '../models/violation_rule_model.dart';
+import '../models/violation_case_model.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/date_utils.dart';
 
@@ -313,6 +316,18 @@ class FirestoreService {
     return UserModel.fromMap(doc.data() ?? {}, doc.id);
   }
 
+  /// Fetch user by email
+  Future<UserModel?> fetchUserByEmail(String email) async {
+    final query = await _db
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return null;
+    final doc = query.docs.first;
+    return UserModel.fromMap(doc.data(), doc.id);
+  }
+
   Stream<UserModel?> watchUser(String uid) {
     return _db.collection('users').doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;
@@ -320,10 +335,57 @@ class FirestoreService {
     });
   }
 
+  /// Get all users
+  Future<List<UserModel>> getAllUsers() async {
+    try {
+      final snapshot = await _db.collection('users').get();
+      return snapshot.docs
+          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      Logger.error('Error getting all users', e);
+      rethrow;
+    }
+  }
+
+  /// Get user document as Map (for accessing password field)
+  Future<Map<String, dynamic>?> getUserDocument(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (!doc.exists) return null;
+      return doc.data();
+    } catch (e) {
+      Logger.error('Error getting user document: $uid', e);
+      rethrow;
+    }
+  }
+
+  /// Update user password (stored in Firestore for super admin access)
+  /// Note: This stores password in Firestore, not Firebase Auth
+  /// To update Firebase Auth password, use Admin SDK or re-authentication
+  Future<void> updateUserPassword(String uid, String password) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'password':
+            password, // Store password in Firestore (for super admin only)
+      });
+      Logger.info('Password updated in Firestore for user: $uid');
+    } catch (e) {
+      Logger.error('Error updating password in Firestore', e);
+      rethrow;
+    }
+  }
+
   /// Update kelompokId for a user
   Future<void> updateUserKelompokId(String uid, int kelompokId) async {
     await _db.collection('users').doc(uid).update({'kelompok_id': kelompokId});
     Logger.info('Updated kelompokId to $kelompokId for user $uid');
+  }
+
+  /// Delete a user document
+  Future<void> deleteUser(String uid) async {
+    await _db.collection('users').doc(uid).delete();
+    Logger.info('Deleted user document: $uid');
   }
 
   Future<void> ensureDummyUsers(List<UserModel> users) async {
@@ -392,6 +454,124 @@ class FirestoreService {
               .map((d) => DailyReportModel.fromMap(d.data(), d.id))
               .toList(),
         );
+  }
+
+  /// Get all verified reports
+  Future<List<DailyReportModel>> getVerifiedReports() async {
+    try {
+      final snapshot = await _db
+          .collection('daily_reports')
+          .where('status', isEqualTo: AppConstants.reportStatusVerified)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => DailyReportModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      Logger.error('Error getting verified reports', e);
+      rethrow;
+    }
+  }
+
+  /// Get all reports (pending + verified) by date
+  /// Date format: yyyy-MM-dd
+  Future<List<DailyReportModel>> getReportsByDate(String date) async {
+    try {
+      // Parse date string to DateTime
+      DateTime dateTime;
+      if (date.contains('-') && date.split('-').length == 3) {
+        final parts = date.split('-');
+        dateTime = DateTime(
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
+        );
+      } else {
+        dateTime = DateTime.parse(date);
+      }
+
+      final startOfDay = DateTime(dateTime.year, dateTime.month, dateTime.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      // Query by date field (could be Timestamp or String)
+      // Try querying with Timestamp first
+      final snapshot = await _db
+          .collection('daily_reports')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+          .get();
+
+      // Also query by date string format (yyyy-MM-dd) as fallback
+      final dateString = date;
+      final snapshotString = await _db
+          .collection('daily_reports')
+          .where('date', isEqualTo: dateString)
+          .get();
+
+      // Combine results and remove duplicates
+      final allDocs = <String, DailyReportModel>{};
+
+      for (final doc in snapshot.docs) {
+        final report = DailyReportModel.fromMap(doc.data(), doc.id);
+        allDocs[report.id] = report;
+      }
+
+      for (final doc in snapshotString.docs) {
+        final report = DailyReportModel.fromMap(doc.data(), doc.id);
+        allDocs[report.id] = report;
+      }
+
+      return allDocs.values.toList();
+    } catch (e) {
+      Logger.error('Error getting reports by date: $date', e);
+      rethrow;
+    }
+  }
+
+  /// Delete multiple reports by IDs
+  /// Also deletes photos from Storage before deleting documents
+  Future<void> deleteReports(List<String> reportIds) async {
+    if (reportIds.isEmpty) return;
+
+    try {
+      // First, get all reports to delete their photos
+      final reportsToDelete = <DailyReportModel>[];
+      for (final reportId in reportIds) {
+        try {
+          final doc = await _db.collection('daily_reports').doc(reportId).get();
+          if (doc.exists) {
+            final report = DailyReportModel.fromMap(doc.data()!, doc.id);
+            reportsToDelete.add(report);
+          }
+        } catch (e) {
+          Logger.error('Error fetching report $reportId for photo deletion', e);
+        }
+      }
+
+      // Delete photos from Storage
+      for (final report in reportsToDelete) {
+        if (report.photoUrl != null && report.photoUrl!.isNotEmpty) {
+          try {
+            await deletePhotoFromStorage(report.photoUrl!);
+            Logger.info('Photo deleted for report ${report.id}');
+          } catch (e) {
+            Logger.error('Error deleting photo for report ${report.id}', e);
+            // Continue even if photo delete fails
+          }
+        }
+      }
+
+      // Then delete documents from Firestore
+      final batch = _db.batch();
+      for (final reportId in reportIds) {
+        batch.delete(_db.collection('daily_reports').doc(reportId));
+      }
+      await batch.commit();
+      Logger.info('Deleted ${reportIds.length} reports');
+    } catch (e) {
+      Logger.error('Error deleting reports', e);
+      rethrow;
+    }
   }
 
   Stream<List<DailyReportModel>> reportsByGroupAndDate(
@@ -1117,6 +1297,7 @@ class FirestoreService {
     // Update personal points untuk semua executor
     final updateBatch = _db.batch();
     int totalUpdated = 0;
+    int totalNotFound = 0;
 
     for (final kelompokEntry in kelompokExecutorTaskCount.entries) {
       final kelompokId = kelompokEntry.key;
@@ -1128,30 +1309,53 @@ class FirestoreService {
           .where('kelompok_id', isEqualTo: kelompokId)
           .get();
 
+      // Buat map untuk lookup yang lebih fleksibel
+      final Map<String, DocumentReference> userMap = {};
+      for (final doc in usersInGroup.docs) {
+        final data = doc.data();
+        final displayName = (data['displayName'] ?? '') as String;
+        final role = (data['role'] ?? '') as String;
+
+        // Skip ketua kelompok
+        if (role == 'koordinator' &&
+            displayName.toLowerCase().contains('ketua')) {
+          continue;
+        }
+
+        // Store dengan lowercase untuk matching yang lebih fleksibel
+        userMap[displayName.toLowerCase().trim()] = doc.reference;
+      }
+
+      Logger.info(
+        'Kelompok $kelompokId: Found ${userMap.length} users, ${executorTaskCount.length} executors',
+      );
+      Logger.info('Available users: ${userMap.keys.toList()}');
+      Logger.info('Executors from reports: ${executorTaskCount.keys.toList()}');
+
       // Update personal points untuk setiap executor
       for (final executorEntry in executorTaskCount.entries) {
         final executorName = executorEntry.key;
         final taskCount = executorEntry.value;
         final pointsToAdd = taskCount * 5;
 
-        // Cari user yang match dengan executor name
+        // Cari user yang match dengan executor name (case insensitive)
         DocumentReference? matchedUserRef;
-        for (final doc in usersInGroup.docs) {
-          final data = doc.data();
-          final displayName = (data['displayName'] ?? '') as String;
-          final role = (data['role'] ?? '') as String;
+        final executorNameLower = executorName.toLowerCase().trim();
 
-          // Skip ketua kelompok
-          if (role == 'koordinator' &&
-              displayName.toLowerCase().contains('ketua')) {
-            continue;
-          }
-
-          // Exact match atau partial match
-          if (displayName.toLowerCase().trim() ==
-              executorName.toLowerCase().trim()) {
-            matchedUserRef = doc.reference;
-            break;
+        // Exact match
+        if (userMap.containsKey(executorNameLower)) {
+          matchedUserRef = userMap[executorNameLower];
+        } else {
+          // Partial match (cari yang mengandung atau dikandung)
+          for (final entry in userMap.entries) {
+            if (entry.key.contains(executorNameLower) ||
+                executorNameLower.contains(entry.key)) {
+              matchedUserRef = entry.value;
+              Logger.info(
+                'Partial match found: "$executorName" matched with "${entry.key}"',
+              );
+              break;
+            }
           }
         }
 
@@ -1162,11 +1366,15 @@ class FirestoreService {
           });
           totalUpdated++;
           Logger.info(
-            'Updating personal points for $executorName: +$pointsToAdd (from $taskCount tasks)',
+            '✅ Updating personal points for $executorName: +$pointsToAdd (from $taskCount tasks)',
           );
         } else {
+          totalNotFound++;
           Logger.warning(
-            'No user found for executor: $executorName in kelompok $kelompokId',
+            '❌ No user found for executor: "$executorName" in kelompok $kelompokId',
+          );
+          Logger.warning(
+            'Available users in kelompok $kelompokId: ${userMap.keys.toList()}',
           );
         }
       }
@@ -1174,8 +1382,119 @@ class FirestoreService {
 
     await updateBatch.commit();
     Logger.info(
-      'Recalculated personal points: Updated $totalUpdated users from ${verifiedReports.docs.length} verified reports',
+      '✅ Recalculated personal points: Updated $totalUpdated users, $totalNotFound not found, from ${verifiedReports.docs.length} verified reports',
     );
+  }
+
+  /// Debug method: Periksa data personal points dan verified reports
+  Future<Map<String, dynamic>> debugPersonalPointsData(int kelompokId) async {
+    try {
+      Logger.info('🔍 Debugging personal points for kelompok $kelompokId');
+
+      // 1. Ambil semua verified reports untuk kelompok ini
+      final verifiedReports = await _db
+          .collection('daily_reports')
+          .where('kelompok_id', isEqualTo: kelompokId)
+          .where('status', isEqualTo: 'verified')
+          .get();
+
+      Logger.info('Found ${verifiedReports.docs.length} verified reports');
+
+      // 2. Hitung total task per executor dari semua reports
+      final Map<String, int> executorTaskCount = {};
+      int totalFinalScore = 0;
+
+      for (final doc in verifiedReports.docs) {
+        final data = doc.data();
+        final report = DailyReportModel.fromMap(data, doc.id);
+        final finalScore = report.finalScore ?? 0;
+        totalFinalScore += finalScore;
+
+        Logger.info(
+          'Report ${doc.id}: finalScore=$finalScore, date=${report.date}',
+        );
+
+        for (final task in report.tasks) {
+          if (task.isValid == true) {
+            for (final executor in task.executors) {
+              if (executor.isNotEmpty &&
+                  executor != 'Semua Tim (Gotong Royong)' &&
+                  executor != 'ALL TEAM') {
+                executorTaskCount[executor] =
+                    (executorTaskCount[executor] ?? 0) + 1;
+              }
+            }
+          }
+        }
+      }
+
+      Logger.info('Total finalScore from reports: $totalFinalScore');
+      Logger.info('Executor task count: $executorTaskCount');
+
+      // 3. Ambil semua users di kelompok
+      final usersQuery = await _db
+          .collection('users')
+          .where('kelompok_id', isEqualTo: kelompokId)
+          .get();
+
+      Logger.info(
+        'Found ${usersQuery.docs.length} users in kelompok $kelompokId',
+      );
+
+      // 4. Bandingkan dengan personal points di Firestore
+      final List<Map<String, dynamic>> userComparison = [];
+
+      for (final doc in usersQuery.docs) {
+        final data = doc.data();
+        final displayName = data['displayName'] ?? 'Unknown';
+        final stats = data['stats'] as Map? ?? {};
+        final personalPoints = stats['personal_points'] ?? 0;
+        final expectedPoints = (executorTaskCount[displayName] ?? 0) * 5;
+
+        userComparison.add({
+          'displayName': displayName,
+          'personalPoints': personalPoints,
+          'expectedPoints': expectedPoints,
+          'taskCount': executorTaskCount[displayName] ?? 0,
+          'match': personalPoints == expectedPoints,
+        });
+
+        if (personalPoints != expectedPoints) {
+          Logger.warning(
+            '⚠️ Mismatch for $displayName: personalPoints=$personalPoints, expected=$expectedPoints (${executorTaskCount[displayName] ?? 0} tasks)',
+          );
+        } else {
+          Logger.info(
+            '✅ Match for $displayName: personalPoints=$personalPoints, expected=$expectedPoints',
+          );
+        }
+      }
+
+      // 5. Ambil total_weekly_score kelompok
+      final groupDoc = await _db
+          .collection('groups')
+          .doc(kelompokId.toString())
+          .get();
+      final totalWeeklyScore = groupDoc.exists
+          ? ((groupDoc.data()?['total_weekly_score'] ?? 0) as num).toInt()
+          : 0;
+
+      final result = {
+        'kelompokId': kelompokId,
+        'totalWeeklyScore': totalWeeklyScore,
+        'totalFinalScoreFromReports': totalFinalScore,
+        'verifiedReportsCount': verifiedReports.docs.length,
+        'executorTaskCount': executorTaskCount,
+        'userComparison': userComparison,
+        'match': totalWeeklyScore == totalFinalScore,
+      };
+
+      Logger.info('🔍 Debug result: $result');
+      return result;
+    } catch (e) {
+      Logger.error('Error debugging personal points data', e);
+      return {'error': e.toString()};
+    }
   }
 
   /// Delete all daily_reports
@@ -1496,11 +1815,23 @@ class FirestoreService {
 
   Future<DailyIbadahModel?> getDailyIbadah(String userId, String date) async {
     final id = '$userId-$date';
-    final doc = await _db.collection('daily_ibadah').doc(id).get();
-    if (!doc.exists) {
+    try {
+      final doc = await _db.collection('daily_ibadah').doc(id).get();
+      if (!doc.exists) {
+        Logger.debug('Document $id does not exist');
+        return null;
+      }
+      final data = doc.data();
+      if (data == null) {
+        Logger.warning('Document $id exists but has null data');
+        return null;
+      }
+      Logger.debug('Found document $id with data');
+      return DailyIbadahModel.fromMap(data, doc.id);
+    } catch (e) {
+      Logger.error('Error getting daily ibadah for $id', e);
       return null;
     }
-    return DailyIbadahModel.fromMap(doc.data()!, doc.id);
   }
 
   /// Get weekly ibadah data (7 days ending at endDate)
@@ -1508,24 +1839,63 @@ class FirestoreService {
     String userId,
     DateTime endDate,
   ) async {
-    final List<DailyIbadahModel> data = [];
-    for (int i = 6; i >= 0; i--) {
-      final date = endDate.subtract(Duration(days: i));
-      final dateStr = AppDateUtils.formatDate(date);
-      final ibadah = await getDailyIbadah(userId, dateStr);
-      if (ibadah != null) {
-        data.add(ibadah);
-      } else {
-        // Create empty entry for missing days
-        final emptyModel = DailyIbadahModel(
-          id: '$userId-$dateStr',
-          userId: userId,
-          date: dateStr,
-        );
-        data.add(emptyModel);
+    try {
+      // Build list of dates for the week
+      final List<String> dateStrs = [];
+      for (int i = 6; i >= 0; i--) {
+        final date = endDate.subtract(Duration(days: i));
+        final dateStr = AppDateUtils.formatDate(date);
+        dateStrs.add(dateStr);
       }
+
+      Logger.debug(
+        'getWeeklyIbadahData for userId=$userId, dates: ${dateStrs.join(", ")}',
+      );
+
+      // Get all documents in parallel using Future.wait
+      final futures = dateStrs.map((dateStr) async {
+        try {
+          return await getDailyIbadah(userId, dateStr);
+        } catch (e) {
+          // If get fails (e.g., permission denied), return null
+          Logger.warning('Error getting ibadah for date $dateStr: $e');
+          return null;
+        }
+      }).toList();
+
+      final results = await Future.wait(futures);
+
+      // Build complete list with empty entries for missing days
+      final List<DailyIbadahModel> data = [];
+      int foundCount = 0;
+      for (int i = 0; i < dateStrs.length; i++) {
+        final dateStr = dateStrs[i];
+        final ibadah = results[i];
+        if (ibadah != null) {
+          data.add(ibadah);
+          foundCount++;
+          Logger.debug('  Found data for $dateStr');
+        } else {
+          // Create empty entry for missing days
+          data.add(
+            DailyIbadahModel(
+              id: '$userId-$dateStr',
+              userId: userId,
+              date: dateStr,
+            ),
+          );
+          Logger.debug('  No data for $dateStr (empty entry created)');
+        }
+      }
+      Logger.debug(
+        'getWeeklyIbadahData result: $foundCount/${dateStrs.length} days have data',
+      );
+      return data;
+    } catch (e) {
+      Logger.error('Error getting weekly ibadah data', e);
+      // Fallback: return empty list
+      return [];
     }
-    return data;
   }
 
   /// Get monthly ibadah data
@@ -1533,26 +1903,63 @@ class FirestoreService {
     String userId,
     DateTime month,
   ) async {
-    final Map<DateTime, DailyIbadahModel> data = {};
-    final firstDay = DateTime(month.year, month.month, 1);
-    final lastDay = DateTime(month.year, month.month + 1, 0);
+    try {
+      final firstDay = DateTime(month.year, month.month, 1);
+      final lastDay = DateTime(month.year, month.month + 1, 0);
 
-    for (var day = firstDay.day; day <= lastDay.day; day++) {
-      final date = DateTime(month.year, month.month, day);
-      final dateStr = AppDateUtils.formatDate(date);
-      final ibadah = await getDailyIbadah(userId, dateStr);
-      final normalizedDate = DateTime.utc(date.year, date.month, date.day);
-      if (ibadah != null) {
-        data[normalizedDate] = ibadah;
-      } else {
-        data[normalizedDate] = DailyIbadahModel(
-          id: '$userId-$dateStr',
-          userId: userId,
-          date: dateStr,
-        );
+      // Build list of dates for the month
+      final List<MapEntry<String, DateTime>> dateEntries = [];
+      for (var day = firstDay.day; day <= lastDay.day; day++) {
+        final date = DateTime(month.year, month.month, day);
+        final dateStr = AppDateUtils.formatDate(date);
+        final normalizedDate = DateTime.utc(date.year, date.month, date.day);
+        dateEntries.add(MapEntry(dateStr, normalizedDate));
       }
+
+      // Get all documents in parallel using Future.wait (in chunks to avoid too many concurrent requests)
+      final Map<String, DailyIbadahModel> existingData = {};
+      const chunkSize = 10;
+      for (int i = 0; i < dateEntries.length; i += chunkSize) {
+        final chunk = dateEntries.skip(i).take(chunkSize).toList();
+        final futures = chunk.map((entry) async {
+          try {
+            return await getDailyIbadah(userId, entry.key);
+          } catch (e) {
+            // If get fails (e.g., permission denied), return null
+            Logger.warning('Error getting ibadah for date ${entry.key}: $e');
+            return null;
+          }
+        }).toList();
+        final results = await Future.wait(futures);
+        for (int j = 0; j < chunk.length; j++) {
+          final ibadah = results[j];
+          if (ibadah != null) {
+            existingData[chunk[j].key] = ibadah;
+          }
+        }
+      }
+
+      // Build complete map with empty entries for missing days
+      final Map<DateTime, DailyIbadahModel> data = {};
+      for (var entry in dateEntries) {
+        final dateStr = entry.key;
+        final normalizedDate = entry.value;
+        if (existingData.containsKey(dateStr)) {
+          data[normalizedDate] = existingData[dateStr]!;
+        } else {
+          data[normalizedDate] = DailyIbadahModel(
+            id: '$userId-$dateStr',
+            userId: userId,
+            date: dateStr,
+          );
+        }
+      }
+      return data;
+    } catch (e) {
+      Logger.error('Error getting monthly ibadah data', e);
+      // Fallback: return empty map
+      return {};
     }
-    return data;
   }
 
   /// Get all users ibadah data for a specific date (for leaderboard)
@@ -1573,6 +1980,445 @@ class FirestoreService {
       data[userName] = ibadah;
     }
     return data;
+  }
+
+  /// Get leaderboard berdasarkan level (avgLevelPercentage) individual users
+  /// Bukan rata-rata kelompok, tapi per user individual
+  /// Hanya menampilkan users dengan kelompok 1-5 (semua anggota, bukan hanya ketua)
+  /// Juga menampilkan admin
+  Future<List<Map<String, dynamic>>> getLevelBasedLeaderboard() async {
+    try {
+      // Use single reference date for all users to ensure consistency
+      final referenceDate = DateTime.now();
+      Logger.info(
+        'Getting leaderboard with reference date: ${AppDateUtils.formatDate(referenceDate)}',
+      );
+
+      // Query users dengan kelompok 1-5
+      final List<int> validKelompokIds = [1, 2, 3, 4, 5];
+
+      // Query untuk setiap kelompok secara terpisah
+      final List<QueryDocumentSnapshot> allUserDocs = [];
+
+      Logger.info('Getting leaderboard for kelompok: $validKelompokIds');
+
+      // Query ketua kelompok 1-5
+      for (int kelompokId in validKelompokIds) {
+        final query = await _db
+            .collection('users')
+            .where('role', isEqualTo: 'koordinator')
+            .where('kelompok_id', isEqualTo: kelompokId)
+            .get();
+
+        Logger.info('Found ${query.docs.length} users in kelompok $kelompokId');
+        allUserDocs.addAll(query.docs);
+      }
+
+      // Query admin users
+      final adminQuery = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'admin')
+          .get();
+
+      Logger.info('Found ${adminQuery.docs.length} admin users');
+      allUserDocs.addAll(adminQuery.docs);
+
+      // Query kedisiplinan users
+      final kedisiplinanQuery = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'kedisplinan')
+          .get();
+
+      Logger.info('Found ${kedisiplinanQuery.docs.length} kedisiplinan users');
+      allUserDocs.addAll(kedisiplinanQuery.docs);
+
+      // Query super admin users
+      final superAdminQuery = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'super_admin')
+          .get();
+
+      Logger.info('Found ${superAdminQuery.docs.length} super admin users');
+      allUserDocs.addAll(superAdminQuery.docs);
+
+      Logger.info('Total users found from queries: ${allUserDocs.length}');
+
+      final List<Map<String, dynamic>> leaderboard = [];
+
+      for (var userDoc in allUserDocs) {
+        final userId = userDoc.id;
+        final userData = userDoc.data() as Map<String, dynamic>?;
+        if (userData == null) {
+          Logger.warning('User $userId has null data, skipping');
+          continue;
+        }
+
+        final displayName = userData['displayName'] ?? 'Unknown';
+        final kelompokIdRaw = userData['kelompok_id'];
+        final role = userData['role'] ?? '';
+
+        // Handle admin users (tidak perlu filter kelompok_id)
+        if (role == 'admin') {
+          Logger.info(
+            '✅ Adding admin to leaderboard: $displayName (userId: $userId)',
+          );
+
+          // Ambil weekly ibadah data untuk admin using same reference date
+          Logger.info(
+            'Fetching weekly data for admin $displayName (userId: $userId) with reference date: ${AppDateUtils.formatDate(referenceDate)}',
+          );
+          final weeklyData = await getWeeklyIbadahData(userId, referenceDate);
+
+          double avgLevel = 0.0;
+          int totalPushups = 0;
+          int daysWithData = 0;
+
+          if (weeklyData.isNotEmpty) {
+            double userTotalLevel = 0.0;
+
+            Logger.info(
+              'Admin $displayName: Checking ${weeklyData.length} days of data',
+            );
+
+            for (var dayData in weeklyData) {
+              final level = dayData.calculateLevelPercentage();
+              final hasData = level > 0 || dayData.pushup != null;
+              if (hasData) {
+                daysWithData++;
+                Logger.info(
+                  '  - Date: ${dayData.date}, level: ${(level * 100).toStringAsFixed(2)}%, pushup: ${dayData.pushup ?? 0}',
+                );
+              }
+              userTotalLevel += level;
+              totalPushups += dayData.pushup ?? 0;
+            }
+
+            // Calculate average from all 7 days (including empty days as 0%)
+            avgLevel = (userTotalLevel / weeklyData.length) * 100;
+          } else {
+            Logger.warning('Admin $displayName: weeklyData is empty!');
+          }
+
+          Logger.info(
+            'Admin $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+          );
+
+          leaderboard.add({
+            'userId': userId,
+            'displayName': displayName,
+            'kelompokId': 0, // Admin tidak punya kelompok, set ke 0
+            'avgLevel': avgLevel,
+            'totalPushups': totalPushups,
+            'isAdmin': true,
+          });
+
+          continue; // Skip ke user berikutnya
+        }
+
+        // Handle kedisiplinan users (similar to admin)
+        if (role == 'kedisplinan') {
+          Logger.info(
+            '✅ Adding kedisiplinan to leaderboard: $displayName (userId: $userId)',
+          );
+
+          // Ambil weekly ibadah data untuk kedisiplinan using same reference date
+          Logger.info(
+            'Fetching weekly data for kedisiplinan $displayName (userId: $userId) with reference date: ${AppDateUtils.formatDate(referenceDate)}',
+          );
+          final weeklyData = await getWeeklyIbadahData(userId, referenceDate);
+
+          double avgLevel = 0.0;
+          int totalPushups = 0;
+          int daysWithData = 0;
+
+          if (weeklyData.isNotEmpty) {
+            double userTotalLevel = 0.0;
+
+            Logger.info(
+              'Kedisiplinan $displayName: Checking ${weeklyData.length} days of data',
+            );
+
+            for (var dayData in weeklyData) {
+              final level = dayData.calculateLevelPercentage();
+              final hasData = level > 0 || dayData.pushup != null;
+              if (hasData) {
+                daysWithData++;
+                Logger.info(
+                  '  - Date: ${dayData.date}, level: ${(level * 100).toStringAsFixed(2)}%, pushup: ${dayData.pushup ?? 0}',
+                );
+              }
+              userTotalLevel += level;
+              totalPushups += dayData.pushup ?? 0;
+            }
+
+            // Calculate average from all 7 days (including empty days as 0%)
+            avgLevel = (userTotalLevel / weeklyData.length) * 100;
+          }
+
+          Logger.info(
+            'Kedisiplinan $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+          );
+
+          leaderboard.add({
+            'userId': userId,
+            'displayName': displayName,
+            'kelompokId': 0, // Kedisiplinan tidak punya kelompok, set ke 0
+            'avgLevel': avgLevel,
+            'totalPushups': totalPushups,
+            'isKedisiplinan': true,
+          });
+
+          continue; // Skip ke user berikutnya
+        }
+
+        // Handle super admin users (similar to admin)
+        if (role == 'super_admin') {
+          Logger.info(
+            '✅ Adding super admin to leaderboard: $displayName (userId: $userId)',
+          );
+
+          // Ambil weekly ibadah data untuk super admin using same reference date
+          Logger.info(
+            'Fetching weekly data for super admin $displayName (userId: $userId) with reference date: ${AppDateUtils.formatDate(referenceDate)}',
+          );
+          final weeklyData = await getWeeklyIbadahData(userId, referenceDate);
+
+          double avgLevel = 0.0;
+          int totalPushups = 0;
+          int daysWithData = 0;
+
+          if (weeklyData.isNotEmpty) {
+            double userTotalLevel = 0.0;
+
+            Logger.info(
+              'Super Admin $displayName: Checking ${weeklyData.length} days of data',
+            );
+
+            for (var dayData in weeklyData) {
+              final level = dayData.calculateLevelPercentage();
+              final hasData = level > 0 || dayData.pushup != null;
+              if (hasData) {
+                daysWithData++;
+                Logger.info(
+                  '  - Date: ${dayData.date}, level: ${(level * 100).toStringAsFixed(2)}%, pushup: ${dayData.pushup ?? 0}',
+                );
+              }
+              userTotalLevel += level;
+              totalPushups += dayData.pushup ?? 0;
+            }
+
+            // Calculate average from all 7 days (including empty days as 0%)
+            avgLevel = (userTotalLevel / weeklyData.length) * 100;
+          } else {
+            Logger.warning('Super Admin $displayName: weeklyData is empty!');
+          }
+
+          Logger.info(
+            'Super Admin $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+          );
+
+          leaderboard.add({
+            'userId': userId,
+            'displayName': displayName,
+            'kelompokId': 0, // Super Admin tidak punya kelompok, set ke 0
+            'avgLevel': avgLevel,
+            'totalPushups': totalPushups,
+            'isSuperAdmin': true,
+          });
+
+          continue; // Skip ke user berikutnya
+        }
+
+        // Handle koordinator users (ketua kelompok 1-5)
+        if (role != 'koordinator') {
+          Logger.warning(
+            'User $displayName (userId: $userId) has role: $role, skipping',
+          );
+          continue;
+        }
+
+        // Pastikan kelompok_id valid (int antara 1-5)
+        int? kelompokId;
+        if (kelompokIdRaw is int) {
+          kelompokId = kelompokIdRaw;
+        } else if (kelompokIdRaw is num) {
+          kelompokId = kelompokIdRaw.toInt();
+        } else {
+          kelompokId = null;
+        }
+
+        // Filter ketat: hanya kelompok 1, 2, 3, 4, atau 5
+        // Pastikan kelompokId benar-benar salah satu dari validKelompokIds
+        if (kelompokId == null) {
+          Logger.warning(
+            'User $displayName (userId: $userId) has null kelompokId, skipping',
+          );
+          continue;
+        }
+
+        if (!validKelompokIds.contains(kelompokId)) {
+          Logger.warning(
+            'User $displayName (userId: $userId) has invalid kelompokId: $kelompokId (not in $validKelompokIds), skipping',
+          );
+          continue;
+        }
+
+        // Double check: pastikan kelompokId benar-benar antara 1-5
+        if (kelompokId < 1 || kelompokId > 5) {
+          Logger.warning(
+            'User $displayName (userId: $userId) has kelompokId: $kelompokId (out of range 1-5), skipping',
+          );
+          continue;
+        }
+
+        // Hanya tampilkan Ketua Kelompok (displayName mengandung "Ketua" atau userId dimulai dengan "ketuakel")
+        final displayNameLower = displayName.toLowerCase();
+        final isKetua =
+            displayNameLower.contains('ketua') || userId.startsWith('ketuakel');
+
+        if (!isKetua) {
+          Logger.info(
+            '⏭️ Skipping non-ketua user: $displayName (kelompok: $kelompokId, userId: $userId)',
+          );
+          continue;
+        }
+
+        Logger.info(
+          '✅ Adding ketua kelompok to leaderboard: $displayName (kelompok: $kelompokId, userId: $userId)',
+        );
+
+        // Ambil weekly ibadah data untuk user ini using same reference date
+        Logger.info(
+          'Fetching weekly data for Ketua Kelompok $kelompokId $displayName (userId: $userId) with reference date: ${AppDateUtils.formatDate(referenceDate)}',
+        );
+        final weeklyData = await getWeeklyIbadahData(userId, referenceDate);
+
+        double avgLevel = 0.0;
+        int totalPushups = 0;
+        int daysWithData = 0;
+
+        if (weeklyData.isNotEmpty) {
+          // Hitung avg level dan total push-up untuk user ini
+          // Sama seperti di statistics: (sum calculateLevelPercentage per hari) / jumlah hari * 100
+          double userTotalLevel = 0.0;
+
+          Logger.info(
+            'Ketua Kelompok $kelompokId $displayName: Checking ${weeklyData.length} days of data',
+          );
+
+          for (var dayData in weeklyData) {
+            final level = dayData.calculateLevelPercentage();
+            final hasData = level > 0 || dayData.pushup != null;
+            if (hasData) {
+              daysWithData++;
+              Logger.info(
+                '  - Date: ${dayData.date}, level: ${(level * 100).toStringAsFixed(2)}%, pushup: ${dayData.pushup ?? 0}',
+              );
+            }
+            userTotalLevel += level;
+            totalPushups += dayData.pushup ?? 0;
+          }
+
+          // Calculate average from all 7 days (including empty days as 0%)
+          avgLevel = (userTotalLevel / weeklyData.length) * 100;
+        }
+
+        Logger.info(
+          'Ketua Kelompok $kelompokId $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+        );
+
+        leaderboard.add({
+          'userId': userId,
+          'displayName': displayName,
+          'kelompokId': kelompokId,
+          'avgLevel': avgLevel,
+          'totalPushups': totalPushups,
+          'isAdmin': false,
+        });
+      }
+
+      // Sort: level descending, kemudian push-up descending, kemudian displayName ascending (deterministic)
+      leaderboard.sort((a, b) {
+        final levelCompare = (b['avgLevel'] as double).compareTo(
+          a['avgLevel'] as double,
+        );
+        if (levelCompare != 0) {
+          return levelCompare;
+        }
+        final pushupCompare = (b['totalPushups'] as int).compareTo(
+          a['totalPushups'] as int,
+        );
+        if (pushupCompare != 0) {
+          return pushupCompare;
+        }
+        // Tertiary sort by displayName to ensure deterministic ordering
+        final displayNameA = (a['displayName'] as String? ?? '').toLowerCase();
+        final displayNameB = (b['displayName'] as String? ?? '').toLowerCase();
+        return displayNameA.compareTo(displayNameB);
+      });
+
+      // Final check: pastikan semua entries valid
+      final filteredLeaderboard = <Map<String, dynamic>>[];
+      for (final entry in leaderboard) {
+        final kelompokId = entry['kelompokId'] as int?;
+        final displayName = entry['displayName'] as String? ?? 'Unknown';
+        final isAdmin = entry['isAdmin'] as bool? ?? false;
+        final isKedisiplinan = entry['isKedisiplinan'] as bool? ?? false;
+        final isSuperAdmin = entry['isSuperAdmin'] as bool? ?? false;
+
+        // Super Admin tidak perlu validasi kelompok_id
+        if (isSuperAdmin) {
+          filteredLeaderboard.add(entry);
+          continue;
+        }
+
+        // Admin tidak perlu validasi kelompok_id
+        if (isAdmin) {
+          filteredLeaderboard.add(entry);
+          continue;
+        }
+
+        // Kedisiplinan tidak perlu validasi kelompok_id
+        if (isKedisiplinan) {
+          filteredLeaderboard.add(entry);
+          continue;
+        }
+
+        // Validasi untuk koordinator
+        if (kelompokId == null) {
+          Logger.warning('❌ Removing entry with null kelompokId: $displayName');
+          continue;
+        }
+
+        if (!validKelompokIds.contains(kelompokId)) {
+          Logger.warning(
+            '❌ Removing entry with invalid kelompokId: $displayName (kelompokId: $kelompokId, not in $validKelompokIds)',
+          );
+          continue;
+        }
+
+        if (kelompokId < 1 || kelompokId > 5) {
+          Logger.warning(
+            '❌ Removing entry with out-of-range kelompokId: $displayName (kelompokId: $kelompokId)',
+          );
+          continue;
+        }
+
+        filteredLeaderboard.add(entry);
+      }
+
+      Logger.info(
+        '✅ Final leaderboard: ${filteredLeaderboard.length} users (from ${leaderboard.length} entries)',
+      );
+      Logger.info(
+        '✅ Valid kelompokIds in final leaderboard: ${filteredLeaderboard.where((e) => !(e['isAdmin'] as bool? ?? false)).map((e) => e['kelompokId']).toSet()}',
+      );
+
+      return filteredLeaderboard;
+    } catch (e) {
+      Logger.error('Error getting level-based leaderboard', e);
+      return [];
+    }
   }
 
   /// Upload photo to Firebase Storage
@@ -1639,6 +2485,292 @@ class FirestoreService {
     } catch (e) {
       Logger.error('Error deleting photo from storage', e);
       // Don't rethrow - allow verification to continue even if delete fails
+    }
+  }
+
+  // ============================================
+  // Violation Rules Methods
+  // ============================================
+
+  /// Get all violation rules as stream
+  Stream<List<ViolationRuleModel>> getViolationRules() {
+    return _db
+        .collection(AppConstants.collectionViolationRules)
+        .orderBy('name')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ViolationRuleModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  /// Create a new violation rule
+  Future<void> createViolationRule(ViolationRuleModel rule) async {
+    try {
+      final now = FieldValue.serverTimestamp();
+      await _db.collection(AppConstants.collectionViolationRules).add({
+        'name': rule.name,
+        'category': rule.category,
+        'requires_time_detail': rule.requiresTimeDetail,
+        'created_at': now,
+        'updated_at': now,
+      });
+      Logger.info('Violation rule created: ${rule.name}');
+    } catch (e) {
+      Logger.error('Error creating violation rule', e);
+      rethrow;
+    }
+  }
+
+  /// Update an existing violation rule
+  Future<void> updateViolationRule(String id, ViolationRuleModel rule) async {
+    try {
+      await _db
+          .collection(AppConstants.collectionViolationRules)
+          .doc(id)
+          .update({
+            'name': rule.name,
+            'category': rule.category,
+            'requires_time_detail': rule.requiresTimeDetail,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+      Logger.info('Violation rule updated: ${rule.name}');
+    } catch (e) {
+      Logger.error('Error updating violation rule', e);
+      rethrow;
+    }
+  }
+
+  /// Delete a violation rule
+  Future<void> deleteViolationRule(String id) async {
+    try {
+      await _db
+          .collection(AppConstants.collectionViolationRules)
+          .doc(id)
+          .delete();
+      Logger.info('Violation rule deleted: $id');
+    } catch (e) {
+      Logger.error('Error deleting violation rule', e);
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // Violation Cases Methods
+  // ============================================
+
+  /// Record a single violation case
+  Future<void> recordViolationCase(ViolationCaseModel case_) async {
+    try {
+      await _db
+          .collection(AppConstants.collectionViolationCases)
+          .add(case_.toMap());
+      Logger.info('Violation case recorded for user: ${case_.userDisplayName}');
+    } catch (e) {
+      Logger.error('Error recording violation case', e);
+      rethrow;
+    }
+  }
+
+  /// Record multiple violation cases in batch
+  Future<void> recordMultipleViolationCases(
+    List<ViolationCaseModel> cases,
+  ) async {
+    try {
+      final batch = _db.batch();
+      for (final case_ in cases) {
+        final docRef = _db
+            .collection(AppConstants.collectionViolationCases)
+            .doc();
+        batch.set(docRef, case_.toMap());
+      }
+      await batch.commit();
+      Logger.info('Recorded ${cases.length} violation cases');
+    } catch (e) {
+      Logger.error('Error recording multiple violation cases', e);
+      rethrow;
+    }
+  }
+
+  /// Get violation cases for a specific user
+  /// Uses query without orderBy (no index required), sorts in client
+  /// This avoids index requirement while index is being built
+  Stream<List<ViolationCaseModel>> getViolationCasesByUser(String userId) {
+    return _db
+        .collection(AppConstants.collectionViolationCases)
+        .where('user_id', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          final cases = snapshot.docs
+              .map((doc) => ViolationCaseModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort by recordedAt descending in client (newest first)
+          cases.sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
+          return cases;
+        });
+  }
+
+  /// Get all violation cases
+  Stream<List<ViolationCaseModel>> getAllViolationCases() {
+    return _db
+        .collection(AppConstants.collectionViolationCases)
+        .orderBy('recorded_at', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ViolationCaseModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  /// Get users with violations (aggregated data)
+  Future<List<Map<String, dynamic>>> getUsersWithViolations() async {
+    try {
+      // Get all violation cases
+      final casesSnapshot = await _db
+          .collection(AppConstants.collectionViolationCases)
+          .get();
+
+      // Aggregate by user
+      final Map<String, Map<String, dynamic>> userViolations = {};
+
+      for (final doc in casesSnapshot.docs) {
+        final data = doc.data();
+        final userId = data['user_id'] as String;
+        final userDisplayName =
+            data['user_display_name'] as String? ?? 'Unknown';
+        final kelompokId = data['kelompok_id'] as int? ?? 0;
+        final recordedAt = (data['recorded_at'] as Timestamp?)?.toDate();
+
+        if (!userViolations.containsKey(userId)) {
+          userViolations[userId] = {
+            'userId': userId,
+            'displayName': userDisplayName,
+            'kelompokId': kelompokId,
+            'totalCases': 0,
+            'latestCaseDate': recordedAt,
+          };
+        }
+
+        userViolations[userId]!['totalCases'] =
+            (userViolations[userId]!['totalCases'] as int) + 1;
+
+        if (recordedAt != null) {
+          final currentLatest =
+              userViolations[userId]!['latestCaseDate'] as DateTime?;
+          if (currentLatest == null || recordedAt.isAfter(currentLatest)) {
+            userViolations[userId]!['latestCaseDate'] = recordedAt;
+          }
+        }
+      }
+
+      // Convert to list and sort by totalCases descending
+      final result = userViolations.values.toList();
+      result.sort(
+        (a, b) => (b['totalCases'] as int).compareTo(a['totalCases'] as int),
+      );
+
+      return result;
+    } catch (e) {
+      Logger.error('Error getting users with violations', e);
+      return [];
+    }
+  }
+
+  /// Get all group members from kelompok 1-5
+  Future<List<Map<String, dynamic>>> getAllGroupMembers() async {
+    try {
+      final List<Map<String, dynamic>> members = [];
+
+      // Get members from users collection (kelompok 1-5)
+      for (int kelompokId = 1; kelompokId <= 5; kelompokId++) {
+        final usersQuery = await _db
+            .collection(AppConstants.collectionUsers)
+            .where('kelompok_id', isEqualTo: kelompokId)
+            .get();
+
+        for (final doc in usersQuery.docs) {
+          final data = doc.data();
+          final displayName = data['displayName'] as String? ?? '';
+          final role = data['role'] as String? ?? '';
+
+          // Skip ketua kelompok
+          if (role == 'koordinator' &&
+              displayName.toLowerCase().contains('ketua')) {
+            continue;
+          }
+
+          members.add({
+            'userId': doc.id,
+            'displayName': displayName,
+            'kelompokId': kelompokId,
+          });
+        }
+      }
+
+      // Also get from kelompok_members collection
+      for (int kelompokId = 1; kelompokId <= 5; kelompokId++) {
+        final membersDoc = await _db
+            .collection(AppConstants.collectionKelompokMembers)
+            .doc(kelompokId.toString())
+            .get();
+
+        if (membersDoc.exists) {
+          final data = membersDoc.data();
+          final membersList = (data?['members'] as List?) ?? [];
+
+          for (final memberName in membersList) {
+            final memberNameStr = memberName.toString();
+            // Check if already added from users collection
+            final exists = members.any(
+              (m) =>
+                  m['displayName'] == memberNameStr &&
+                  m['kelompokId'] == kelompokId,
+            );
+
+            if (!exists) {
+              // Try to find userId from users collection
+              final userQuery = await _db
+                  .collection(AppConstants.collectionUsers)
+                  .where('displayName', isEqualTo: memberNameStr)
+                  .where('kelompok_id', isEqualTo: kelompokId)
+                  .limit(1)
+                  .get();
+
+              String userId;
+              if (userQuery.docs.isNotEmpty) {
+                userId = userQuery.docs.first.id;
+              } else {
+                // Generate userId if not found
+                userId = 'member_${kelompokId}_${memberNameStr.hashCode}';
+              }
+
+              members.add({
+                'userId': userId,
+                'displayName': memberNameStr,
+                'kelompokId': kelompokId,
+              });
+            }
+          }
+        }
+      }
+
+      // Sort by kelompokId, then by displayName
+      members.sort((a, b) {
+        final kelompokCompare = (a['kelompokId'] as int).compareTo(
+          b['kelompokId'] as int,
+        );
+        if (kelompokCompare != 0) return kelompokCompare;
+        return (a['displayName'] as String).compareTo(
+          b['displayName'] as String,
+        );
+      });
+
+      return members;
+    } catch (e) {
+      Logger.error('Error getting all group members', e);
+      return [];
     }
   }
 }

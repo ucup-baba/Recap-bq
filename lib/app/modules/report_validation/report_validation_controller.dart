@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -207,21 +206,7 @@ class ReportValidationController extends GetxController {
       incrementStreak: true, // Streak selalu +1 jika verified
     );
 
-    // 5.5. Hapus foto bukti setelah verifikasi
-    if (report.photoUrl != null && report.photoUrl!.isNotEmpty) {
-      try {
-        await _firestore.deletePhotoFromStorage(report.photoUrl!);
-        // Update report document untuk hapus photoUrl
-        final db = FirebaseFirestore.instance;
-        await db.collection('daily_reports').doc(report.id).update({
-          'photo_url': FieldValue.delete(),
-        });
-        Logger.info('Photo deleted after verification: ${report.photoUrl}');
-      } catch (e) {
-        Logger.error('Error deleting photo after verification', e);
-        // Don't block verification process if photo delete fails
-      }
-    }
+    // 5.5. Foto tetap disimpan dan akan dihapus saat ganti pekan (bersama laporan)
 
     // 6. Kirim push notification ke semua koordinator
     final message = validCount > 0

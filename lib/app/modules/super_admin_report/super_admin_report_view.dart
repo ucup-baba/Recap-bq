@@ -1,0 +1,458 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
+import '../../core/theme/app_colors.dart';
+import '../../data/models/daily_report_model.dart';
+import 'super_admin_report_controller.dart';
+
+class SuperAdminReportView extends GetView<SuperAdminReportController> {
+  const SuperAdminReportView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // Filter dropdown untuk hari
+          _buildDayFilter(),
+          // Content
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              return RefreshIndicator(
+                onRefresh: () =>
+                    controller.loadReportsForDay(controller.selectedDay.value),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 5, // 5 kelompok
+                  itemBuilder: (context, index) {
+                    final kelompokId = index + 1;
+                    return _buildKelompokCard(kelompokId);
+                  },
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayFilter() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.calendar_today,
+            color: AppColors.primaryBlue,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Filter Hari:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Obx(
+              () => DropdownButton<int>(
+                value: controller.selectedDay.value,
+                isExpanded: true,
+                underline: const SizedBox(),
+                dropdownColor: Colors.white,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text,
+                ),
+                icon: const Icon(
+                  Icons.arrow_drop_down,
+                  color: AppColors.primaryBlue,
+                ),
+                items: List.generate(7, (index) {
+                  final dayOfWeek = index + 1;
+                  return DropdownMenuItem<int>(
+                    value: dayOfWeek,
+                    child: Text(controller.getDayName(dayOfWeek)),
+                  );
+                }),
+                onChanged: (val) {
+                  if (val != null) {
+                    controller.changeDay(val);
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKelompokCard(int kelompokId) {
+    return Obx(() {
+      final report = controller.reportsByKelompok[kelompokId];
+      final status = controller.getReportStatus(kelompokId);
+      final statusColor = controller.getStatusColor(status);
+      final statusLabel = controller.getStatusLabel(status);
+
+      return Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: report != null
+              ? () => _showReportDetailDialog(report)
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Kelompok Badge
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      'K$kelompokId',
+                      style: TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kelompok $kelompokId',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (report != null) ...[
+                        Text(
+                          report.areaTugas,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (report.finalScore != null)
+                          Text(
+                            'Poin: ${report.finalScore}',
+                            style: TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                if (report != null) const SizedBox(width: 8),
+                if (report != null)
+                  Icon(
+                    status == 'pending'
+                        ? Icons.chevron_right
+                        : Icons.check_circle,
+                    color: status == 'pending' ? Colors.grey : Colors.green,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _showReportDetailDialog(DailyReportModel report) {
+    String formattedDate;
+    try {
+      final date = DateTime.parse(report.date);
+      formattedDate = DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(date);
+    } catch (e) {
+      formattedDate = report.date;
+    }
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kelompok ${report.kelompokId}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            formattedDate,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Area Tugas
+                      Text(
+                        'Area Tugas: ${report.areaTugas}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Foto (jika ada)
+                      if (report.photoUrl != null &&
+                          report.photoUrl!.isNotEmpty) ...[
+                        const Text(
+                          'Foto Bukti:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            report.photoUrl!,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 200,
+                                color: Colors.grey[300],
+                                child: const Center(
+                                  child: Icon(Icons.error, color: Colors.grey),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                height: 200,
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      // Tasks
+                      const Text(
+                        'Daftar Tugas:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...report.tasks.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final task = entry.value;
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          color: Colors.grey[50],
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: task.isDone
+                                            ? Colors.green
+                                            : Colors.grey[300],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: TextStyle(
+                                            color: task.isDone
+                                                ? Colors.white
+                                                : Colors.grey[700],
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        task.taskName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          decoration: task.isDone
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                    if (task.isDone)
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                  ],
+                                ),
+                                if (task.executors.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 4,
+                                    runSpacing: 4,
+                                    children: task.executors.map((executor) {
+                                      return Chip(
+                                        label: Text(
+                                          executor,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        backgroundColor: AppColors.primaryBlue
+                                            .withValues(alpha: 0.1),
+                                        labelStyle: TextStyle(
+                                          color: AppColors.primaryBlue,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                                if (task.isValid != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Status Validasi: ${task.isValid == true ? "Valid" : "Tidak Valid"}',
+                                    style: TextStyle(
+                                      color: task.isValid == true
+                                          ? Colors.green
+                                          : Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                                if (task.adminNote != null &&
+                                    task.adminNote!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Catatan Admin: ${task.adminNote}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

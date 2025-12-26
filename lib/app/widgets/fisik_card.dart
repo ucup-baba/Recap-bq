@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-import '../core/theme/app_colors.dart';
+import '../core/interfaces/ibadah_controller_interface.dart';
 import '../data/models/daily_ibadah_model.dart';
 import '../data/services/ibadah_tracking_service.dart';
+import '../modules/santri_dashboard/santri_dashboard_controller.dart';
+import '../modules/admin_ibadah/admin_ibadah_controller.dart';
+import '../modules/kedisiplinan_ibadah/kedisiplinan_ibadah_controller.dart';
 
 class FisikCard extends StatelessWidget {
   final DailyIbadahModel? ibadahData;
@@ -37,155 +41,168 @@ class FisikCard extends StatelessWidget {
     return 6.0;
   }
 
+  // Helper method untuk mendapatkan controller yang tersedia
+  IbadahControllerInterface _getIbadahController() {
+    if (Get.isRegistered<SantriDashboardController>()) {
+      return Get.find<SantriDashboardController>();
+    } else if (Get.isRegistered<AdminIbadahController>()) {
+      return Get.find<AdminIbadahController>();
+    } else if (Get.isRegistered<KedisiplinanIbadahController>()) {
+      return Get.find<KedisiplinanIbadahController>();
+    } else {
+      throw Exception('No ibadah controller found');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final controller = _getIbadahController();
     final service = IbadahTrackingService.instance;
-    final int currentPushupValue = ibadahData?.pushup ?? 0;
-    final double currentSliderValue = _pushupValueToSliderValue(currentPushupValue);
-    final String currentNotes = ibadahData?.notes ?? '';
 
-    return Container(
+    return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+      elevation: 6,
+      shadowColor: Colors.black.withValues(alpha: 26),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: Get.isDarkMode
+                ? [const Color(0xFF1E1E1E), const Color(0xFF252525)]
+                : [Colors.white, Colors.white],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Fisik',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Fisik',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Push Up Slider
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Push Up:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.text,
-                  ),
-                ),
-                Text(
-                  '$currentPushupValue x',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 12.0,
-                thumbShape: const RoundSliderThumbShape(
-                  enabledThumbRadius: 14.0,
-                ),
-                overlayShape: const RoundSliderOverlayShape(
-                  overlayRadius: 28.0,
-                ),
-                activeTrackColor: AppColors.primaryBlue,
-                inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
-                thumbColor: AppColors.primaryBlue,
-                valueIndicatorColor: AppColors.primaryBlue,
-                valueIndicatorTextStyle: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              child: Slider(
-                value: currentSliderValue,
-                min: 0.0,
-                max: (_pushupValues.length - 1).toDouble(),
-                divisions: _pushupValues.length - 1,
-                label: '$currentPushupValue x',
-                onChanged: (double newSliderValue) {
-                  final int newPushupValue = _sliderValueToPushupValue(newSliderValue);
-                  service.updatePushup(newPushupValue);
-                  onUpdate(
-                    ibadahData?.copyWith(pushup: newPushupValue) ??
-                        DailyIbadahModel(
-                          id: '',
-                          userId: '',
-                          date: '',
-                          pushup: newPushupValue,
-                        ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Notes Text Field
-            const Text(
-              'Catatan:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Tulis catatan harian...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey.withValues(alpha: 0.05),
-                contentPadding: const EdgeInsets.all(12),
-              ),
-              controller: TextEditingController(text: currentNotes)
-                ..selection = TextSelection.fromPosition(
-                  TextPosition(offset: currentNotes.length),
-                ),
-              onChanged: (value) {
-                service.updateNotes(value);
-                onUpdate(
-                  ibadahData?.copyWith(notes: value) ??
-                      DailyIbadahModel(
-                        id: '',
-                        userId: '',
-                        date: '',
-                        notes: value,
-                      ),
+              const SizedBox(height: 16),
+              Obx(() {
+                final int currentPushupValue =
+                    controller.todayIbadah()?.pushup ?? 0;
+                final double currentSliderValue = _pushupValueToSliderValue(
+                  currentPushupValue,
                 );
-              },
-            ),
-          ],
+
+                return Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Push Up:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '$currentPushupValue x',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 12.0,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 14.0,
+                        ),
+                        overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 28.0,
+                        ),
+                        activeTrackColor: Colors.purple.shade600,
+                        inactiveTrackColor: Colors.purple.shade100.withValues(
+                          alpha: 0.3,
+                        ),
+                        thumbColor: Colors.purple.shade800,
+                        valueIndicatorColor: Colors.purple.shade800,
+                        valueIndicatorTextStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      child: Slider(
+                        value: currentSliderValue,
+                        min: 0.0,
+                        max: (_pushupValues.length - 1).toDouble(),
+                        divisions: _pushupValues.length - 1,
+                        label: '$currentPushupValue x',
+                        onChanged: (double newSliderValue) {
+                          // Update label saat digeser
+                          final int newPushupValue = _sliderValueToPushupValue(
+                            newSliderValue,
+                          );
+                          service.updatePushup(newPushupValue);
+                          controller.updateIbadah(
+                            controller.todayIbadah() ??
+                                DailyIbadahModel(
+                                  id: '',
+                                  userId: '',
+                                  date: '',
+                                  pushup: newPushupValue,
+                                ),
+                          );
+                        },
+                        onChangeEnd: (double newSliderValue) {
+                          final int newPushupValue = _sliderValueToPushupValue(
+                            newSliderValue,
+                          );
+                          service.updatePushup(newPushupValue);
+                          controller.loadTodayIbadah();
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 8),
+              Obx(() {
+                return Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 77),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      controller.pushupMotivation.value,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

@@ -5,12 +5,7 @@ import '../../core/routes/app_pages.dart';
 import '../../core/utils/logger.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
-
-/// Background message handler (must be top-level function)
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  Logger.info('Background message received: ${message.messageId}');
-}
+import 'local_notification_service.dart';
 
 class FCMService {
   FCMService._();
@@ -67,8 +62,7 @@ class FCMService {
           _handleNotificationTap(initialMessage);
         }
 
-        // Set background message handler
-        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+        // Background message handler is registered in main.dart
 
         _initialized = true;
       } else {
@@ -93,13 +87,17 @@ class FCMService {
   }
 
   /// Handle foreground messages
-  void _handleForegroundMessage(RemoteMessage message) {
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
     Logger.info('Foreground message received: ${message.messageId}');
-    // Show local notification or snackbar
-    if (message.notification != null) {
-      // You can show a snackbar or local notification here
-      Logger.info(
-        'Notification: ${message.notification?.title} - ${message.notification?.body}',
+
+    final notification = message.notification;
+    if (notification != null) {
+      // Show local notification using LocalNotificationService
+      await LocalNotificationService.instance.showFCMNotification(
+        title: notification.title ?? 'Notifikasi',
+        body: notification.body ?? '',
+        data: message.data,
+        notificationId: message.hashCode,
       );
     }
   }
@@ -109,7 +107,8 @@ class FCMService {
     Logger.info('Notification tapped: ${message.messageId}');
     // Navigate based on notification data
     final data = message.data;
-    if (data['type'] == 'report_verified' || data['type'] == 'report_rejected') {
+    if (data['type'] == 'report_verified' ||
+        data['type'] == 'report_rejected') {
       Get.toNamed(AppRoutes.santriDashboard);
     } else if (data['type'] == 'new_report') {
       Get.toNamed(AppRoutes.adminDashboard);

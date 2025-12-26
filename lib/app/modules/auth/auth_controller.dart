@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -49,7 +51,15 @@ class AuthController extends GetxController {
     isLoading.value = true;
     try {
       Logger.debug('Attempting login for: $email');
-      final user = await _authService.signInWithEmail(email, password);
+      // Sign in with timeout
+      final user = await _authService
+          .signInWithEmail(email, password)
+          .timeout(
+            const Duration(seconds: 30), // Increased from 10 to 30 seconds
+            onTimeout: () {
+              throw TimeoutException('Login timeout - koneksi terlalu lambat. Silakan coba lagi.');
+            },
+          );
       if (user == null) {
         throw FirebaseAuthException(
           code: 'user-not-found',
@@ -58,7 +68,51 @@ class AuthController extends GetxController {
       }
 
       Logger.debug('User authenticated, loading profile: ${user.uid}');
-      final profile = await _authService.loadUserProfile(user.uid);
+      // Load profile with timeout
+      var profile = await _authService
+          .loadUserProfile(user.uid)
+          .timeout(
+            const Duration(seconds: 15), // Increased from 5 to 15 seconds
+            onTimeout: () {
+              Logger.warning('Loading profile timeout');
+              return null;
+            },
+          );
+      
+      // If profile not found and this is the kedisiplinan user, create it directly
+      if (profile == null && email == 'disiplinbq@bqmail.com') {
+        Logger.info('Profile not found for kedisiplinan user, creating in Firestore...');
+        try {
+          // Create the user directly in Firestore with the UID from Firebase Auth (with timeout)
+          await _authService
+              .ensureKedisiplinanUserInFirestore(user.uid, email)
+              .timeout(const Duration(seconds: 10)); // Increased from 3 to 10 seconds
+          // Try to load profile again (with timeout)
+          profile = await _authService
+              .loadUserProfile(user.uid)
+              .timeout(const Duration(seconds: 10)); // Increased from 3 to 10 seconds
+        } catch (e) {
+          Logger.error('Error creating kedisiplinan user profile', e);
+        }
+      }
+
+      // If profile not found and this is the super admin user, create it directly
+      if (profile == null && email == 'superbq@bqmail.com') {
+        Logger.info('Profile not found for super admin user, creating in Firestore...');
+        try {
+          // Create the user directly in Firestore with the UID from Firebase Auth (with timeout)
+          await _authService
+              .ensureSuperAdminUserInFirestore(user.uid, email)
+              .timeout(const Duration(seconds: 10)); // Increased from 3 to 10 seconds
+          // Try to load profile again (with timeout)
+          profile = await _authService
+              .loadUserProfile(user.uid)
+              .timeout(const Duration(seconds: 10)); // Increased from 3 to 10 seconds
+        } catch (e) {
+          Logger.error('Error creating super admin user profile', e);
+        }
+      }
+      
       if (profile == null) {
         throw FirebaseAuthException(
           code: 'no-profile',
@@ -67,8 +121,12 @@ class AuthController extends GetxController {
       }
 
       Logger.info('Login successful, role: ${profile.role}');
-      if (profile.role == AppConstants.userRoleAdmin) {
+      if (profile.role == AppConstants.userRoleSuperAdmin) {
+        Get.offAllNamed(AppRoutes.superAdminDashboard);
+      } else if (profile.role == AppConstants.userRoleAdmin) {
         Get.offAllNamed(AppRoutes.adminDashboard);
+      } else if (profile.role == AppConstants.userRoleKedisplinan) {
+        Get.offAllNamed(AppRoutes.kedisiplinanDashboard);
       } else {
         Get.offAllNamed(AppRoutes.santriDashboard);
       }

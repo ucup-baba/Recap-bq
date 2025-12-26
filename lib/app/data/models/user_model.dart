@@ -2,7 +2,7 @@ class UserModel {
   final String uid;
   final String email;
   final String displayName;
-  final String role; // admin | koordinator
+  final String role; // super_admin | admin | koordinator | kedisplinan
   final int? kelompokId;
   final int totalPoin;
   final int currentStreak;
