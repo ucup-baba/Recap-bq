@@ -32,6 +32,13 @@ class AdminDashboardController extends GetxController {
 
   void openIbadahTracking() => Get.toNamed(AppRoutes.adminIbadah);
 
+  void openManageWeekendTasks() => Get.toNamed(AppRoutes.manageWeekendTasks);
+
+  void openWeekendSchedule() => Get.toNamed(AppRoutes.weekendSchedule);
+
+  void openWeekendReportValidation() =>
+      Get.toNamed(AppRoutes.weekendReportValidation);
+
   Future<void> createKedisiplinanUser() async {
     try {
       await _authService.createKedisiplinanUser();

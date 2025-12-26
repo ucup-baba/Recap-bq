@@ -157,7 +157,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
             ),
           ),
           const SizedBox(height: 16),
-          // Second row for Amalan Ibadah
+          // Second row for Amalan Ibadah and Weekend
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -167,6 +167,20 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                   icon: Icons.mosque,
                   color: Colors.green,
                   onTap: controller.openIbadahTracking,
+                ),
+                const SizedBox(width: 16),
+                _buildMenuCard(
+                  title: 'Jadwal Weekend',
+                  icon: Icons.calendar_month,
+                  color: Colors.purple,
+                  onTap: controller.openWeekendSchedule,
+                ),
+                const SizedBox(width: 16),
+                _buildMenuCard(
+                  title: 'Task Weekend',
+                  icon: Icons.weekend,
+                  color: Colors.teal,
+                  onTap: controller.openManageWeekendTasks,
                 ),
               ],
             ),
