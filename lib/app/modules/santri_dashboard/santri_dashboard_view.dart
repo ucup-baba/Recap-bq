@@ -113,17 +113,31 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
                         borderRadius: BorderRadius.circular(16),
                         onTap: isDataReady
                             ? () {
-                                Logger.info(
-                                  'Navigating to report input: area=$area, kelompokId=$kelompokId, date=${controller.today}',
-                                );
-                                Get.toNamed(
-                                  AppRoutes.reportInput,
-                                  arguments: {
-                                    'area': area,
-                                    'kelompokId': kelompokId,
-                                    'date': controller.today,
-                                  },
-                                );
+                                final today = DateTime.now();
+                                final isWeekend =
+                                    today.weekday == DateTime.saturday ||
+                                    today.weekday == DateTime.sunday;
+
+                                if (isWeekend) {
+                                  // Weekend: go to weekend report input
+                                  Logger.info(
+                                    'Navigating to WEEKEND report input (isWeekend=true)',
+                                  );
+                                  Get.toNamed(AppRoutes.weekendReportInput);
+                                } else {
+                                  // Weekday: go to regular report input
+                                  Logger.info(
+                                    'Navigating to report input: area=$area, kelompokId=$kelompokId, date=${controller.today}',
+                                  );
+                                  Get.toNamed(
+                                    AppRoutes.reportInput,
+                                    arguments: {
+                                      'area': area,
+                                      'kelompokId': kelompokId,
+                                      'date': controller.today,
+                                    },
+                                  );
+                                }
                               }
                             : null, // Disable jika user belum ter-load
                         child: Opacity(
