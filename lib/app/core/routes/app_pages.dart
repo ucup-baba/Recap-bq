@@ -40,6 +40,10 @@ import '../../modules/super_admin_dashboard/super_admin_dashboard_binding.dart';
 import '../../modules/super_admin_dashboard/super_admin_dashboard_view.dart';
 import '../../modules/notification_settings/notification_settings_binding.dart';
 import '../../modules/notification_settings/notification_settings_view.dart';
+import '../../modules/manage_weekend_tasks/manage_weekend_tasks_binding.dart';
+import '../../modules/manage_weekend_tasks/manage_weekend_tasks_view.dart';
+import '../../modules/weekend_schedule/weekend_schedule_binding.dart';
+import '../../modules/weekend_schedule/weekend_schedule_view.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -62,6 +66,8 @@ class AppRoutes {
   static const String violationDetail = '/violation-detail';
   static const String superAdminDashboard = '/super-admin';
   static const String notificationSettings = '/notification-settings';
+  static const String manageWeekendTasks = '/manage-weekend-tasks';
+  static const String weekendSchedule = '/weekend-schedule';
 }
 
 class AppPages {
@@ -165,6 +171,16 @@ class AppPages {
       name: AppRoutes.notificationSettings,
       page: () => const NotificationSettingsView(),
       binding: NotificationSettingsBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.manageWeekendTasks,
+      page: () => const ManageWeekendTasksView(),
+      binding: ManageWeekendTasksBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.weekendSchedule,
+      page: () => const WeekendScheduleView(),
+      binding: WeekendScheduleBinding(),
     ),
   ];
 }

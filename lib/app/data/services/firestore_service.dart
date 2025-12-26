@@ -2773,4 +2773,244 @@ class FirestoreService {
       return [];
     }
   }
+
+  // ============================================
+  // Weekend Report Methods
+  // ============================================
+
+  /// Get weekend report by ID
+  Future<Map<String, dynamic>?> getWeekendReport(String reportId) async {
+    try {
+      final doc = await _db.collection('weekend_reports').doc(reportId).get();
+
+      if (!doc.exists) return null;
+      return {'id': doc.id, ...doc.data()!};
+    } catch (e) {
+      Logger.error('Error getting weekend report', e);
+      return null;
+    }
+  }
+
+  /// Save/update weekend report
+  Future<void> saveWeekendReport(Map<String, dynamic> reportData) async {
+    try {
+      final id = reportData['id'] as String;
+      await _db
+          .collection('weekend_reports')
+          .doc(id)
+          .set(reportData, SetOptions(merge: true));
+      Logger.info('Weekend report saved: $id');
+    } catch (e) {
+      Logger.error('Error saving weekend report', e);
+      rethrow;
+    }
+  }
+
+  /// Get all weekend reports for a specific weekend date
+  Stream<List<Map<String, dynamic>>> watchWeekendReportsForDate(
+    DateTime weekendDate,
+  ) {
+    final dateStr =
+        '${weekendDate.year}-${weekendDate.month.toString().padLeft(2, '0')}-${weekendDate.day.toString().padLeft(2, '0')}';
+
+    return _db
+        .collection('weekend_reports')
+        .where('id', isGreaterThanOrEqualTo: dateStr)
+        .where('id', isLessThan: '${dateStr}z')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
+  }
+
+  /// Get weekend reports for a kelompok on a specific weekend
+  Future<List<Map<String, dynamic>>> getWeekendReportsForKelompok(
+    DateTime weekendDate,
+    int kelompokId,
+  ) async {
+    try {
+      final dateStr =
+          '${weekendDate.year}-${weekendDate.month.toString().padLeft(2, '0')}-${weekendDate.day.toString().padLeft(2, '0')}';
+
+      final query = await _db
+          .collection('weekend_reports')
+          .where('id', isGreaterThanOrEqualTo: '${dateStr}_$kelompokId')
+          .where('id', isLessThan: '${dateStr}_${kelompokId + 1}')
+          .get();
+
+      return query.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+    } catch (e) {
+      Logger.error('Error getting weekend reports for kelompok', e);
+      return [];
+    }
+  }
+
+  /// Get all pending weekend reports for validation
+  Stream<List<Map<String, dynamic>>> watchPendingWeekendReports() {
+    return _db
+        .collection('weekend_reports')
+        .where('status', isEqualTo: 'submitted')
+        .orderBy('submittedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
+  }
+
+  /// Validate weekend report
+  Future<void> validateWeekendReport(
+    String reportId,
+    String validatorId,
+  ) async {
+    try {
+      await _db.collection('weekend_reports').doc(reportId).update({
+        'status': 'validated',
+        'validatedAt': FieldValue.serverTimestamp(),
+        'validatedBy': validatorId,
+      });
+      Logger.info('Weekend report validated: $reportId');
+    } catch (e) {
+      Logger.error('Error validating weekend report', e);
+      rethrow;
+    }
+  }
+
+  /// Reject weekend report
+  Future<void> rejectWeekendReport(String reportId, String reason) async {
+    try {
+      await _db.collection('weekend_reports').doc(reportId).update({
+        'status': 'rejected',
+        'rejectionReason': reason,
+      });
+      Logger.info('Weekend report rejected: $reportId');
+    } catch (e) {
+      Logger.error('Error rejecting weekend report', e);
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // Weekend Area Tasks Methods
+  // ============================================
+
+  /// Get tasks for a weekend area
+  Future<List<String>> getWeekendAreaTasks(String area) async {
+    try {
+      final doc = await _db.collection('weekend_area_tasks').doc(area).get();
+
+      if (!doc.exists) return [];
+      final data = doc.data();
+      return List<String>.from(data?['tasks'] ?? []);
+    } catch (e) {
+      Logger.error('Error getting weekend area tasks', e);
+      return [];
+    }
+  }
+
+  /// Watch tasks for a weekend area
+  Stream<List<String>> watchWeekendAreaTasks(String area) {
+    return _db.collection('weekend_area_tasks').doc(area).snapshots().map((
+      doc,
+    ) {
+      if (!doc.exists) return <String>[];
+      final data = doc.data();
+      return List<String>.from(data?['tasks'] ?? []);
+    });
+  }
+
+  /// Save/update weekend area tasks
+  Future<void> saveWeekendAreaTasks(String area, List<String> tasks) async {
+    try {
+      await _db.collection('weekend_area_tasks').doc(area).set({
+        'area': area,
+        'tasks': tasks,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      Logger.info('Weekend area tasks saved: $area');
+    } catch (e) {
+      Logger.error('Error saving weekend area tasks', e);
+      rethrow;
+    }
+  }
+
+  /// Seed default weekend area tasks
+  Future<void> seedDefaultWeekendTasks() async {
+    try {
+      const defaultTasks = {
+        'Halaman': [
+          'Sapu Halaman Depan',
+          'Sapu Halaman Belakang',
+          'Bersihkan Sampah',
+          'Siram Tanaman',
+          'Rapikan Barang',
+        ],
+        'Kamar Aula': [
+          'Sapu Lantai Aula',
+          'Pel Lantai Aula',
+          'Rapikan Kursi & Meja',
+          'Bersihkan Jendela',
+          'Bersihkan Kipas/AC',
+        ],
+        'Tempat Wudhu': [
+          'Bersihkan Lantai',
+          'Sikat Dinding',
+          'Bersihkan Kran',
+          'Rapikan Sandal',
+          'Isi Air',
+        ],
+        'Rongsokan': [
+          'Sortir Barang Bekas',
+          'Bersihkan Area',
+          'Rapikan Tumpukan',
+          'Buang Sampah',
+          'Timbang Barang',
+        ],
+        'Masjid': [
+          'Sapu Lantai Masjid',
+          'Pel Lantai Masjid',
+          'Rapikan Karpet Sholat',
+          'Bersihkan Mimbar',
+          'Rapikan Rak Al-Quran',
+        ],
+        'Dapur': [
+          'Cuci Piring & Peralatan',
+          'Bersihkan Kompor',
+          'Bersihkan Meja',
+          'Pel Lantai Dapur',
+          'Rapikan Peralatan',
+          'Buang Sampah',
+        ],
+        'Masak': [
+          'Siapkan Bahan',
+          'Masak Nasi',
+          'Masak Lauk Utama',
+          'Masak Sayur',
+          'Siapkan Sambal/Pelengkap',
+          'Cuci Peralatan',
+          'Rapikan Dapur',
+        ],
+      };
+
+      final batch = _db.batch();
+      for (final entry in defaultTasks.entries) {
+        final docRef = _db.collection('weekend_area_tasks').doc(entry.key);
+        final existing = await docRef.get();
+        if (!existing.exists) {
+          batch.set(docRef, {
+            'area': entry.key,
+            'tasks': entry.value,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+      await batch.commit();
+      Logger.info('Default weekend tasks seeded');
+    } catch (e) {
+      Logger.error('Error seeding default weekend tasks', e);
+    }
+  }
 }
