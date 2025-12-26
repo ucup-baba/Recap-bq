@@ -185,6 +185,23 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          // Third row for Weekend Validation
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _buildMenuCard(
+                  title: 'Validasi Weekend',
+                  icon: Icons.fact_check,
+                  color: Colors.deepOrange,
+                  onTap: controller.openWeekendReportValidation,
+                ),
+                const Spacer(),
+                const Spacer(),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 24),
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/routes/app_pages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/daily_report_model.dart';
 import 'super_admin_report_controller.dart';
@@ -17,6 +18,8 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
         children: [
           // Filter dropdown untuk hari
           _buildDayFilter(),
+          // Weekend shortcuts
+          _buildWeekendShortcuts(),
           // Content
           Expanded(
             child: Obx(() {
@@ -37,6 +40,41 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
                 ),
               );
             }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeekendShortcuts() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => Get.toNamed(AppRoutes.weekendSchedule),
+              icon: const Icon(Icons.calendar_month, size: 18),
+              label: const Text('Jadwal Weekend'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.purple,
+                side: const BorderSide(color: Colors.purple),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => Get.toNamed(AppRoutes.weekendReportValidation),
+              icon: const Icon(Icons.fact_check, size: 18, color: Colors.white),
+              label: const Text(
+                'Validasi Weekend',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+              ),
+            ),
           ),
         ],
       ),
@@ -120,9 +158,7 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: report != null
-              ? () => _showReportDetailDialog(report)
-              : null,
+          onTap: report != null ? () => _showReportDetailDialog(report) : null,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
