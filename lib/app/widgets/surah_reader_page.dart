@@ -80,10 +80,26 @@ class SurahReaderPage extends StatelessWidget {
                 // For first ayah: remove Bismillah prefix if already shown in header
                 // (surah != 1 Al-Fatihah and != 9 At-Taubah)
                 if (ayahNumber == 1 && surahNumber != 1 && surahNumber != 9) {
-                  // Remove Bismillah from the beginning of the verse
-                  final basmalah = quran.basmala;
-                  if (fullAyah.startsWith(basmalah)) {
-                    fullAyah = fullAyah.substring(basmalah.length).trim();
+                  // Get Bismillah from Al-Fatihah verse 1 to ensure matching encoding/diacritics
+                  final referenceBismillah = quran.getVerse(
+                    1,
+                    1,
+                    verseEndSymbol: false,
+                  );
+
+                  // Clean potential whitespace
+                  if (fullAyah.startsWith(referenceBismillah)) {
+                    fullAyah = fullAyah
+                        .substring(referenceBismillah.length)
+                        .trim();
+                  } else {
+                    // Fallback: Check if it starts with the constant just in case
+                    final constantBismillah = quran.basmala;
+                    if (fullAyah.startsWith(constantBismillah)) {
+                      fullAyah = fullAyah
+                          .substring(constantBismillah.length)
+                          .trim();
+                    }
                   }
                 }
 
