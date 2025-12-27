@@ -93,7 +93,7 @@ class WeekendReportValidationView
   }
 
   Widget _buildReportCard(BuildContext context, WeekendReportModel report) {
-    final completedTasks = report.checklist.values.where((v) => v).length;
+    final completedTasks = report.tasks.where((t) => t.isDone).length;
     final totalTasks = report.tasks.length;
     final completion = totalTasks > 0 ? completedTasks / totalTasks : 0.0;
 
@@ -208,26 +208,43 @@ class WeekendReportValidationView
           ExpansionTile(
             title: const Text('Lihat Detail Task'),
             children: [
-              ...report.tasks.map((task) {
-                final isCompleted = report.checklist[task] ?? false;
+              ...report.tasks.asMap().entries.map((entry) {
+                final task = entry.value;
                 return ListTile(
                   dense: true,
                   leading: Icon(
-                    isCompleted
+                    task.isDone
                         ? Icons.check_circle
                         : Icons.radio_button_unchecked,
-                    color: isCompleted ? Colors.green : Colors.grey,
+                    color: task.isDone ? Colors.green : Colors.grey,
                     size: 20,
                   ),
                   title: Text(
-                    task,
+                    task.taskName,
                     style: TextStyle(
-                      decoration: isCompleted
+                      decoration: task.isDone
                           ? TextDecoration.lineThrough
                           : null,
-                      color: isCompleted ? Colors.grey : Colors.black87,
+                      color: task.isDone ? Colors.grey : Colors.black87,
                     ),
                   ),
+                  subtitle: task.executors.isNotEmpty
+                      ? Wrap(
+                          spacing: 4,
+                          children: task.executors
+                              .map(
+                                (e) => Chip(
+                                  label: Text(
+                                    e,
+                                    style: const TextStyle(fontSize: 10),
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                ),
+                              )
+                              .toList(),
+                        )
+                      : null,
                 );
               }),
             ],

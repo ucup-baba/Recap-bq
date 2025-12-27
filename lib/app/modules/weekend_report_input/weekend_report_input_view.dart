@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -7,125 +8,124 @@ import 'weekend_report_input_controller.dart';
 class WeekendReportInputView extends GetView<WeekendReportInputController> {
   const WeekendReportInputView({super.key});
 
+  Color _getAvatarColor(String name) {
+    final avatarColors = [
+      const Color(0xFF2196F3),
+      const Color(0xFFE53935),
+      const Color(0xFFFFB300),
+      const Color(0xFF8E24AA),
+      const Color(0xFF4CAF50),
+      const Color(0xFFFF6F00),
+      const Color(0xFF00ACC1),
+      const Color(0xFFE91E63),
+    ];
+    final hash = name.hashCode;
+    return avatarColors[hash.abs() % avatarColors.length];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      body: Column(
+        children: [
+          // Header
+          _buildHeader(),
 
-        return Column(
-          children: [
-            // Header
-            _buildHeader(),
+          // Report Type Tabs
+          _buildReportTypeTabs(),
 
-            // Report Type Tabs
-            _buildReportTypeTabs(),
+          // Content
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return Column(
+                children: [
+                  // Status indicator
+                  _buildStatusIndicator(),
 
-            // Tasks List
-            Expanded(child: _buildTasksList()),
+                  // Photo Section
+                  _buildPhotoEvidence(context),
 
-            // Submit Button
-            _buildSubmitButton(),
-          ],
-        );
-      }),
+                  // Task List
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: controller.tasks.length,
+                      itemBuilder: (context, index) =>
+                          _buildTaskItem(context, index),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+
+          // Bottom Buttons
+          _buildBottomButtons(),
+        ],
+      ),
     );
   }
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.only(top: 40, bottom: 16, left: 16, right: 16),
+      padding: const EdgeInsets.only(top: 40, bottom: 20, left: 16, right: 16),
       decoration: const BoxDecoration(
         gradient: AppColors.headerGradient,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
       child: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => Get.back(),
-                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                ),
-                const Expanded(
-                  child: Text(
-                    'Laporan Weekend',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             ),
-            const SizedBox(height: 12),
-            Obx(
-              () => Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+            const SizedBox(width: 8),
+            Expanded(
+              child: Obx(
+                () => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            controller.kelompokName.value,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            'Slot: ${controller.slotInfo.value?.slotName ?? '-'}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      controller.kelompokName.value,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: controller.slotInfo.value?.hasCooking == true
-                            ? Colors.orange
-                            : Colors.grey,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        controller.slotInfo.value?.hasCooking == true
-                            ? 'MASAK'
-                            : 'DAPUR',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                    Text(
+                      'Laporan Weekend',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            Obx(
+              () => Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  controller.slotInfo.value?.slotName ?? '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -136,77 +136,52 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
   }
 
   Widget _buildReportTypeTabs() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Obx(
-        () => SingleChildScrollView(
+    return Obx(() {
+      if (controller.availableReportTypes.isEmpty) return const SizedBox();
+
+      return Container(
+        margin: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.all(8),
           child: Row(
             children: controller.availableReportTypes.map((type) {
               final isSelected = controller.selectedReportType.value == type;
-              final isCompleted = _isReportTypeCompleted(type);
+              final label = controller.getReportTypeLabel(type);
+              final icon = type == 'masak'
+                  ? Icons.restaurant
+                  : Icons.cleaning_services;
 
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => controller.changeReportType(type),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
+                child: ChoiceChip(
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 18,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.primaryBlue,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(label),
+                    ],
+                  ),
+                  selected: isSelected,
+                  onSelected: (_) => controller.changeReportType(type),
+                  selectedColor: AppColors.primaryBlue,
+                  backgroundColor: Colors.white,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.primaryBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
                       color: isSelected
                           ? AppColors.primaryBlue
-                          : isCompleted
-                          ? Colors.green.shade50
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                      border: isCompleted
-                          ? Border.all(color: Colors.green, width: 2)
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isCompleted)
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 18,
-                          )
-                        else
-                          Icon(
-                            _getIconForReportType(type),
-                            color: isSelected ? Colors.white : Colors.grey,
-                            size: 18,
-                          ),
-                        const SizedBox(width: 8),
-                        Text(
-                          controller.getReportTypeLabel(type),
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : isCompleted
-                                ? Colors.green
-                                : Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                          : Colors.grey.shade300,
                     ),
                   ),
                 ),
@@ -214,107 +189,340 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
             }).toList(),
           ),
         ),
-      ),
-    );
-  }
-
-  bool _isReportTypeCompleted(String type) {
-    // This would check if the report for this type is already submitted
-    // For now, return false as a placeholder
-    return false;
-  }
-
-  IconData _getIconForReportType(String type) {
-    if (type == 'masak') return Icons.restaurant;
-    return Icons.cleaning_services;
-  }
-
-  Widget _buildTasksList() {
-    return Obx(() {
-      if (controller.tasks.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.task_alt, size: 64, color: Colors.grey[300]),
-              const SizedBox(height: 16),
-              Text(
-                'Tidak ada task',
-                style: TextStyle(color: Colors.grey[500], fontSize: 16),
-              ),
-            ],
-          ),
-        );
-      }
-
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: controller.tasks.length,
-        itemBuilder: (context, index) {
-          final task = controller.tasks[index];
-          final isCompleted = controller.checklist[task] ?? false;
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: isCompleted
-                  ? Border.all(color: Colors.green, width: 2)
-                  : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ListTile(
-              onTap: () => controller.toggleTask(task),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isCompleted
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : AppColors.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  isCompleted
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  color: isCompleted ? Colors.green : AppColors.primaryBlue,
-                ),
-              ),
-              title: Text(
-                task,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  decoration: isCompleted ? TextDecoration.lineThrough : null,
-                  color: isCompleted ? Colors.grey : Colors.black87,
-                ),
-              ),
-            ),
-          );
-        },
       );
     });
   }
 
-  Widget _buildSubmitButton() {
+  Widget _buildStatusIndicator() {
     return Obx(() {
-      final completionPct = controller.completionPercentage;
-      final isComplete = completionPct == 1.0;
+      final status = controller.existingReport.value?.status ?? 'draft';
+      String statusText;
+      IconData statusIcon;
+      Color statusColor;
+
+      switch (status) {
+        case 'submitted':
+          statusText = 'Pending - Menunggu validasi';
+          statusIcon = Icons.hourglass_top;
+          statusColor = Colors.orange;
+          break;
+        case 'validated':
+          statusText = 'Tervalidasi';
+          statusIcon = Icons.check_circle;
+          statusColor = Colors.green;
+          break;
+        case 'rejected':
+          statusText = 'Ditolak - Perbaiki dan kirim ulang';
+          statusIcon = Icons.cancel;
+          statusColor = Colors.red;
+          break;
+        default:
+          statusText = 'Draft - Belum dikirim';
+          statusIcon = Icons.edit_note;
+          statusColor = AppColors.primaryBlue;
+      }
+
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(statusIcon, color: statusColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                statusText,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.text,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildPhotoEvidence(BuildContext context) {
+    return Obx(() {
+      final hasPhoto = controller.photoUrl.value.isNotEmpty;
+      final isUploading = controller.isUploadingPhoto.value;
       final isSubmitted = controller.isSubmitted;
 
       return Container(
+        margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: const [
+                  Icon(Icons.camera_alt, color: AppColors.primaryBlue),
+                  SizedBox(width: 8),
+                  Text(
+                    'Foto Bukti',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            if (isUploading)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (hasPhoto)
+              Stack(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: CachedNetworkImage(
+                          imageUrl: controller.photoUrl.value,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            color: Colors.grey[200],
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.error),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (!isSubmitted)
+                    Positioned(
+                      top: 8,
+                      right: 24,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: controller.deletePhoto,
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ),
+                ],
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: InkWell(
+                  onTap: isSubmitted
+                      ? null
+                      : () => _showPhotoPickerDialog(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!, width: 2),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.camera_alt,
+                          size: 36,
+                          color: AppColors.primaryBlue,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Ambil Foto',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildTaskItem(BuildContext context, int index) {
+    return Obx(() {
+      final task = controller.tasks[index];
+      final isDone = task.isDone && task.executors.isNotEmpty;
+      final isSubmitted = controller.isSubmitted;
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: isSubmitted
+              ? null
+              : () => controller.selectExecutors(index, context),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Checkbox
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDone ? AppColors.successGreen : Colors.transparent,
+                    border: Border.all(
+                      color: isDone
+                          ? AppColors.successGreen
+                          : Colors.grey[300]!,
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.check,
+                    size: 16,
+                    color: isDone ? Colors.white : Colors.transparent,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        task.taskName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDone ? AppColors.text : Colors.grey[600],
+                        ),
+                      ),
+                      if (task.executors.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: task.executors.map((executor) {
+                              final color = _getAvatarColor(executor);
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: color),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 16,
+                                      height: 16,
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          executor[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            fontSize: 8,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      executor,
+                                      style: TextStyle(
+                                        color: color,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        )
+                      else if (!isSubmitted)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'Tap untuk pilih pelaksana',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildBottomButtons() {
+    return Obx(
+      () => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -326,88 +534,107 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
             ),
           ],
         ),
-        child: Column(
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: controller.isSaving.value
+                      ? null
+                      : () => Get.back(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    side: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.text,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: controller.isSubmitted || controller.isSaving.value
+                      ? null
+                      : controller.submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: controller.isSaving.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.save, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Submit',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPhotoPickerDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Pilih Sumber Foto'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Progress Bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: completionPct,
-                minHeight: 8,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation(
-                  isComplete ? Colors.green : AppColors.primaryBlue,
-                ),
-              ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Kamera'),
+              onTap: () {
+                Get.back();
+                controller.pickPhotoFromCamera();
+              },
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${(completionPct * 100).toInt()}% selesai',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                ),
-                if (isSubmitted)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      '✓ Sudah Submit',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed:
-                    isComplete && !controller.isSaving.value && !isSubmitted
-                    ? controller.submit
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isSubmitted
-                      ? Colors.grey
-                      : AppColors.primaryBlue,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: controller.isSaving.value
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        isSubmitted ? 'Sudah Disubmit' : 'Submit Laporan',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galeri'),
+              onTap: () {
+                Get.back();
+                controller.pickPhotoFromGallery();
+              },
             ),
           ],
         ),
-      );
-    });
+      ),
+    );
   }
 }

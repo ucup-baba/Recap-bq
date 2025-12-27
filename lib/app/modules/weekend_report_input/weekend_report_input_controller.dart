@@ -1,20 +1,27 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/utils/error_handler.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/snackbar_helper.dart';
+import '../../data/models/task_model.dart';
 import '../../data/models/weekend_area_tasks_model.dart';
 import '../../data/models/weekend_report_model.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/weekend_rotation_service.dart';
+import '../../widgets/executor_bottom_sheet.dart';
 
 class WeekendReportInputController extends GetxController {
   final _firestore = FirestoreService.instance;
   final _authService = AuthService.instance;
   final _rotationService = WeekendRotationService.instance;
+  final _picker = ImagePicker();
 
   // User info
   final Rxn<int> kelompokId = Rxn<int>();
@@ -25,12 +32,18 @@ class WeekendReportInputController extends GetxController {
   final Rx<WeekendSlotInfo?> slotInfo = Rx<WeekendSlotInfo?>(null);
 
   // Selected report type
-  final RxString selectedReportType =
-      'masak'.obs; // 'masak', 'piket_sabtu', 'piket_ahad'
+  final RxString selectedReportType = 'masak'.obs;
 
-  // Tasks and checklist
-  final RxList<String> tasks = <String>[].obs;
-  final RxMap<String, bool> checklist = <String, bool>{}.obs;
+  // Tasks with executors (like weekday)
+  final RxList<TaskModel> tasks = <TaskModel>[].obs;
+
+  // Members for executor selection
+  final RxList<String> members = <String>[].obs;
+
+  // Photo
+  final Rxn<File> selectedPhoto = Rxn<File>();
+  final RxString photoUrl = ''.obs;
+  final RxBool isUploadingPhoto = false.obs;
 
   // Form state
   final RxBool isLoading = false.obs;
@@ -69,6 +82,9 @@ class WeekendReportInputController extends GetxController {
       kelompokId.value = profile.kelompokId;
       kelompokName.value = 'Kelompok ${profile.kelompokId}';
 
+      // Load members for executor selection
+      await _loadMembers();
+
       // Get current weekend's Saturday
       final today = DateTime.now();
       final saturday = _rotationService.getSaturdayForDate(today);
@@ -86,7 +102,7 @@ class WeekendReportInputController extends GetxController {
       }
       slotInfo.value = slot;
 
-      // Set available report types based on slot
+      // Set available report types based on slot and current day
       _setupAvailableReportTypes(slot);
 
       // Load tasks for first available report type
@@ -101,32 +117,35 @@ class WeekendReportInputController extends GetxController {
     }
   }
 
+  Future<void> _loadMembers() async {
+    try {
+      if (kelompokId.value == null) return;
+      final data = await _firestore.getMembers(kelompokId.value!);
+      if (data != null && data.members.isNotEmpty) {
+        members.value = data.members;
+      }
+    } catch (e) {
+      Logger.error('Error loading members', e);
+    }
+  }
+
   void _setupAvailableReportTypes(WeekendSlotInfo slot) {
     final types = <String>[];
     final today = DateTime.now();
     final isSaturday = today.weekday == DateTime.saturday;
     final isSunday = today.weekday == DateTime.sunday;
 
-    // On Saturday: show Masak (if applicable) + Piket Sabtu
-    // On Sunday: show Masak (if applicable) + Piket Ahad
     if (isSaturday) {
-      if (slot.hasCooking) {
-        // Only show masak on Saturday if slot is Sabtu Pagi or Sabtu Malam
-        if (slot.slotName.toLowerCase().contains('sabtu')) {
-          types.add('masak');
-        }
+      if (slot.hasCooking && slot.slotName.toLowerCase().contains('sabtu')) {
+        types.add('masak');
       }
       types.add('piket_sabtu');
     } else if (isSunday) {
-      if (slot.hasCooking) {
-        // Only show masak on Sunday if slot is Ahad Pagi or Ahad Malam
-        if (slot.slotName.toLowerCase().contains('ahad')) {
-          types.add('masak');
-        }
+      if (slot.hasCooking && slot.slotName.toLowerCase().contains('ahad')) {
+        types.add('masak');
       }
       types.add('piket_ahad');
     } else {
-      // Not weekend - show all for preview/admin purposes
       if (slot.hasCooking) {
         types.add('masak');
       }
@@ -159,35 +178,36 @@ class WeekendReportInputController extends GetxController {
         area = slot.piketAreaAhad;
       }
 
-      // Load tasks from Firestore (or use defaults)
-      List<String> loadedTasks = await _firestore.getWeekendAreaTasks(area);
-      if (loadedTasks.isEmpty) {
-        loadedTasks = WeekendAreaTasksModel.getDefaultTasksForArea(area);
+      // Load task names from Firestore (or use defaults)
+      List<String> taskNames = await _firestore.getWeekendAreaTasks(area);
+      if (taskNames.isEmpty) {
+        taskNames = WeekendAreaTasksModel.getDefaultTasksForArea(area);
       }
-      tasks.value = loadedTasks;
 
-      // Initialize checklist
-      checklist.value = {for (var task in loadedTasks) task: false};
-
-      // Try to load existing report
+      // Try to load existing report first
       final reportId = WeekendReportModel.generateId(
         currentWeekend.value,
         kelompokId.value!,
         selectedReportType.value,
       );
       final existingData = await _firestore.getWeekendReport(reportId);
+
       if (existingData != null) {
         existingReport.value = WeekendReportModel.fromJson(existingData);
-        // Restore checklist state
-        final savedChecklist = existingReport.value!.checklist;
-        for (var task in tasks) {
-          if (savedChecklist.containsKey(task)) {
-            checklist[task] = savedChecklist[task]!;
-          }
-        }
+        tasks.value = existingReport.value!.tasks;
+        photoUrl.value = existingReport.value!.photoUrl ?? '';
       } else {
         existingReport.value = null;
+        // Initialize tasks with empty executors
+        tasks.value = taskNames
+            .map(
+              (name) => TaskModel(taskName: name, isDone: false, executors: []),
+            )
+            .toList();
+        photoUrl.value = '';
       }
+
+      selectedPhoto.value = null;
     } catch (e) {
       Logger.error('Error loading tasks', e);
     } finally {
@@ -195,15 +215,26 @@ class WeekendReportInputController extends GetxController {
     }
   }
 
-  void toggleTask(String task) {
-    if (checklist.containsKey(task)) {
-      checklist[task] = !checklist[task]!;
-      _autoSave();
+  void toggleTask(int index) {
+    final task = tasks[index];
+    tasks[index] = task.copyWith(isDone: !task.isDone);
+    _autoSaveDraft();
+  }
+
+  Future<void> selectExecutors(int index, BuildContext context) async {
+    final task = tasks[index];
+    final selected = await ExecutorBottomSheet.pick(members: members);
+
+    if (selected != null) {
+      tasks[index] = task.copyWith(
+        executors: selected,
+        isDone: selected.isNotEmpty,
+      );
+      _autoSaveDraft();
     }
   }
 
-  Future<void> _autoSave() async {
-    // Save as draft automatically
+  Future<void> _autoSaveDraft() async {
     try {
       await _saveReport(asDraft: true);
     } catch (e) {
@@ -238,7 +269,7 @@ class WeekendReportInputController extends GetxController {
       reportType: selectedReportType.value,
       area: area,
       tasks: tasks.toList(),
-      checklist: Map<String, bool>.from(checklist),
+      photoUrl: photoUrl.value.isNotEmpty ? photoUrl.value : null,
       status: asDraft ? 'draft' : 'submitted',
       createdAt: existingReport.value?.createdAt ?? DateTime.now(),
       submittedAt: asDraft ? null : DateTime.now(),
@@ -252,12 +283,16 @@ class WeekendReportInputController extends GetxController {
     try {
       isSaving.value = true;
 
-      // Check if all tasks are completed
-      final allCompleted = checklist.values.every((v) => v);
-      if (!allCompleted) {
-        SnackbarHelper.showWarning(
-          'Mohon selesaikan semua task terlebih dahulu',
-        );
+      // Check if all tasks have executors
+      final hasUnassignedTasks = tasks.any((t) => t.executors.isEmpty);
+      if (hasUnassignedTasks) {
+        SnackbarHelper.showWarning('Mohon pilih pelaksana untuk setiap task');
+        return;
+      }
+
+      // Check if photo is uploaded
+      if (photoUrl.value.isEmpty) {
+        SnackbarHelper.showWarning('Mohon upload foto bukti');
         return;
       }
 
@@ -279,9 +314,98 @@ class WeekendReportInputController extends GetxController {
     }
   }
 
+  // Photo handling
+  Future<void> pickPhotoFromCamera() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        await _processAndUploadPhoto(File(image.path));
+      }
+    } catch (e) {
+      Logger.error('Error picking photo from camera', e);
+      SnackbarHelper.showError('Gagal mengambil foto');
+    }
+  }
+
+  Future<void> pickPhotoFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        await _processAndUploadPhoto(File(image.path));
+      }
+    } catch (e) {
+      Logger.error('Error picking photo from gallery', e);
+      SnackbarHelper.showError('Gagal memilih foto');
+    }
+  }
+
+  Future<void> _processAndUploadPhoto(File file) async {
+    try {
+      isUploadingPhoto.value = true;
+      selectedPhoto.value = file;
+
+      // Compress image
+      final compressedFile = await compressImage(file);
+
+      // Upload to Firebase Storage
+      final url = await _firestore.uploadWeekendReportPhoto(
+        compressedFile,
+        kelompokId.value!,
+        selectedReportType.value,
+        currentWeekend.value,
+      );
+
+      photoUrl.value = url;
+      await _autoSaveDraft();
+
+      SnackbarHelper.showSuccess('Foto berhasil diupload');
+    } catch (e) {
+      Logger.error('Error uploading photo', e);
+      SnackbarHelper.showError('Gagal mengupload foto');
+      selectedPhoto.value = null;
+    } finally {
+      isUploadingPhoto.value = false;
+    }
+  }
+
+  Future<File> compressImage(File file) async {
+    final filePath = file.absolute.path;
+    final lastIndex = filePath.lastIndexOf(RegExp(r'.jp'));
+    final splitted = filePath.substring(0, lastIndex);
+    final outPath = '${splitted}_compressed.jpg';
+
+    final result = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
+      outPath,
+      quality: 70,
+      minWidth: 800,
+      minHeight: 800,
+    );
+
+    return result != null ? File(result.path) : file;
+  }
+
+  void deletePhoto() {
+    selectedPhoto.value = null;
+    photoUrl.value = '';
+    _autoSaveDraft();
+  }
+
   double get completionPercentage {
     if (tasks.isEmpty) return 0;
-    final completed = checklist.values.where((v) => v).length;
+    final completed = tasks
+        .where((t) => t.isDone && t.executors.isNotEmpty)
+        .length;
     return completed / tasks.length;
   }
 

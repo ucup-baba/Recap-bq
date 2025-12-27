@@ -2861,20 +2861,88 @@ class FirestoreService {
         );
   }
 
-  /// Validate weekend report
+  /// Validate weekend report with scoring
   Future<void> validateWeekendReport(
     String reportId,
-    String validatorId,
-  ) async {
+    String validatorId, {
+    int? finalScore,
+    List<Map<String, dynamic>>? validatedTasks,
+  }) async {
     try {
-      await _db.collection('weekend_reports').doc(reportId).update({
+      final updateData = <String, dynamic>{
         'status': 'validated',
         'validatedAt': FieldValue.serverTimestamp(),
         'validatedBy': validatorId,
-      });
+      };
+      if (finalScore != null) {
+        updateData['finalScore'] = finalScore;
+      }
+      if (validatedTasks != null) {
+        updateData['tasks'] = validatedTasks;
+      }
+      await _db.collection('weekend_reports').doc(reportId).update(updateData);
       Logger.info('Weekend report validated: $reportId');
     } catch (e) {
       Logger.error('Error validating weekend report', e);
+      rethrow;
+    }
+  }
+
+  /// Upload weekend report photo to Firebase Storage
+  Future<String> uploadWeekendReportPhoto(
+    File file,
+    int kelompokId,
+    String reportType,
+    DateTime weekendDate,
+  ) async {
+    try {
+      final dateStr =
+          '${weekendDate.year}-${weekendDate.month.toString().padLeft(2, '0')}-${weekendDate.day.toString().padLeft(2, '0')}';
+      final fileName = '${dateStr}_${kelompokId}_$reportType.jpg';
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('weekend_reports')
+          .child(fileName);
+
+      final uploadTask = await storageRef.putFile(
+        file,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      Logger.info('Weekend photo uploaded: $fileName');
+      return downloadUrl;
+    } catch (e) {
+      Logger.error('Error uploading weekend report photo', e);
+      rethrow;
+    }
+  }
+
+  /// Update task validation status for weekend report
+  Future<void> updateWeekendTaskValidation(
+    String reportId,
+    int taskIndex, {
+    bool? isValid,
+    String? adminNote,
+  }) async {
+    try {
+      final doc = await _db.collection('weekend_reports').doc(reportId).get();
+      if (!doc.exists) return;
+
+      final data = doc.data()!;
+      final tasks = List<Map<String, dynamic>>.from(data['tasks'] ?? []);
+
+      if (taskIndex >= 0 && taskIndex < tasks.length) {
+        tasks[taskIndex]['is_valid'] = isValid;
+        tasks[taskIndex]['admin_note'] = adminNote;
+
+        await _db.collection('weekend_reports').doc(reportId).update({
+          'tasks': tasks,
+        });
+        Logger.info('Weekend task $taskIndex validation updated for $reportId');
+      }
+    } catch (e) {
+      Logger.error('Error updating weekend task validation', e);
       rethrow;
     }
   }
