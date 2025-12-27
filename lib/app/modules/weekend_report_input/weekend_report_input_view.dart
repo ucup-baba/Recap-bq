@@ -110,8 +110,16 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
                 ),
               ),
             ),
-            Obx(
-              () => Container(
+            Obx(() {
+              // Show current day instead of slot name
+              final today = DateTime.now();
+              final dayLabel = today.weekday == DateTime.saturday
+                  ? 'Sabtu'
+                  : today.weekday == DateTime.sunday
+                  ? 'Ahad'
+                  : 'Weekend';
+
+              return Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 6,
@@ -121,14 +129,14 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  controller.slotInfo.value?.slotName ?? '',
+                  dayLabel,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ),
       ),
