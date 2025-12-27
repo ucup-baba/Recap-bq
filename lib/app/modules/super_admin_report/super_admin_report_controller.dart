@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/routes/app_pages.dart';
 import '../../core/utils/logger.dart';
 import '../../data/models/daily_report_model.dart';
 import '../../data/models/weekend_report_model.dart';
 import '../../data/services/firestore_service.dart';
-import '../weekend_report_validation/weekend_report_validation_controller.dart';
 
 class SuperAdminReportController extends GetxController {
   final _firestore = FirestoreService.instance;
@@ -189,13 +187,6 @@ class SuperAdminReportController extends GetxController {
       default:
         return 'Belum Ada';
     }
-  }
-
-  /// Open validation for weekend report
-  void openWeekendValidation(WeekendReportModel report) {
-    Get.put(WeekendReportValidationController());
-    Get.find<WeekendReportValidationController>().selectReport(report);
-    Get.toNamed(AppRoutes.weekendReportValidation);
   }
 
   /// Change selected day and reload reports

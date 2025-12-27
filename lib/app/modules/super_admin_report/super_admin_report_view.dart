@@ -165,12 +165,8 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
           onTap: hasReport
               ? () {
                   if (isWeekend && weekendReport != null) {
-                    // Go to weekend validation if pending/submitted
-                    if (weekendReport.status == 'submitted') {
-                      controller.openWeekendValidation(weekendReport);
-                    } else {
-                      _showWeekendReportDetailDialog(weekendReport);
-                    }
+                    // Super admin can only view, not validate
+                    _showWeekendReportDetailDialog(weekendReport);
                   } else if (!isWeekend && weekdayReport != null) {
                     _showReportDetailDialog(weekdayReport);
                   }
