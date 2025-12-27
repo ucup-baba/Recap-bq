@@ -103,30 +103,34 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
 
   // ============ TAB 0: HOME ============
   Widget _buildHomeTab() {
-    return Column(
-      children: [
-        // Header with Ibadah Tracker
-        _buildIbadahTracker(),
-        const SizedBox(height: 16),
-        // Laporan Masuk Title
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Laporan Masuk',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with Ibadah Tracker
+          _buildIbadahTracker(),
+          const SizedBox(height: 16),
+          // Laporan Masuk Title
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Laporan Masuk',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.text,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        // Pending Reports List
-        Expanded(child: _buildPendingReportsList()),
-      ],
+          const SizedBox(height: 12),
+          // Pending Reports List (not Expanded, just inline)
+          _buildPendingReportsSection(),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 
@@ -206,7 +210,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 
-  Widget _buildPendingReportsList() {
+  Widget _buildPendingReportsSection() {
     return StreamBuilder(
       stream: controller.pendingReportsStream,
       builder: (context, weekdaySnapshot) {
@@ -243,38 +247,39 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
 
             if (weekdaySnapshot.connectionState == ConnectionState.waiting &&
                 weekendSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()),
+              );
             }
             if (allReports.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline,
-                      size: 64,
-                      color: Colors.grey[300],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Semua laporan sudah divalidasi',
-                      style: TextStyle(color: Colors.grey[500]),
-                    ),
-                  ],
+              return Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 64,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Semua laporan sudah divalidasi',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
-            return RefreshIndicator(
-              onRefresh: () async {
-                await Future.delayed(const Duration(milliseconds: 500));
-              },
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: allReports.length,
-                itemBuilder: (context, index) {
-                  final item = allReports[index];
-                  return _buildReportCard(item);
-                },
+            // Return Column instead of ListView since we're inside SingleChildScrollView
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: allReports
+                    .map((item) => _buildReportCard(item))
+                    .toList(),
               ),
             );
           },
