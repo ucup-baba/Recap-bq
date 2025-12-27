@@ -132,11 +132,14 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
                   color: Colors.grey[600],
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  rule.requiresTimeDetail
-                      ? 'Butuh Detail Waktu'
-                      : 'Tidak Butuh Detail Waktu',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                Expanded(
+                  child: Text(
+                    rule.requiresTimeDetail
+                        ? 'Butuh Detail Waktu'
+                        : 'Tidak Butuh Detail Waktu',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
