@@ -90,23 +90,24 @@ class StatisticsController extends GetxController {
 
       final user = await _firestore.fetchUser(firebaseUser.uid);
       if (user != null) {
-        // Cek role: admin bisa lihat semua, koordinator hanya kelompok sendiri
-        isAdmin.value = user.role == 'admin' || user.role == 'super_admin';
+        // Only super_admin can view all users' ibadah statistics
+        // Admin is treated same as koordinator (can only see own data)
+        isAdmin.value = user.role == 'super_admin';
 
-        if (user.role == 'admin' || user.role == 'super_admin') {
-          // Admin: default tampilkan semua kelompok (null)
+        if (user.role == 'super_admin') {
+          // Super Admin: default tampilkan semua kelompok (null)
           selectedKelompok.value = null;
-          Logger.info('User is admin, showing all groups');
+          Logger.info('User is super_admin, showing all groups');
           // Load all users for filter
           loadAvailableUsers();
         } else if (user.kelompokId != null) {
-          // Koordinator: force tampilkan kelompok sendiri
+          // Admin/Koordinator: force tampilkan kelompok sendiri
           selectedKelompok.value = user.kelompokId;
-          Logger.info('User is koordinator kelompok ${user.kelompokId}');
+          Logger.info('User is ${user.role} kelompok ${user.kelompokId}');
           // Load users in group
           loadAvailableUsers();
         } else {
-          Logger.warning('User has no kelompokId and is not admin');
+          Logger.warning('User has no kelompokId and is not super_admin');
         }
 
         // Set default selected user to self
@@ -118,9 +119,9 @@ class StatisticsController extends GetxController {
   }
 
   void setKelompokFilter(int? kelompokId) {
-    // Koordinator tidak bisa ganti kelompok, hanya admin yang bisa
+    // Only super_admin can change group filter
     if (!isAdmin.value) {
-      Logger.info('Koordinator cannot change group filter');
+      Logger.info('Non-super_admin cannot change group filter');
       return;
     }
     selectedKelompok.value = kelompokId;
