@@ -5,7 +5,9 @@ import '../../core/theme/app_colors.dart';
 import 'manage_members_controller.dart';
 
 class ManageMembersView extends GetView<ManageMembersController> {
-  const ManageMembersView({super.key});
+  final bool hideAppBar;
+
+  const ManageMembersView({super.key, this.hideAppBar = false});
 
   @override
   Widget build(BuildContext context) {
@@ -13,41 +15,68 @@ class ManageMembersView extends GetView<ManageMembersController> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // Header Gradient
-          Container(
-            padding: const EdgeInsets.only(
-              top: 40,
-              bottom: 20,
-              left: 16,
-              right: 16,
-            ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Kelola Anggota Kelompok',
-                      style: TextStyle(
+          // Header Gradient (hidden when embedded)
+          if (!hideAppBar)
+            Container(
+              padding: const EdgeInsets.only(
+                top: 40,
+                bottom: 20,
+                left: 16,
+                right: 16,
+              ),
+              decoration: const BoxDecoration(
+                gradient: AppColors.headerGradient,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(24),
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
                         color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Kelola Anggota Kelompok',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            // Simple header when embedded
+            Container(
+              padding: const EdgeInsets.only(
+                top: 16,
+                left: 16,
+                right: 16,
+                bottom: 8,
+              ),
+              child: const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Kelola Anggota Kelompok',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.text,
                   ),
-                ],
+                ),
               ),
             ),
-          ),
 
           // Kelompok Selection Card
           Container(

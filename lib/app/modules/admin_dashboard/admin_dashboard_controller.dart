@@ -19,6 +19,17 @@ class AdminDashboardController extends GetxController {
   final isResetting = false.obs;
   final isRecalculating = false.obs;
 
+  // Tab navigation
+  final currentTabIndex = 0.obs;
+
+  void changeTab(int index) {
+    Logger.info('Admin: Changing tab from ${currentTabIndex.value} to $index');
+    currentTabIndex.value = index;
+    Logger.info(
+      'Admin: Tab changed successfully. Current index: ${currentTabIndex.value}',
+    );
+  }
+
   Stream<List<DailyReportModel>> get pendingReportsStream =>
       _firestore.pendingReportsStream();
 
