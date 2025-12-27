@@ -7,17 +7,21 @@ import '../../widgets/kelompok_badge.dart';
 import 'record_violation_controller.dart';
 
 class RecordViolationView extends GetView<RecordViolationController> {
-  const RecordViolationView({super.key});
+  final bool hideAppBar;
+
+  const RecordViolationView({super.key, this.hideAppBar = false});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Catat Pelanggaran'),
-        backgroundColor: AppColors.primaryBlue,
-        foregroundColor: Colors.white,
-      ),
+      appBar: hideAppBar
+          ? null
+          : AppBar(
+              title: const Text('Catat Pelanggaran'),
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+            ),
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());

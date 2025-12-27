@@ -8,6 +8,16 @@ import '../../data/services/auth_service.dart';
 class KedisiplinanDashboardController extends GetxController {
   final _authService = AuthService.instance;
 
+  // Tab navigation
+  final currentTabIndex = 0.obs;
+
+  void changeTab(int index) {
+    Logger.info(
+      'Kedisiplinan: Changing tab from ${currentTabIndex.value} to $index',
+    );
+    currentTabIndex.value = index;
+  }
+
   void openMonitoring() => Get.toNamed(AppRoutes.violationMonitoring);
 
   void openRecordViolation() => Get.toNamed(AppRoutes.recordViolation);
