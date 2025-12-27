@@ -168,7 +168,9 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
             const SizedBox(height: 4),
             Text('Email: ${account.email}'),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -188,10 +190,8 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
                     ),
                   ),
                 ),
-                if (account.kelompokId != null) ...[
-                  const SizedBox(width: 8),
+                if (account.kelompokId != null)
                   KelompokBadge(kelompokId: account.kelompokId!),
-                ],
               ],
             ),
             const SizedBox(height: 8),
