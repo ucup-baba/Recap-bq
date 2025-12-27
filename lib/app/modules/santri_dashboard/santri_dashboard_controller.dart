@@ -21,250 +21,54 @@ class SantriDashboardController extends GetxController
     implements IbadahControllerInterface {
   final _authService = AuthService.instance;
   final _firestore = FirestoreService.instance;
-  final _rotation = RotationService();
+  final _rotationService = RotationService();
   final _ibadahService = IbadahTrackingService.instance;
 
-  final user = Rxn<UserModel>();
+  // Tab navigation
+  final currentTabIndex = 0.obs;
+
+  void changeTab(int index) {
+    Logger.info('Santri: Changing tab from ${currentTabIndex.value} to $index');
+    currentTabIndex.value = index;
+  }
+
+  // User & Group Data
+  final userProfile = Rxn<Map<String, dynamic>>();
   final areaTugas = ''.obs;
   final poin = 0.obs;
   final streak = 0.obs;
-  final personalPoints = 0.obs;
+  final todayDate = ''.obs; // For display: "Senin, 12 Agustus 2024"
+  final welcomeMessage = ''.obs;
+  final nextShift = ''.obs;
+
+  // Logic properties
   final reportStatus = ''.obs;
   final _hasFetchedOnce = false.obs;
-  final kelompokIdStr = '-'.obs; // String untuk tampilan kelompok
+  final kelompokIdStr = '-'.obs;
 
-  // Ibadah tracking
+  StreamSubscription? _userSubscription;
+  StreamSubscription? _reportSubscription;
+  StreamSubscription? _weekendReportSubscription;
+
+  // Ibadah Data
   final _todayIbadah = Rxn<DailyIbadahModel>();
+  final isLoading = false.obs;
+  final showPushupMotivation = false.obs;
   final selectedDate = DateTime.now().obs;
-  @override
   final pushupMotivation = ''.obs;
 
-  // Getter untuk observable (untuk reactive UI)
-  Rxn<DailyIbadahModel> get todayIbadahRx => _todayIbadah;
+  // Weekend
+  final weekendSchedule = Rxn<Map<String, dynamic>>();
+  final weekendSlot = ''.obs;
 
-  // Method untuk compatibility dengan widget cards
+  // Getters
+  String get today => DateUtilsHelper.formatDate(DateTime.now());
+  bool get isFriday => selectedDate.value.weekday == DateTime.friday;
+
   @override
   DailyIbadahModel? todayIbadah() => _todayIbadah.value;
 
-  StreamSubscription<UserModel?>? _userSubscription;
-  StreamSubscription<List<DailyReportModel>>? _reportSubscription;
-  StreamSubscription<List<Map<String, dynamic>>>? _weekendReportSubscription;
-
-  @override
-  void onInit() {
-    super.onInit();
-    // Cek apakah ada status dari navigasi (setelah submit laporan)
-    final args = Get.arguments;
-    Logger.info('Dashboard onInit - arguments: $args');
-    if (args != null && args is Map<String, dynamic>) {
-      final statusFromArgs = args['reportStatus'] as String?;
-      if (statusFromArgs != null) {
-        reportStatus.value = statusFromArgs;
-        Logger.info(
-          'Dashboard received reportStatus from navigation: ${reportStatus.value}',
-        );
-      } else {
-        Logger.info('Dashboard onInit - no reportStatus in arguments');
-      }
-    } else {
-      Logger.info('Dashboard onInit - arguments is null or not a Map');
-    }
-    _loadUser();
-    _loadTodayIbadah();
-  }
-
-  @override
-  void onClose() {
-    _userSubscription?.cancel();
-    _reportSubscription?.cancel();
-    _weekendReportSubscription?.cancel();
-    super.onClose();
-  }
-
-  Future<void> _loadUser() async {
-    final firebaseUser = _authService.currentUser;
-    if (firebaseUser == null) {
-      Get.offAllNamed('/auth');
-      return;
-    }
-    _userSubscription?.cancel();
-    _userSubscription = _firestore
-        .watchUser(firebaseUser.uid)
-        .listen(
-          (profile) {
-            if (profile == null) {
-              Logger.warning('User profile is null in watchUser stream');
-              return;
-            }
-            Logger.info(
-              'User profile loaded: uid=${profile.uid}, kelompokId=${profile.kelompokId}, role=${profile.role}',
-            );
-            user.value = profile;
-            poin.value = profile.totalPoin;
-            streak.value = profile.currentStreak;
-            personalPoints.value = profile.personalPoints;
-            kelompokIdStr.value = profile.kelompokId?.toString() ?? '-';
-            if (profile.kelompokId != null) {
-              areaTugas.value = _rotation.getAreaForGroup(
-                profile.kelompokId!,
-                DateTime.now(),
-              );
-              Logger.info(
-                'Area tugas set: ${areaTugas.value} for kelompok ${profile.kelompokId}',
-              );
-              _watchTodayReport(profile.kelompokId!);
-            } else {
-              Logger.warning('User profile has no kelompokId');
-              areaTugas.value = '';
-            }
-          },
-          onError: (error) {
-            Logger.error('Error in watchUser stream', error);
-          },
-        );
-  }
-
-  String get today => AppDateUtils.formatDate(DateTime.now());
-
-  void _watchTodayReport(int kelompokId) {
-    _reportSubscription?.cancel();
-    _weekendReportSubscription?.cancel();
-    _hasFetchedOnce.value = false;
-
-    final now = DateTime.now();
-    final isWeekend =
-        now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
-
-    if (isWeekend) {
-      // Weekend: watch weekend_reports
-      _fetchWeekendReportOnce(kelompokId, now);
-      _weekendReportSubscription = _firestore
-          .watchWeekendReportsForDate(now)
-          .listen(
-            (reports) {
-              _hasFetchedOnce.value = true;
-              // Filter for this kelompok
-              final kelompokReports = reports
-                  .where((r) => r['kelompokId'] == kelompokId)
-                  .toList();
-              if (kelompokReports.isEmpty) {
-                reportStatus.value = '';
-                Logger.info(
-                  'No weekend report found (stream): kelompokId=$kelompokId',
-                );
-              } else {
-                // Get status from first report
-                final status =
-                    kelompokReports.first['status'] as String? ?? 'draft';
-                reportStatus.value = status;
-                Logger.info(
-                  'Weekend report found (stream): status=$status, kelompokId=$kelompokId',
-                );
-              }
-            },
-            onError: (error) {
-              Logger.error('Error watching weekend report', error);
-              reportStatus.value = '';
-            },
-          );
-    } else {
-      // Weekday: watch daily_reports
-      _fetchTodayOnce(kelompokId);
-      _reportSubscription = _firestore
-          .reportsByGroupAndDate(kelompokId, today)
-          .listen(
-            (reports) {
-              _hasFetchedOnce.value = true;
-              if (reports.isEmpty) {
-                reportStatus.value = '';
-                Logger.info(
-                  'No report found (stream): kelompokId=$kelompokId, date=$today',
-                );
-              } else {
-                final status = reports.first.status;
-                reportStatus.value = status;
-                Logger.info(
-                  'Today report found (stream): status=$status, kelompokId=$kelompokId, date=$today',
-                );
-              }
-            },
-            onError: (error) {
-              Logger.error('Error watching today report', error);
-              reportStatus.value = '';
-            },
-          );
-    }
-  }
-
-  /// Fetch weekend report once to show status immediately
-  Future<void> _fetchWeekendReportOnce(int kelompokId, DateTime date) async {
-    try {
-      final reports = await _firestore.getWeekendReportsForKelompok(
-        date,
-        kelompokId,
-      );
-      _hasFetchedOnce.value = true;
-      if (reports.isEmpty) {
-        reportStatus.value = '';
-        Logger.info(
-          'Weekend report not found (fetch once): kelompokId=$kelompokId',
-        );
-        return;
-      }
-      final status = reports.first['status'] as String? ?? 'draft';
-      reportStatus.value = status;
-      Logger.info(
-        'Weekend report found (fetch once): status=$status, kelompokId=$kelompokId',
-      );
-    } catch (e) {
-      Logger.error('Error fetch weekend report once', e);
-      _hasFetchedOnce.value = true;
-      if (reportStatus.value.isEmpty) {
-        reportStatus.value = '';
-      }
-    }
-  }
-
-  /// Fetch sekali dokumen harian by ID untuk menampilkan status segera setelah submit.
-  Future<void> _fetchTodayOnce(int kelompokId) async {
-    try {
-      final reportId = '$kelompokId-$today';
-      final doc = await FirestoreService.instance.getDailyReportById(reportId);
-      _hasFetchedOnce.value = true;
-      if (doc == null) {
-        // Dokumen tidak ada, clear status
-        reportStatus.value = '';
-        Logger.info('Today report not found (fetch once): reportId=$reportId');
-        return;
-      }
-      // Update status dengan data terbaru dari Firestore
-      reportStatus.value = doc.status;
-      Logger.info(
-        'Today report found (fetch once): status=${doc.status}, reportId=$reportId',
-      );
-    } catch (e) {
-      Logger.error('Error fetch today report once', e);
-      _hasFetchedOnce.value = true;
-      // Jika error dan status belum di-set, set ke kosong
-      // Tapi jika sudah ada status dari navigation, pertahankan
-      if (reportStatus.value.isEmpty) {
-        reportStatus.value = '';
-      }
-    }
-  }
-
-  Future<void> logout() async {
-    try {
-      await _authService.signOut();
-      Get.offAllNamed(AppRoutes.auth);
-      Logger.info('User logged out successfully');
-    } catch (e) {
-      Logger.error('Error logging out', e);
-      SnackbarHelper.showError('Gagal logout');
-    }
-  }
-
-  // Ibadah tracking methods
+  // Interface implementations
   @override
   Future<void> loadTodayIbadah() async {
     try {
@@ -278,30 +82,32 @@ class SantriDashboardController extends GetxController
     }
   }
 
-  Future<void> _loadTodayIbadah() async => loadTodayIbadah();
-
   @override
-  Future<void> updateIbadah(DailyIbadahModel updatedIbadah) async {
-    try {
-      _todayIbadah.value = updatedIbadah;
-      _updatePushupMotivation(updatedIbadah.pushup ?? 0);
-      // Data sudah disimpan via service di widget cards
-      await _loadTodayIbadah(); // Reload untuk memastikan sync
-    } catch (e) {
-      Logger.error('Error updating ibadah', e);
-    }
-  }
-
-  void _updatePushupMotivation(int count) {
-    if (count == 0) {
-      pushupMotivation.value = 'Omong kosong... Target 25x!';
-    } else if (count == 25) {
-      pushupMotivation.value = 'Ehem, baru sama dengan anak-anak...';
-    } else if (count > 25 && count < 40) {
-      pushupMotivation.value = 'Lumayan, otot mulai terbentuk.';
-    } else if (count >= 40) {
-      pushupMotivation.value = 'Bagus! Jaga konsistensinya.';
-    }
+  void showAmalanMotivation() {
+    const motivations = [
+      {
+        'title': 'Malas Tahajud?',
+        'body': 'Tahajud adalah waktu terbaik untuk curhat dengan Allah.',
+      },
+      {
+        'title': 'Ragu Sholat Dhuha?',
+        'body':
+            'Cukup 2 rakaat sholat Dhuha sebagai sedekah untuk seluruh tubuh.',
+      },
+      {
+        'title': 'Berat Baca Al-Mulk?',
+        'body': 'Hanya 5 menit, tapi bisa menyelamatkan dari siksa kubur.',
+      },
+    ];
+    final randomMotivation = motivations[Random().nextInt(motivations.length)];
+    Get.defaultDialog(
+      title: randomMotivation['title']!,
+      middleText: randomMotivation['body']!,
+      textConfirm: 'Oke!',
+      buttonColor: AppColors.primary,
+      confirmTextColor: Colors.white,
+      onConfirm: () => Get.back(),
+    );
   }
 
   @override
@@ -310,80 +116,218 @@ class SantriDashboardController extends GetxController
       {
         'title': 'Kenapa Harus Sholat?',
         'body':
-            'Karena sholat adalah tiang agama dan koneksi utama kita dengan Allah. Ini adalah hal pertama yang akan dihisab.',
+            'Karena sholat adalah tiang agama dan koneksi utama kita dengan Allah.',
       },
       {
         'title': 'Merasa Berat Sholat?',
         'body':
-            'Ingat, sholat itu hanya beberapa menit. Waktu yang kita habiskan untuk media sosial jauh lebih lama. Prioritaskan yang abadi.',
+            'Ingat, sholat itu hanya beberapa menit. Prioritaskan yang abadi.',
       },
     ];
     final randomMotivation = motivations[Random().nextInt(motivations.length)];
     Get.defaultDialog(
       title: randomMotivation['title']!,
       middleText: randomMotivation['body']!,
-      backgroundColor: Get.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-      titleStyle: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Get.isDarkMode ? Colors.white : Colors.black,
-      ),
-      middleTextStyle: TextStyle(
-        color: Get.isDarkMode ? Colors.white70 : Colors.black87,
-      ),
-      radius: 16,
       textConfirm: 'Siap!',
+      buttonColor: AppColors.primary,
       confirmTextColor: Colors.white,
-      buttonColor: Colors.deepPurple.shade600,
+      onConfirm: () => Get.back(),
     );
   }
 
   @override
-  void showAmalanMotivation() {
-    const motivations = [
-      {
-        'title': 'Malas Tahajud?',
-        'body':
-            'Tahajud adalah waktu terbaik untuk curhat dengan Allah. Saat orang lain tidur, doa Anda menembus langit.',
-      },
-      {
-        'title': 'Ragu Sholat Dhuha?',
-        'body':
-            'Cukup 2 rakaat sholat Dhuha sebagai sedekah untuk seluruh sendi di tubuh Anda. Pembuka pintu rezeki!',
-      },
-      {
-        'title': 'Berat Baca Al-Mulk (S.67)?',
-        'body':
-            'Hanya 30 ayat, kurang dari 5 menit. Tapi bisa menyelamatkan Anda dari siksa kubur. Sangat setimpal!',
-      },
-      {
-        'title': 'Lupa Al-Waqi\'ah (S.56)?',
-        'body':
-            'Surat ini dikenal sebagai surat "kecukupan". Membacanya setiap malam menjauhkan kita dari kefakiran.',
-      },
-      {
-        'title': 'Melewatkan Yasin (S.36)?',
-        'body':
-            'Yasin adalah jantung Al-Quran. Membacanya di pagi hari akan mempermudah semua urusan Anda hari itu.',
-      },
-    ];
-    final randomMotivation = motivations[Random().nextInt(motivations.length)];
-    Get.defaultDialog(
-      title: randomMotivation['title']!,
-      middleText: randomMotivation['body']!,
-      backgroundColor: Get.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-      titleStyle: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Get.isDarkMode ? Colors.white : Colors.black,
-      ),
-      middleTextStyle: TextStyle(
-        color: Get.isDarkMode ? Colors.white70 : Colors.black87,
-      ),
-      radius: 16,
-      textConfirm: 'Oke!',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.deepPurple.shade600,
-    );
+  Future<void> updateIbadah(DailyIbadahModel updatedIbadah) async {
+    try {
+      _todayIbadah.value = updatedIbadah;
+      _updatePushupMotivation(updatedIbadah.pushup ?? 0);
+      await loadTodayIbadah();
+    } catch (e) {
+      Logger.error('Error updating ibadah', e);
+    }
   }
 
-  bool get isFriday => selectedDate.value.weekday == DateTime.friday;
+  @override
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments;
+    if (args != null && args is Map<String, dynamic>) {
+      final statusFromArgs = args['reportStatus'] as String?;
+      if (statusFromArgs != null) {
+        reportStatus.value = statusFromArgs;
+      }
+    }
+    _loadUser();
+    todayDate.value = DateUtilsHelper.formatDateFull(DateTime.now());
+  }
+
+  @override
+  void onClose() {
+    _userSubscription?.cancel();
+    _reportSubscription?.cancel();
+    _weekendReportSubscription?.cancel();
+    super.onClose();
+  }
+
+  Future<void> _loadUser() async {
+    isLoading.value = true;
+    try {
+      final user = _authService.currentUser;
+      if (user == null) {
+        Get.offAllNamed(AppRoutes.auth);
+        return;
+      }
+
+      _userSubscription?.cancel();
+      _userSubscription = _firestore.watchUser(user.uid).listen((userData) {
+        if (userData != null) {
+          userProfile.value = userData.toMap();
+          poin.value = userData.points;
+          streak.value = userData.streak;
+          kelompokIdStr.value = userData.kelompokId?.toString() ?? '-';
+
+          final hour = DateTime.now().hour;
+          if (hour < 10)
+            welcomeMessage.value = 'Selamat Pagi,';
+          else if (hour < 15)
+            welcomeMessage.value = 'Selamat Siang,';
+          else if (hour < 18)
+            welcomeMessage.value = 'Selamat Sore,';
+          else
+            welcomeMessage.value = 'Selamat Malam,';
+
+          if (userData.kelompokId != null) {
+            final kelompokId = userData.kelompokId!;
+            final schedule = _rotationService.getScheduleForDate(
+              DateTime.now(),
+            );
+
+            if (schedule.halaman == kelompokId)
+              areaTugas.value = 'Halaman';
+            else if (schedule.kamarMandi == kelompokId)
+              areaTugas.value = 'Kamar Mandi';
+            else if (schedule.masjid == kelompokId)
+              areaTugas.value = 'Masjid';
+            else if (schedule.koridor == kelompokId)
+              areaTugas.value = 'Koridor';
+            else if (schedule.jemuran == kelompokId)
+              areaTugas.value = 'Jemuran';
+            else
+              areaTugas.value = 'Libur Piket';
+
+            _watchTodayReport(kelompokId);
+            loadTodayIbadah();
+          }
+        }
+      });
+    } catch (e) {
+      Logger.error('Error loading santri dashboard data', e);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void _watchTodayReport(int kelompokId) {
+    _reportSubscription?.cancel();
+    _weekendReportSubscription?.cancel();
+    _hasFetchedOnce.value = false;
+
+    final now = DateTime.now();
+    final isWeekend =
+        now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
+
+    if (isWeekend) {
+      _fetchWeekendReportOnce(kelompokId, now);
+      _weekendReportSubscription = _firestore
+          .watchWeekendReportsForDate(now)
+          .listen(
+            (reports) {
+              _hasFetchedOnce.value = true;
+              final kelompokReports = reports
+                  .where((r) => r['kelompokId'] == kelompokId)
+                  .toList();
+              if (kelompokReports.isEmpty) {
+                reportStatus.value = '';
+              } else {
+                reportStatus.value =
+                    kelompokReports.first['status'] as String? ?? 'draft';
+              }
+            },
+            onError: (error) =>
+                Logger.error('Error watching weekend report', error),
+          );
+    } else {
+      _fetchTodayOnce(kelompokId);
+      _reportSubscription = _firestore
+          .reportsByGroupAndDate(kelompokId, today)
+          .listen(
+            (reports) {
+              _hasFetchedOnce.value = true;
+              if (reports.isEmpty) {
+                reportStatus.value = '';
+              } else {
+                reportStatus.value = reports.first.status;
+              }
+            },
+            onError: (error) =>
+                Logger.error('Error watching today report', error),
+          );
+    }
+  }
+
+  Future<void> _fetchWeekendReportOnce(int kelompokId, DateTime date) async {
+    try {
+      final reports = await _firestore.getWeekendReportsForKelompok(
+        date,
+        kelompokId,
+      );
+      _hasFetchedOnce.value = true;
+      if (reports.isEmpty) {
+        reportStatus.value = '';
+        return;
+      }
+      reportStatus.value = reports.first['status'] as String? ?? 'draft';
+    } catch (e) {
+      Logger.error('Error fetch weekend report once', e);
+      _hasFetchedOnce.value = true;
+      if (reportStatus.value.isEmpty) reportStatus.value = '';
+    }
+  }
+
+  Future<void> _fetchTodayOnce(int kelompokId) async {
+    try {
+      final reportId = '$kelompokId-$today';
+      final doc = await FirestoreService.instance.getDailyReportById(reportId);
+      _hasFetchedOnce.value = true;
+      if (doc == null) {
+        reportStatus.value = '';
+        return;
+      }
+      reportStatus.value = doc.status;
+    } catch (e) {
+      Logger.error('Error fetch today report once', e);
+      _hasFetchedOnce.value = true;
+      if (reportStatus.value.isEmpty) reportStatus.value = '';
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _authService.signOut();
+      Get.offAllNamed(AppRoutes.auth);
+    } catch (e) {
+      Logger.error('Error logging out', e);
+      SnackbarHelper.showError('Gagal logout');
+    }
+  }
+
+  void _updatePushupMotivation(int count) {
+    if (count == 0)
+      pushupMotivation.value = 'Omong kosong... Target 25x!';
+    else if (count == 25)
+      pushupMotivation.value = 'Ehem, baru sama dengan anak-anak...';
+    else if (count > 25 && count < 40)
+      pushupMotivation.value = 'Lumayan, otot mulai terbentuk.';
+    else if (count >= 40)
+      pushupMotivation.value = 'Bagus! Jaga konsistensinya.';
+  }
 }
