@@ -21,109 +21,111 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (controller.accounts.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person, size: 64, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text(
-                  'Belum ada akun',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: controller.loadAccounts,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount:
-                controller.accounts.length +
-                3, // +1 for header, +1 for notification settings, +1 for logout button
-            itemBuilder: (context, index) {
-              // Show registered accounts header
-              if (index == 0) {
-                return _buildRegisteredAccountsHeader();
-              }
-              // Adjust index for accounts
-              final accountIndex = index - 1;
-              // Show notification settings button before logout
-              if (accountIndex == controller.accounts.length) {
-                return _buildNotificationSettingsButton();
-              }
-              // Show logout button at the end
-              if (accountIndex == controller.accounts.length + 1) {
-                return _buildLogoutButton();
-              }
-              final account = controller.accounts[accountIndex];
-              return _buildAccountCard(account);
-            },
-          ),
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const SizedBox(height: 16),
+            // Akun Terdaftar button
+            _buildRegisteredAccountsButton(),
+            const SizedBox(height: 12),
+            // Notification settings button
+            _buildNotificationSettingsButton(),
+            const SizedBox(height: 12),
+            // Logout button
+            _buildLogoutButton(),
+          ],
         );
       }),
     );
   }
 
-  Widget _buildRegisteredAccountsHeader() {
+  Widget _buildRegisteredAccountsButton() {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: Colors.blue.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              radius: 24,
-              child: const Icon(
-                Icons.verified_user,
-                color: Colors.blue,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Akun Terdaftar',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                      fontSize: 16,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue.shade100,
+          child: const Icon(Icons.verified_user, color: Colors.blue),
+        ),
+        title: const Text(
+          'Akun Terdaftar',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+        ),
+        subtitle: Text(
+          '${controller.accounts.length} akun dengan email terdaftar',
+          style: const TextStyle(fontSize: 12),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.blue),
+        onTap: () => _showRegisteredAccountsDialog(),
+      ),
+    );
+  }
+
+  void _showRegisteredAccountsDialog() {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 600, maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Colors.blue,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_user, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Akun Terdaftar',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${controller.accounts.length} akun',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Akun dengan email terdaftar di sistem',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${controller.accounts.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              // Account list
+              Flexible(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  shrinkWrap: true,
+                  itemCount: controller.accounts.length,
+                  itemBuilder: (context, index) {
+                    final account = controller.accounts[index];
+                    return _buildAccountCard(account);
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
