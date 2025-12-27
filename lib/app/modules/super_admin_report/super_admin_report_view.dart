@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/routes/app_pages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/daily_report_model.dart';
+import '../../data/models/weekend_report_model.dart';
 import 'super_admin_report_controller.dart';
 
 class SuperAdminReportView extends GetView<SuperAdminReportController> {
@@ -59,20 +60,6 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.purple,
                 side: const BorderSide(color: Colors.purple),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => Get.toNamed(AppRoutes.weekendReportValidation),
-              icon: const Icon(Icons.fact_check, size: 18, color: Colors.white),
-              label: const Text(
-                'Validasi Weekend',
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
               ),
             ),
           ),
@@ -147,10 +134,27 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
 
   Widget _buildKelompokCard(int kelompokId) {
     return Obx(() {
-      final report = controller.reportsByKelompok[kelompokId];
+      final isWeekend = controller.isWeekendDay;
+      final weekdayReport = controller.reportsByKelompok[kelompokId];
+      final weekendReport = controller.weekendReportsByKelompok[kelompokId];
       final status = controller.getReportStatus(kelompokId);
       final statusColor = controller.getStatusColor(status);
       final statusLabel = controller.getStatusLabel(status);
+
+      // Determine area to show
+      String? area;
+      bool hasReport = false;
+      int? finalScore;
+
+      if (isWeekend && weekendReport != null) {
+        area = weekendReport.area;
+        hasReport = true;
+        finalScore = weekendReport.finalScore;
+      } else if (!isWeekend && weekdayReport != null) {
+        area = weekdayReport.areaTugas;
+        hasReport = true;
+        finalScore = weekdayReport.finalScore;
+      }
 
       return Card(
         margin: const EdgeInsets.only(bottom: 12),
@@ -158,7 +162,20 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: report != null ? () => _showReportDetailDialog(report) : null,
+          onTap: hasReport
+              ? () {
+                  if (isWeekend && weekendReport != null) {
+                    // Go to weekend validation if pending/submitted
+                    if (weekendReport.status == 'submitted') {
+                      controller.openWeekendValidation(weekendReport);
+                    } else {
+                      _showWeekendReportDetailDialog(weekendReport);
+                    }
+                  } else if (!isWeekend && weekdayReport != null) {
+                    _showReportDetailDialog(weekdayReport);
+                  }
+                }
+              : null,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -168,14 +185,18 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                    color: isWeekend
+                        ? Colors.purple.withValues(alpha: 0.1)
+                        : AppColors.primaryBlue.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
                       'K$kelompokId',
                       style: TextStyle(
-                        color: AppColors.primaryBlue,
+                        color: isWeekend
+                            ? Colors.purple
+                            : AppColors.primaryBlue,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -196,19 +217,19 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      if (report != null) ...[
+                      if (area != null) ...[
                         Text(
-                          report.areaTugas,
+                          area,
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        if (report.finalScore != null)
+                        if (finalScore != null)
                           Text(
-                            'Poin: ${report.finalScore}',
-                            style: TextStyle(
+                            'Poin: $finalScore',
+                            style: const TextStyle(
                               color: AppColors.primaryBlue,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -237,13 +258,17 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
                     ),
                   ),
                 ),
-                if (report != null) const SizedBox(width: 8),
-                if (report != null)
+                if (hasReport) const SizedBox(width: 8),
+                if (hasReport)
                   Icon(
-                    status == 'pending'
+                    (status == 'pending' || status == 'submitted')
                         ? Icons.chevron_right
-                        : Icons.check_circle,
-                    color: status == 'pending' ? Colors.grey : Colors.green,
+                        : (status == 'verified' || status == 'validated')
+                        ? Icons.check_circle
+                        : status == 'draft'
+                        ? Icons.edit
+                        : Icons.info,
+                    color: statusColor,
                   ),
               ],
             ),
@@ -474,6 +499,228 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
                                       fontSize: 12,
                                       fontStyle: FontStyle.italic,
                                     ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showWeekendReportDetailDialog(WeekendReportModel report) {
+    final formattedDate = DateFormat(
+      'EEEE, dd MMMM yyyy',
+      'id_ID',
+    ).format(report.weekendDate);
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.purple,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kelompok ${report.kelompokId} - ${report.area}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            formattedDate,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Status
+                      Row(
+                        children: [
+                          const Text(
+                            'Status: ',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: controller
+                                  .getStatusColor(report.status)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              controller.getStatusLabel(report.status),
+                              style: TextStyle(
+                                color: controller.getStatusColor(report.status),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Foto (jika ada)
+                      if (report.photoUrl != null &&
+                          report.photoUrl!.isNotEmpty) ...[
+                        const Text(
+                          'Foto Bukti:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            report.photoUrl!,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 200,
+                                color: Colors.grey[300],
+                                child: const Center(
+                                  child: Icon(Icons.error, color: Colors.grey),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      // Tasks
+                      const Text(
+                        'Daftar Tugas:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...report.tasks.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final task = entry.value;
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          color: Colors.grey[50],
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: task.isDone
+                                            ? Colors.green
+                                            : Colors.grey[300],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: TextStyle(
+                                            color: task.isDone
+                                                ? Colors.white
+                                                : Colors.grey[700],
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        task.taskName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          decoration: task.isDone
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                    if (task.isDone)
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                  ],
+                                ),
+                                if (task.executors.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 4,
+                                    runSpacing: 4,
+                                    children: task.executors.map((executor) {
+                                      return Chip(
+                                        label: Text(
+                                          executor,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        backgroundColor: Colors.purple
+                                            .withValues(alpha: 0.1),
+                                        labelStyle: const TextStyle(
+                                          color: Colors.purple,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
                                 ],
                               ],

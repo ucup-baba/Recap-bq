@@ -2847,6 +2847,27 @@ class FirestoreService {
     }
   }
 
+  /// Get all weekend reports for a specific date (all kelompoks)
+  Future<List<Map<String, dynamic>>> getWeekendReportsForDate(
+    DateTime date,
+  ) async {
+    try {
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      final query = await _db
+          .collection('weekend_reports')
+          .where('id', isGreaterThanOrEqualTo: dateStr)
+          .where('id', isLessThan: '${dateStr}z')
+          .get();
+
+      return query.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+    } catch (e) {
+      Logger.error('Error getting weekend reports for date', e);
+      return [];
+    }
+  }
+
   /// Get all pending weekend reports for validation
   Stream<List<Map<String, dynamic>>> watchPendingWeekendReports() {
     return _db

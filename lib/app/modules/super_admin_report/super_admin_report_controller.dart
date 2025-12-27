@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/routes/app_pages.dart';
 import '../../core/utils/logger.dart';
 import '../../data/models/daily_report_model.dart';
+import '../../data/models/weekend_report_model.dart';
 import '../../data/services/firestore_service.dart';
+import '../weekend_report_validation/weekend_report_validation_controller.dart';
 
 class SuperAdminReportController extends GetxController {
   final _firestore = FirestoreService.instance;
@@ -18,6 +21,12 @@ class SuperAdminReportController extends GetxController {
 
   // Reports per kelompok untuk hari yang dipilih
   final reportsByKelompok = <int, DailyReportModel?>{}.obs;
+
+  // Weekend reports per kelompok (for Saturday/Sunday)
+  final weekendReportsByKelompok = <int, WeekendReportModel?>{}.obs;
+
+  // Check if current filter is weekend
+  bool get isWeekendDay => selectedDay.value == 6 || selectedDay.value == 7;
 
   @override
   void onInit() {
@@ -50,30 +59,68 @@ class SuperAdminReportController extends GetxController {
       final date = _getDateForDay(dayOfWeek);
       final dateString = DateFormat('yyyy-MM-dd').format(date);
 
-      // Query all reports (pending + verified) for the selected date
-      final reports = await _firestore.getReportsByDate(dateString);
-
-      // Group by kelompokId
-      final grouped = <int, DailyReportModel?>{};
-      for (int i = 1; i <= 5; i++) {
-        grouped[i] = null; // Initialize all kelompok
+      // Check if it's weekend (Saturday=6, Sunday=7)
+      if (dayOfWeek == 6 || dayOfWeek == 7) {
+        // Load weekend reports
+        await _loadWeekendReportsForDate(date);
+      } else {
+        // Load weekday reports
+        await _loadWeekdayReportsForDate(dateString);
       }
-
-      for (final report in reports) {
-        if (report.kelompokId >= 1 && report.kelompokId <= 5) {
-          grouped[report.kelompokId] = report;
-        }
-      }
-
-      reportsByKelompok.value = grouped;
-      Logger.info(
-        'Loaded reports for day $dayOfWeek (${getDayName(dayOfWeek)}): ${reports.length} reports',
-      );
     } catch (e) {
       Logger.error('Error loading reports for day $dayOfWeek', e);
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> _loadWeekdayReportsForDate(String dateString) async {
+    final reports = await _firestore.getReportsByDate(dateString);
+
+    // Group by kelompokId
+    final grouped = <int, DailyReportModel?>{};
+    for (int i = 1; i <= 5; i++) {
+      grouped[i] = null; // Initialize all kelompok
+    }
+
+    for (final report in reports) {
+      if (report.kelompokId >= 1 && report.kelompokId <= 5) {
+        grouped[report.kelompokId] = report;
+      }
+    }
+
+    reportsByKelompok.value = grouped;
+    weekendReportsByKelompok.clear();
+    Logger.info(
+      'Loaded weekday reports for $dateString: ${reports.length} reports',
+    );
+  }
+
+  Future<void> _loadWeekendReportsForDate(DateTime date) async {
+    // Get weekend reports for the date
+    final allReports = await _firestore.getWeekendReportsForDate(date);
+
+    // Group by kelompokId - take latest report for each kelompok
+    final grouped = <int, WeekendReportModel?>{};
+    for (int i = 1; i <= 5; i++) {
+      grouped[i] = null;
+    }
+
+    for (final json in allReports) {
+      final report = WeekendReportModel.fromJson(json);
+      if (report.kelompokId >= 1 && report.kelompokId <= 5) {
+        // Keep the first (most recent) report for each kelompok
+        if (grouped[report.kelompokId] == null) {
+          grouped[report.kelompokId] = report;
+        }
+      }
+    }
+
+    weekendReportsByKelompok.value = grouped;
+    reportsByKelompok.clear();
+    Logger.info(
+      'Loaded weekend reports for ${date.toString().substring(0, 10)}: ${allReports.length} reports',
+    );
   }
 
   /// Calculate date for selected day of week (within current week)
@@ -99,17 +146,28 @@ class SuperAdminReportController extends GetxController {
 
   /// Get report status for a kelompok
   String? getReportStatus(int kelompokId) {
-    final report = reportsByKelompok[kelompokId];
-    return report?.status;
+    if (isWeekendDay) {
+      final report = weekendReportsByKelompok[kelompokId];
+      return report?.status;
+    } else {
+      final report = reportsByKelompok[kelompokId];
+      return report?.status;
+    }
   }
 
   /// Get status color
   Color getStatusColor(String? status) {
     switch (status) {
+      case 'draft':
+        return Colors.blue;
       case 'pending':
+      case 'submitted':
         return Colors.orange;
       case 'verified':
+      case 'validated':
         return Colors.green;
+      case 'rejected':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -118,13 +176,26 @@ class SuperAdminReportController extends GetxController {
   /// Get status label in Indonesian
   String getStatusLabel(String? status) {
     switch (status) {
+      case 'draft':
+        return 'Draft';
       case 'pending':
+      case 'submitted':
         return 'Pending';
       case 'verified':
+      case 'validated':
         return 'Verified';
+      case 'rejected':
+        return 'Ditolak';
       default:
         return 'Belum Ada';
     }
+  }
+
+  /// Open validation for weekend report
+  void openWeekendValidation(WeekendReportModel report) {
+    Get.put(WeekendReportValidationController());
+    Get.find<WeekendReportValidationController>().selectReport(report);
+    Get.toNamed(AppRoutes.weekendReportValidation);
   }
 
   /// Change selected day and reload reports
