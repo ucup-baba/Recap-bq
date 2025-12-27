@@ -98,8 +98,10 @@ class AmalanHarianCard extends StatelessWidget {
                 final colorAlWaqiah = Colors.teal.shade400;
                 final colorAlKahfiYasin = Colors.brown.shade400;
 
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                return Wrap(
+                  alignment: WrapAlignment.spaceAround,
+                  spacing: 8,
+                  runSpacing: 12,
                   children: [
                     _buildAmalanItem(
                       context,
