@@ -1,12 +1,14 @@
 import 'package:intl/intl.dart';
 
 import 'firestore_service.dart';
+import 'weekend_rotation_service.dart';
 
 class RotationService {
   RotationService({FirestoreService? firestore})
     : _firestore = firestore ?? FirestoreService.instance;
 
   final FirestoreService _firestore;
+  final _weekendRotation = WeekendRotationService.instance;
 
   /// Base order for Monday: [Kamar, Parkiran, Masjid, Masak, Halaman]
   static const List<String> _baseAreas = [
@@ -20,9 +22,18 @@ class RotationService {
   /// Returns area for given kelompokId (1-5) and date.
   String getAreaForGroup(int kelompokId, DateTime date) {
     final weekday = date.weekday; // 1=Mon, ... 7=Sun
-    // Weekend has Piket Weekend
+    // Weekend: get actual piket area from weekend schedule
     if (weekday == DateTime.saturday || weekday == DateTime.sunday) {
-      return 'Piket Weekend';
+      final slotInfo = _weekendRotation.getSlotForKelompok(kelompokId, date);
+      if (slotInfo != null) {
+        // Return area based on day
+        if (weekday == DateTime.saturday) {
+          return slotInfo.piketAreaSabtu;
+        } else {
+          return slotInfo.piketAreaAhad;
+        }
+      }
+      return 'Piket Weekend'; // Fallback
     }
     final offset = weekday - DateTime.monday;
     final index = (kelompokId - 1 + offset) % _baseAreas.length;
