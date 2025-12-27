@@ -48,24 +48,30 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
   }
 
   Widget _buildWeekendShortcuts() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => Get.toNamed(AppRoutes.weekendSchedule),
-              icon: const Icon(Icons.calendar_month, size: 18),
-              label: const Text('Jadwal Weekend'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.purple,
-                side: const BorderSide(color: Colors.purple),
+    return Obx(() {
+      // Only show weekend shortcuts when viewing Saturday or Sunday
+      if (!controller.isWeekendDay) {
+        return const SizedBox.shrink();
+      }
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => Get.toNamed(AppRoutes.weekendSchedule),
+                icon: const Icon(Icons.calendar_month, size: 18),
+                label: const Text('Jadwal Weekend'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.purple,
+                  side: const BorderSide(color: Colors.purple),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildDayFilter() {
