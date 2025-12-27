@@ -110,33 +110,35 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
                 ),
               ),
             ),
-            Obx(() {
-              // Show current day instead of slot name
-              final today = DateTime.now();
-              final dayLabel = today.weekday == DateTime.saturday
-                  ? 'Sabtu'
-                  : today.weekday == DateTime.sunday
-                  ? 'Ahad'
-                  : 'Weekend';
+            Builder(
+              builder: (context) {
+                // Show current day instead of slot name
+                final today = DateTime.now();
+                final dayLabel = today.weekday == DateTime.saturday
+                    ? 'Sabtu'
+                    : today.weekday == DateTime.sunday
+                    ? 'Ahad'
+                    : 'Weekend';
 
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  dayLabel,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                ),
-              );
-            }),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    dayLabel,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
