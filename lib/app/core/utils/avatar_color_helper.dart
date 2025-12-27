@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Utility class for generating consistent avatar colors based on name
 class AvatarColorHelper {
-  // Expanded palette with 16 colors for better variety
+  // Expanded palette with 25 colors for 25 users
   static const List<Color> _avatarColors = [
     Color(0xFF2196F3), // Blue
     Color(0xFFE53935), // Red
@@ -17,9 +17,18 @@ class AvatarColorHelper {
     Color(0xFF795548), // Brown
     Color(0xFF607D8B), // Blue Grey
     Color(0xFF673AB7), // Deep Purple
-    Color(0xFFCDDC39), // Lime (dark variant for contrast)
-    Color(0xFF00BCD4), // Cyan variant
-    Color(0xFFF44336), // Red variant
+    Color(0xFF827717), // Lime Dark
+    Color(0xFF00BCD4), // Cyan Light
+    Color(0xFFC62828), // Red Dark
+    Color(0xFF1565C0), // Blue Dark
+    Color(0xFF2E7D32), // Green Dark
+    Color(0xFFD84315), // Deep Orange Dark
+    Color(0xFF6A1B9A), // Purple Dark
+    Color(0xFF00838F), // Cyan Dark
+    Color(0xFFC2185B), // Pink Dark
+    Color(0xFF283593), // Indigo Dark
+    Color(0xFF00695C), // Teal Dark
+    Color(0xFF4E342E), // Brown Dark
   ];
 
   /// Get consistent color for a given name
