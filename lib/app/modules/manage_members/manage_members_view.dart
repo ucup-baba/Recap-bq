@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/avatar_color_helper.dart';
 import 'manage_members_controller.dart';
 
 class ManageMembersView extends GetView<ManageMembersController> {
@@ -188,19 +189,10 @@ class ManageMembersView extends GetView<ManageMembersController> {
                       itemCount: controller.members.length,
                       itemBuilder: (context, index) {
                         final member = controller.members[index];
-                        // Warna avatar berbeda untuk setiap anggota
-                        final avatarColors = [
-                          const Color(0xFF2196F3), // Blue
-                          const Color(0xFFE53935), // Red
-                          const Color(0xFFFFB300), // Yellow/Orange
-                          const Color(0xFF8E24AA), // Purple
-                          const Color(0xFF4CAF50), // Green
-                          const Color(0xFFFF6F00), // Deep Orange
-                          const Color(0xFF00ACC1), // Cyan
-                          const Color(0xFFE91E63), // Pink
-                        ];
-                        final avatarColor =
-                            avatarColors[index % avatarColors.length];
+                        // Warna avatar konsisten berdasarkan nama
+                        final avatarColor = AvatarColorHelper.getColorForName(
+                          member,
+                        );
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),

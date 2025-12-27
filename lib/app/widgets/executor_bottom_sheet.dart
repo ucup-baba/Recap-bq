@@ -2,30 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../core/theme/app_colors.dart';
+import '../core/utils/avatar_color_helper.dart';
 
 class ExecutorBottomSheet {
-  // Warna pastel untuk background kartu (4 warna pertama)
+  // Warna pastel untuk background kartu
   static final List<Color> _cardBackgroundColors = [
     const Color(0xFFE3F2FD), // Biru muda
     const Color(0xFFFFCDD2), // Merah muda
     const Color(0xFFFFF8E1), // Kuning muda
     const Color(0xFFF3E5F5), // Ungu muda
+    const Color(0xFFE8F5E9), // Hijau muda
+    const Color(0xFFFFF3E0), // Orange muda
+    const Color(0xFFE0F7FA), // Cyan muda
+    const Color(0xFFFCE4EC), // Pink muda
   ];
 
-  // Warna solid untuk avatar (sesuai dengan background)
-  static final List<Color> _avatarColors = [
-    const Color(0xFF2196F3), // Blue
-    const Color(0xFFE53935), // Red
-    const Color(0xFFFFB300), // Yellow/Orange
-    const Color(0xFF8E24AA), // Purple
-  ];
-
-  static Color _getCardBackgroundColor(int index) {
-    return _cardBackgroundColors[index % _cardBackgroundColors.length];
-  }
-
-  static Color _getAvatarColor(int index) {
-    return _avatarColors[index % _avatarColors.length];
+  static Color _getCardBackgroundColor(String name) {
+    if (name.isEmpty) return _cardBackgroundColors[0];
+    final hash = name.hashCode;
+    return _cardBackgroundColors[hash.abs() % _cardBackgroundColors.length];
   }
 
   static Future<List<String>?> pick({
@@ -103,8 +98,10 @@ class ExecutorBottomSheet {
                       itemCount: members.length,
                       itemBuilder: (context, index) {
                         final member = members[index];
-                        final bgColor = _getCardBackgroundColor(index);
-                        final avatarColor = _getAvatarColor(index);
+                        final bgColor = _getCardBackgroundColor(member);
+                        final avatarColor = AvatarColorHelper.getColorForName(
+                          member,
+                        );
 
                         return Obx(() {
                           // Pindahkan perhitungan isSelected ke dalam Obx agar reactive
