@@ -28,9 +28,7 @@ class SurahReaderPage extends StatelessWidget {
           style: const TextStyle(color: Colors.white),
         ),
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: AppColors.headerGradient,
-          ),
+          decoration: const BoxDecoration(gradient: AppColors.headerGradient),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -73,11 +71,21 @@ class SurahReaderPage extends StatelessWidget {
                 final int ayahNumber = index + 1;
 
                 // Get Arabic text
-                final String fullAyah = quran.getVerse(
+                String fullAyah = quran.getVerse(
                   surahNumber,
                   ayahNumber,
                   verseEndSymbol: true,
                 );
+
+                // For first ayah: remove Bismillah prefix if already shown in header
+                // (surah != 1 Al-Fatihah and != 9 At-Taubah)
+                if (ayahNumber == 1 && surahNumber != 1 && surahNumber != 9) {
+                  // Remove Bismillah from the beginning of the verse
+                  final basmalah = quran.basmala;
+                  if (fullAyah.startsWith(basmalah)) {
+                    fullAyah = fullAyah.substring(basmalah.length).trim();
+                  }
+                }
 
                 // Get Indonesian translation
                 final String translation = quran.getVerseTranslation(
@@ -204,16 +212,8 @@ class SurahReaderPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildInfoItem(
-                context,
-                Icons.book,
-                '$verseCount Ayat',
-              ),
-              _buildInfoItem(
-                context,
-                Icons.location_on,
-                revelationPlace,
-              ),
+              _buildInfoItem(context, Icons.book, '$verseCount Ayat'),
+              _buildInfoItem(context, Icons.location_on, revelationPlace),
             ],
           ),
         ],
@@ -237,4 +237,3 @@ class SurahReaderPage extends StatelessWidget {
     );
   }
 }
-
