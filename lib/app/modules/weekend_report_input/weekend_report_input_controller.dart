@@ -103,12 +103,36 @@ class WeekendReportInputController extends GetxController {
 
   void _setupAvailableReportTypes(WeekendSlotInfo slot) {
     final types = <String>[];
+    final today = DateTime.now();
+    final isSaturday = today.weekday == DateTime.saturday;
+    final isSunday = today.weekday == DateTime.sunday;
 
-    if (slot.hasCooking) {
-      types.add('masak');
+    // On Saturday: show Masak (if applicable) + Piket Sabtu
+    // On Sunday: show Masak (if applicable) + Piket Ahad
+    if (isSaturday) {
+      if (slot.hasCooking) {
+        // Only show masak on Saturday if slot is Sabtu Pagi or Sabtu Malam
+        if (slot.slotName.toLowerCase().contains('sabtu')) {
+          types.add('masak');
+        }
+      }
+      types.add('piket_sabtu');
+    } else if (isSunday) {
+      if (slot.hasCooking) {
+        // Only show masak on Sunday if slot is Ahad Pagi or Ahad Malam
+        if (slot.slotName.toLowerCase().contains('ahad')) {
+          types.add('masak');
+        }
+      }
+      types.add('piket_ahad');
+    } else {
+      // Not weekend - show all for preview/admin purposes
+      if (slot.hasCooking) {
+        types.add('masak');
+      }
+      types.add('piket_sabtu');
+      types.add('piket_ahad');
     }
-    types.add('piket_sabtu');
-    types.add('piket_ahad');
 
     availableReportTypes.value = types;
   }
