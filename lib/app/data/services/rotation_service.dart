@@ -20,8 +20,9 @@ class RotationService {
   /// Returns area for given kelompokId (1-5) and date.
   String getAreaForGroup(int kelompokId, DateTime date) {
     final weekday = date.weekday; // 1=Mon, ... 7=Sun
-    if (weekday < DateTime.monday || weekday > DateTime.friday) {
-      return 'Libur';
+    // Weekend has Piket Weekend
+    if (weekday == DateTime.saturday || weekday == DateTime.sunday) {
+      return 'Piket Weekend';
     }
     final offset = weekday - DateTime.monday;
     final index = (kelompokId - 1 + offset) % _baseAreas.length;
