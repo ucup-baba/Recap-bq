@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -9,13 +10,40 @@ class WeekendReportValidationView
     extends GetView<WeekendReportValidationController> {
   const WeekendReportValidationView({super.key});
 
+  Color _getAvatarColor(String name) {
+    final avatarColors = [
+      const Color(0xFF2196F3),
+      const Color(0xFFE53935),
+      const Color(0xFFFFB300),
+      const Color(0xFF8E24AA),
+      const Color(0xFF4CAF50),
+      const Color(0xFFFF6F00),
+      const Color(0xFF00ACC1),
+      const Color(0xFFE91E63),
+    ];
+    final hash = name.hashCode;
+    return avatarColors[hash.abs() % avatarColors.length];
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Obx(() {
+      final report = controller.selectedReport.value;
+      if (report == null) {
+        return const Scaffold(
+          body: Center(child: Text('Tidak ada laporan dipilih')),
+        );
+      }
+      return _buildDetailView(context, report);
+    });
+  }
+
+  Widget _buildDetailView(BuildContext context, WeekendReportModel report) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // Header
+          // Header Gradient
           Container(
             padding: const EdgeInsets.only(
               top: 40,
@@ -35,14 +63,343 @@ class WeekendReportValidationView
                     onPressed: () => Get.back(),
                     icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
                   ),
-                  const Expanded(
-                    child: Text(
-                      'Validasi Laporan Weekend',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Validasi Laporan',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
+                      Text(
+                        'Kelompok ${report.kelompokId}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Photo Evidence (if exists)
+          report.photoUrl != null && report.photoUrl!.isNotEmpty
+              ? _buildPhotoEvidence(context, report.photoUrl!)
+              : const SizedBox.shrink(),
+
+          // Info Card
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Area Tugas',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        report.area,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Tanggal',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        controller.formatDate(report.weekendDate),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Obx(
+            () => Expanded(
+              child: Column(
+                children: [
+                  if (controller.isSaving.value)
+                    const LinearProgressIndicator(
+                      minHeight: 2,
+                      color: AppColors.primaryBlue,
+                      backgroundColor: Colors.white,
+                    ),
+
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: controller.tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = controller.tasks[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        task.taskName,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      task.executors.isNotEmpty
+                                          ? Wrap(
+                                              spacing: 4,
+                                              runSpacing: 4,
+                                              children: task.executors.map((
+                                                executor,
+                                              ) {
+                                                return Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 3,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: _getAvatarColor(
+                                                      executor,
+                                                    ).withValues(alpha: 0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: _getAvatarColor(
+                                                        executor,
+                                                      ),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        width: 14,
+                                                        height: 14,
+                                                        decoration: BoxDecoration(
+                                                          color:
+                                                              _getAvatarColor(
+                                                                executor,
+                                                              ),
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            executor[0]
+                                                                .toUpperCase(),
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontSize: 7,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 3),
+                                                      Text(
+                                                        executor,
+                                                        style: TextStyle(
+                                                          color:
+                                                              _getAvatarColor(
+                                                                executor,
+                                                              ),
+                                                          fontSize: 10,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            )
+                                          : Row(
+                                              children: [
+                                                Container(
+                                                  width: 20,
+                                                  height: 20,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey
+                                                        .withValues(alpha: 0.1),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      color: Colors.grey,
+                                                      width: 1.5,
+                                                    ),
+                                                  ),
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.close,
+                                                      size: 10,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Belum dikerjakan',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                      if (task.adminNote != null &&
+                                          task.adminNote!.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 8,
+                                          ),
+                                          child: Text(
+                                            'Catatan: ${task.adminNote}',
+                                            style: const TextStyle(
+                                              color: AppColors.alertRed,
+                                              fontSize: 12,
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Tombol Validasi (Centang dan X)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Tombol Valid (Centang Hijau)
+                                    Obx(
+                                      () => Container(
+                                        decoration: BoxDecoration(
+                                          color: task.isValid == true
+                                              ? AppColors.successGreen
+                                              : AppColors.successGreen
+                                                    .withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.successGreen,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          onPressed: controller.isSaving.value
+                                              ? null
+                                              : () =>
+                                                    controller.setValid(index),
+                                          icon: Icon(
+                                            Icons.check,
+                                            color: task.isValid == true
+                                                ? Colors.white
+                                                : AppColors.successGreen,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // Tombol Tolak (X Merah)
+                                    Obx(
+                                      () => Container(
+                                        decoration: BoxDecoration(
+                                          color: task.isValid == false
+                                              ? AppColors.alertRed
+                                              : AppColors.alertRed.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.alertRed,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          onPressed: controller.isSaving.value
+                                              ? null
+                                              : () => controller.reject(index),
+                                          icon: Icon(
+                                            Icons.close,
+                                            color: task.isValid == false
+                                                ? Colors.white
+                                                : AppColors.alertRed,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -50,301 +407,162 @@ class WeekendReportValidationView
             ),
           ),
 
-          // Reports List
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (controller.pendingReports.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        size: 64,
-                        color: Colors.grey[300],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Tidak ada laporan yang perlu divalidasi',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 16),
-                      ),
-                    ],
+          // Tombol Simpan dan Batal
+          Obx(
+            () => Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
                   ),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: controller.pendingReports.length,
-                itemBuilder: (context, index) {
-                  final report = controller.pendingReports[index];
-                  return _buildReportCard(context, report);
-                },
-              );
-            }),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: [
+                    // Tombol Batal
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: controller.isSaving.value
+                            ? null
+                            : () => Get.back(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          side: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        child: const Text(
+                          'Batal',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.text,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Tombol Simpan
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: controller.isSaving.value
+                            ? null
+                            : controller.saveDetailValidation,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: controller.isSaving.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.save, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Simpan Nilai',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReportCard(BuildContext context, WeekendReportModel report) {
-    final completedTasks = report.tasks.where((t) => t.isDone).length;
-    final totalTasks = report.tasks.length;
-    final completion = totalTasks > 0 ? completedTasks / totalTasks : 0.0;
-
+  Widget _buildPhotoEvidence(BuildContext context, String photoUrl) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _getColorForReportType(
-                report.reportType,
-              ).withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-            ),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _getColorForReportType(report.reportType),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    _getIconForReportType(report.reportType),
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        controller.getReportTitle(report),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        'Area: ${report.area}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
+                Icon(Icons.camera_alt, color: AppColors.primaryBlue),
+                SizedBox(width: 8),
                 Text(
-                  controller.formatDate(report.weekendDate),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  'Foto Bukti',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
-
-          // Progress
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Task selesai: $completedTasks / $totalTasks',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    ),
-                    Text(
-                      '${(completion * 100).toInt()}%',
-                      style: TextStyle(
-                        color: completion == 1.0 ? Colors.green : Colors.orange,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: completion,
-                    minHeight: 6,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation(
-                      completion == 1.0 ? Colors.green : Colors.orange,
-                    ),
-                  ),
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-          ),
-
-          // Task List (collapsed by default)
-          ExpansionTile(
-            title: const Text('Lihat Detail Task'),
-            children: [
-              ...report.tasks.asMap().entries.map((entry) {
-                final task = entry.value;
-                return ListTile(
-                  dense: true,
-                  leading: Icon(
-                    task.isDone
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    color: task.isDone ? Colors.green : Colors.grey,
-                    size: 20,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: CachedNetworkImage(
+                  imageUrl: photoUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[200],
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
-                  title: Text(
-                    task.taskName,
-                    style: TextStyle(
-                      decoration: task.isDone
-                          ? TextDecoration.lineThrough
-                          : null,
-                      color: task.isDone ? Colors.grey : Colors.black87,
-                    ),
-                  ),
-                  subtitle: task.executors.isNotEmpty
-                      ? Wrap(
-                          spacing: 4,
-                          children: task.executors
-                              .map(
-                                (e) => Chip(
-                                  label: Text(
-                                    e,
-                                    style: const TextStyle(fontSize: 10),
-                                  ),
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                ),
-                              )
-                              .toList(),
-                        )
-                      : null,
-                );
-              }),
-            ],
-          ),
-
-          // Actions
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showRejectDialog(context, report),
-                    icon: const Icon(Icons.close, color: Colors.red),
-                    label: const Text(
-                      'Tolak',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.error),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => controller.validateReport(report),
-                    icon: const Icon(Icons.check, color: Colors.white),
-                    label: const Text(
-                      'Validasi',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRejectDialog(BuildContext context, WeekendReportModel report) {
-    final reasonController = TextEditingController();
-
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Tolak Laporan'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Berikan alasan penolakan:'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                hintText: 'Alasan...',
-                border: OutlineInputBorder(),
               ),
-              maxLines: 3,
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () {
-              if (reasonController.text.isNotEmpty) {
-                Get.back();
-                controller.rejectReport(report, reasonController.text);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Tolak', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-  }
-
-  Color _getColorForReportType(String type) {
-    switch (type) {
-      case 'masak':
-        return Colors.orange;
-      case 'piket_sabtu':
-        return Colors.blue;
-      case 'piket_ahad':
-        return Colors.purple;
-      default:
-        return AppColors.primaryBlue;
-    }
-  }
-
-  IconData _getIconForReportType(String type) {
-    if (type == 'masak') return Icons.restaurant;
-    return Icons.cleaning_services;
   }
 }

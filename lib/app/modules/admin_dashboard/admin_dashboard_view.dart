@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/models/daily_report_model.dart';
+import '../../data/models/weekend_report_model.dart';
 import 'admin_dashboard_controller.dart';
 
 class AdminDashboardView extends GetView<AdminDashboardController> {
@@ -185,23 +187,6 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          // Third row for Weekend Validation
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildMenuCard(
-                  title: 'Validasi Weekend',
-                  icon: Icons.fact_check,
-                  color: Colors.deepOrange,
-                  onTap: controller.openWeekendReportValidation,
-                ),
-                const Spacer(),
-                const Spacer(),
-              ],
-            ),
-          ),
 
           const SizedBox(height: 24),
 
@@ -223,130 +208,186 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
 
           const SizedBox(height: 16),
 
-          // Pending Reports List
+          // Pending Reports List (Weekday + Weekend combined)
           Expanded(
             child: StreamBuilder(
               stream: controller.pendingReportsStream,
-              builder: (context, snapshot) {
-                final reports = snapshot.data ?? [];
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (reports.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 64,
-                          color: Colors.grey[300],
+              builder: (context, weekdaySnapshot) {
+                return StreamBuilder(
+                  stream: controller.pendingWeekendReportsStream,
+                  builder: (context, weekendSnapshot) {
+                    final weekdayReports = weekdaySnapshot.data ?? [];
+                    final weekendReports = weekendSnapshot.data ?? [];
+
+                    // Combine reports into a unified list
+                    final allReports = <_PendingReportItem>[];
+                    for (final report in weekdayReports) {
+                      allReports.add(
+                        _PendingReportItem(
+                          type: 'weekday',
+                          weekdayReport: report,
+                          title: 'Kelompok ${report.kelompokId}',
+                          subtitle: report.areaTugas,
+                          date: report.date,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Semua laporan sudah divalidasi',
-                          style: TextStyle(color: Colors.grey[500]),
+                      );
+                    }
+                    for (final report in weekendReports) {
+                      allReports.add(
+                        _PendingReportItem(
+                          type: 'weekend',
+                          weekendReport: report,
+                          title: 'Kelompok ${report.kelompokId}',
+                          subtitle: '${report.area} (Weekend)',
+                          date: report.weekendDate.toString().substring(0, 10),
                         ),
-                      ],
-                    ),
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    // Stream akan auto-refresh, cukup trigger rebuild
-                    await Future.delayed(const Duration(milliseconds: 500));
-                  },
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: reports.length,
-                    itemBuilder: (context, index) {
-                      final report = reports[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                      );
+                    }
+
+                    if (weekdaySnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        weekendSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (allReports.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Semua laporan sudah divalidasi',
+                              style: TextStyle(color: Colors.grey[500]),
                             ),
                           ],
                         ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () => controller.openValidation(report),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primaryBlue.withValues(
-                                        alpha: 0.1,
+                      );
+                    }
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        await Future.delayed(const Duration(milliseconds: 500));
+                      },
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: allReports.length,
+                        itemBuilder: (context, index) {
+                          final item = allReports[index];
+                          final isWeekend = item.type == 'weekend';
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  if (isWeekend) {
+                                    controller.openWeekendValidation(
+                                      item.weekendReport!,
+                                    );
+                                  } else {
+                                    controller.openValidation(
+                                      item.weekdayReport!,
+                                    );
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: isWeekend
+                                              ? Colors.purple.withValues(
+                                                  alpha: 0.1,
+                                                )
+                                              : AppColors.primaryBlue
+                                                    .withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          isWeekend
+                                              ? Icons.weekend
+                                              : Icons.assignment_ind,
+                                          color: isWeekend
+                                              ? Colors.purple
+                                              : AppColors.primaryBlue,
+                                        ),
                                       ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.assignment_ind,
-                                      color: AppColors.primaryBlue,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Kelompok ${report.kelompokId}',
-                                          style: const TextStyle(
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              item.subtitle,
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Pending',
+                                          style: TextStyle(
+                                            color: Colors.orange,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 16,
+                                            fontSize: 12,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          report.areaTugas,
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange.withValues(
-                                        alpha: 0.1,
                                       ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Text(
-                                      'Pending',
-                                      style: TextStyle(
-                                        color: Colors.orange,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -402,4 +443,23 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
       ),
     );
   }
+}
+
+/// Helper class to combine weekday and weekend pending reports
+class _PendingReportItem {
+  final String type; // 'weekday' or 'weekend'
+  final DailyReportModel? weekdayReport;
+  final WeekendReportModel? weekendReport;
+  final String title;
+  final String subtitle;
+  final String date;
+
+  _PendingReportItem({
+    required this.type,
+    this.weekdayReport,
+    this.weekendReport,
+    required this.title,
+    required this.subtitle,
+    required this.date,
+  });
 }

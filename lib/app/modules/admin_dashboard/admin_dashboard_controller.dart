@@ -6,9 +6,11 @@ import '../../core/utils/error_handler.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/snackbar_helper.dart';
 import '../../data/models/daily_report_model.dart';
+import '../../data/models/weekend_report_model.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/rotation_service.dart';
+import '../weekend_report_validation/weekend_report_validation_controller.dart';
 
 class AdminDashboardController extends GetxController {
   final _firestore = FirestoreService.instance;
@@ -20,8 +22,21 @@ class AdminDashboardController extends GetxController {
   Stream<List<DailyReportModel>> get pendingReportsStream =>
       _firestore.pendingReportsStream();
 
+  Stream<List<WeekendReportModel>> get pendingWeekendReportsStream =>
+      _firestore.watchPendingWeekendReports().map(
+        (list) =>
+            list.map((json) => WeekendReportModel.fromJson(json)).toList(),
+      );
+
   void openValidation(DailyReportModel report) {
     Get.toNamed(AppRoutes.reportValidation, arguments: report);
+  }
+
+  void openWeekendValidation(WeekendReportModel report) {
+    // Put the weekend validation controller and select the report
+    Get.put(WeekendReportValidationController());
+    Get.find<WeekendReportValidationController>().selectReport(report);
+    Get.toNamed(AppRoutes.weekendReportValidation);
   }
 
   void openManageTasks() => Get.toNamed(AppRoutes.manageTasks);
