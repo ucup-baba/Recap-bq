@@ -25,25 +25,28 @@ class SuperAdminAccountController extends GetxController {
     try {
       // Load all accounts (ketua kelompok 1-5, admin, disiplin)
       final allUsers = await _firestore.getAllUsers();
-      
+
       // Filter only relevant accounts
       final filtered = allUsers.where((user) {
+        // Must have email to be shown
+        if (user.email.isEmpty) return false;
+
         // Admin
         if (user.role == AppConstants.userRoleAdmin) return true;
-        
+
         // Kedisiplinan
         if (user.role == AppConstants.userRoleKedisplinan) return true;
-        
+
         // Ketua Kelompok (hanya kelompok 1-5)
         if (user.role == AppConstants.userRoleKoordinator) {
-          return user.kelompokId != null && 
-                 user.kelompokId! >= 1 && 
-                 user.kelompokId! <= 5;
+          return user.kelompokId != null &&
+              user.kelompokId! >= 1 &&
+              user.kelompokId! <= 5;
         }
-        
+
         return false;
       }).toList();
-      
+
       // Sort: admin first, then kedisplinan, then ketua kelompok by kelompokId
       filtered.sort((a, b) {
         if (a.role == AppConstants.userRoleAdmin) return -1;
@@ -52,18 +55,22 @@ class SuperAdminAccountController extends GetxController {
         if (b.role == AppConstants.userRoleKedisplinan) return 1;
         return (a.kelompokId ?? 0).compareTo(b.kelompokId ?? 0);
       });
-      
+
       accounts.value = filtered;
-      
+
       // Load passwords from Firestore (if stored) - handle errors gracefully
       await _loadPasswords();
-      
-      Logger.info('Loaded ${filtered.length} accounts (Admin, Kedisiplinan, Ketua Kelompok 1-5)');
+
+      Logger.info(
+        'Loaded ${filtered.length} accounts (Admin, Kedisiplinan, Ketua Kelompok 1-5)',
+      );
     } catch (e) {
       Logger.error('Error loading accounts', e);
       // If permission denied, still show accounts but with default passwords
       if (e.toString().contains('permission-denied')) {
-        Logger.warning('Permission denied for some users, using default passwords');
+        Logger.warning(
+          'Permission denied for some users, using default passwords',
+        );
         // Accounts already loaded, just use defaults
         await _loadPasswords();
       } else {
@@ -88,12 +95,14 @@ class SuperAdminAccountController extends GetxController {
         } catch (e) {
           // Silently handle permission errors - just use default password
           if (e.toString().contains('permission-denied')) {
-            Logger.debug('Permission denied for ${account.uid}, using default password');
+            Logger.debug(
+              'Permission denied for ${account.uid}, using default password',
+            );
           } else {
             Logger.warning('Error loading password for ${account.uid}: $e');
           }
         }
-        
+
         // Fallback to default passwords
         String defaultPassword;
         if (account.role == AppConstants.userRoleAdmin) {
@@ -129,20 +138,24 @@ class SuperAdminAccountController extends GetxController {
     }
   }
 
-  Future<void> updatePassword(String uid, String email, String newPassword) async {
+  Future<void> updatePassword(
+    String uid,
+    String email,
+    String newPassword,
+  ) async {
     try {
       // Update password in Firebase Auth
       // Note: This requires Admin SDK or re-authentication
       // For now, we'll store the new password in Firestore and update on next login
       // Or use Firebase Admin SDK if available
-      
+
       // Store password in Firestore (in a secure way, ideally encrypted)
       // For simplicity, we'll update a password field in user document
       await _firestore.updateUserPassword(uid, newPassword);
-      
+
       // Update local map
       passwordMap[uid] = newPassword;
-      
+
       SnackbarHelper.showSuccess('Password berhasil diupdate');
       Logger.info('Password updated for user: $uid');
     } catch (e) {
@@ -152,8 +165,10 @@ class SuperAdminAccountController extends GetxController {
   }
 
   void showEditPasswordDialog(UserModel account) {
-    final passwordController = TextEditingController(text: getPassword(account.uid));
-    
+    final passwordController = TextEditingController(
+      text: getPassword(account.uid),
+    );
+
     Get.dialog(
       AlertDialog(
         title: Text('Edit Password - ${account.displayName}'),
@@ -173,10 +188,7 @@ class SuperAdminAccountController extends GetxController {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Batal'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
           TextButton(
             onPressed: () {
               final newPassword = passwordController.text.trim();
@@ -194,4 +206,3 @@ class SuperAdminAccountController extends GetxController {
     );
   }
 }
-

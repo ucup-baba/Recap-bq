@@ -41,17 +41,25 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
           onRefresh: controller.loadAccounts,
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: controller.accounts.length + 2, // +1 for notification settings, +1 for logout button
+            itemCount:
+                controller.accounts.length +
+                3, // +1 for header, +1 for notification settings, +1 for logout button
             itemBuilder: (context, index) {
+              // Show registered accounts header
+              if (index == 0) {
+                return _buildRegisteredAccountsHeader();
+              }
+              // Adjust index for accounts
+              final accountIndex = index - 1;
               // Show notification settings button before logout
-              if (index == controller.accounts.length) {
+              if (accountIndex == controller.accounts.length) {
                 return _buildNotificationSettingsButton();
               }
               // Show logout button at the end
-              if (index == controller.accounts.length + 1) {
+              if (accountIndex == controller.accounts.length + 1) {
                 return _buildLogoutButton();
               }
-              final account = controller.accounts[index];
+              final account = controller.accounts[accountIndex];
               return _buildAccountCard(account);
             },
           ),
@@ -60,13 +68,74 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
     );
   }
 
+  Widget _buildRegisteredAccountsHeader() {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.blue.shade100,
+              radius: 24,
+              child: const Icon(
+                Icons.verified_user,
+                color: Colors.blue,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Akun Terdaftar',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Akun dengan email terdaftar di sistem',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${controller.accounts.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAccountCard(UserModel account) {
     final password = controller.getPassword(account.uid) ?? 'N/A';
     final roleLabel = controller.getRoleLabel(account.role);
-    
+
     IconData roleIcon;
     Color roleColor;
-    
+
     if (account.role == AppConstants.userRoleAdmin) {
       roleIcon = Icons.admin_panel_settings;
       roleColor = Colors.blue;
@@ -100,7 +169,10 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: roleColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -163,10 +235,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
         ),
         title: const Text(
           'Pengaturan Notifikasi',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.purple,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple),
         ),
         subtitle: const Text(
           'Kelola reminder notifikasi untuk semua user',
@@ -181,7 +250,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
   Widget _buildLogoutButton() {
     // Get SuperAdminDashboardController to access logout method
     final dashboardController = Get.find<SuperAdminDashboardController>();
-    
+
     return Card(
       margin: const EdgeInsets.only(top: 16, bottom: 16),
       elevation: 2,
@@ -194,10 +263,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
         ),
         title: const Text(
           'Logout',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.red,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
         ),
         subtitle: const Text(
           'Keluar dari akun Super Admin',
@@ -209,4 +275,3 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
     );
   }
 }
-
