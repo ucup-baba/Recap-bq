@@ -48,6 +48,7 @@ class SantriDashboardController extends GetxController
 
   StreamSubscription<UserModel?>? _userSubscription;
   StreamSubscription<List<DailyReportModel>>? _reportSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _weekendReportSubscription;
 
   @override
   void onInit() {
@@ -76,6 +77,7 @@ class SantriDashboardController extends GetxController
   void onClose() {
     _userSubscription?.cancel();
     _reportSubscription?.cancel();
+    _weekendReportSubscription?.cancel();
     super.onClose();
   }
 
@@ -126,38 +128,101 @@ class SantriDashboardController extends GetxController
 
   void _watchTodayReport(int kelompokId) {
     _reportSubscription?.cancel();
+    _weekendReportSubscription?.cancel();
     _hasFetchedOnce.value = false;
 
-    // Selalu fetch sekali untuk memastikan data terbaru dari Firestore
-    // Bahkan jika status sudah di-set dari navigation arguments
-    _fetchTodayOnce(kelompokId);
+    final now = DateTime.now();
+    final isWeekend =
+        now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
 
-    // Tetap dengarkan stream untuk update real-time (verified/rejected/reset oleh admin)
-    _reportSubscription = _firestore
-        .reportsByGroupAndDate(kelompokId, today)
-        .listen(
-          (reports) {
-            _hasFetchedOnce.value = true;
-            if (reports.isEmpty) {
-              // Setelah reset, laporan dihapus, jadi status harus di-clear
+    if (isWeekend) {
+      // Weekend: watch weekend_reports
+      _fetchWeekendReportOnce(kelompokId, now);
+      _weekendReportSubscription = _firestore
+          .watchWeekendReportsForDate(now)
+          .listen(
+            (reports) {
+              _hasFetchedOnce.value = true;
+              // Filter for this kelompok
+              final kelompokReports = reports
+                  .where((r) => r['kelompokId'] == kelompokId)
+                  .toList();
+              if (kelompokReports.isEmpty) {
+                reportStatus.value = '';
+                Logger.info(
+                  'No weekend report found (stream): kelompokId=$kelompokId',
+                );
+              } else {
+                // Get status from first report
+                final status =
+                    kelompokReports.first['status'] as String? ?? 'draft';
+                reportStatus.value = status;
+                Logger.info(
+                  'Weekend report found (stream): status=$status, kelompokId=$kelompokId',
+                );
+              }
+            },
+            onError: (error) {
+              Logger.error('Error watching weekend report', error);
               reportStatus.value = '';
-              Logger.info(
-                'No report found (stream): kelompokId=$kelompokId, date=$today',
-              );
-            } else {
-              final status = reports.first.status;
-              reportStatus.value = status;
-              Logger.info(
-                'Today report found (stream): status=$status, kelompokId=$kelompokId, date=$today',
-              );
-            }
-          },
-          onError: (error) {
-            Logger.error('Error watching today report', error);
-            // Clear status jika error
-            reportStatus.value = '';
-          },
+            },
+          );
+    } else {
+      // Weekday: watch daily_reports
+      _fetchTodayOnce(kelompokId);
+      _reportSubscription = _firestore
+          .reportsByGroupAndDate(kelompokId, today)
+          .listen(
+            (reports) {
+              _hasFetchedOnce.value = true;
+              if (reports.isEmpty) {
+                reportStatus.value = '';
+                Logger.info(
+                  'No report found (stream): kelompokId=$kelompokId, date=$today',
+                );
+              } else {
+                final status = reports.first.status;
+                reportStatus.value = status;
+                Logger.info(
+                  'Today report found (stream): status=$status, kelompokId=$kelompokId, date=$today',
+                );
+              }
+            },
+            onError: (error) {
+              Logger.error('Error watching today report', error);
+              reportStatus.value = '';
+            },
+          );
+    }
+  }
+
+  /// Fetch weekend report once to show status immediately
+  Future<void> _fetchWeekendReportOnce(int kelompokId, DateTime date) async {
+    try {
+      final reports = await _firestore.getWeekendReportsForKelompok(
+        date,
+        kelompokId,
+      );
+      _hasFetchedOnce.value = true;
+      if (reports.isEmpty) {
+        reportStatus.value = '';
+        Logger.info(
+          'Weekend report not found (fetch once): kelompokId=$kelompokId',
         );
+        return;
+      }
+      final status = reports.first['status'] as String? ?? 'draft';
+      reportStatus.value = status;
+      Logger.info(
+        'Weekend report found (fetch once): status=$status, kelompokId=$kelompokId',
+      );
+    } catch (e) {
+      Logger.error('Error fetch weekend report once', e);
+      _hasFetchedOnce.value = true;
+      if (reportStatus.value.isEmpty) {
+        reportStatus.value = '';
+      }
+    }
   }
 
   /// Fetch sekali dokumen harian by ID untuk menampilkan status segera setelah submit.
