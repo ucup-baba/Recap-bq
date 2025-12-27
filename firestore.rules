@@ -268,6 +268,53 @@ service cloud.firestore {
       allow delete: if isAuthenticated() 
         && resource.data.user_id == request.auth.uid;
     }
+    
+    // Weekend reports collection
+    match /weekend_reports/{reportId} {
+      // Helper to extract kelompok_id from document ID (format: {date}_{kelompokId}_{reportType})
+      function getKelompokIdFromWeekendReportId() {
+        return int(reportId.split('_')[1]);
+      }
+      
+      // Helper to check if report belongs to user's kelompok
+      function weekendReportBelongsToUserKelompok() {
+        return getKelompokIdFromWeekendReportId() == getUserKelompokId();
+      }
+      
+      // Everyone authenticated can read weekend reports
+      allow get, list: if isAuthenticated();
+      
+      // Koordinator can create/update reports for their own kelompok
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        (isKoordinator() && request.resource.data.kelompokId == getUserKelompokId())
+      );
+      
+      // Admin can update any report (for validation)
+      // Koordinator can update their own kelompok reports if draft or rejected
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isKoordinator() 
+          && request.resource.data.kelompokId == getUserKelompokId()
+          && (
+            !resource.exists ||
+            resource.data.status == 'draft' ||
+            resource.data.status == 'rejected'
+          ))
+      );
+      
+      // Admin can delete reports
+      allow delete: if isAdmin();
+    }
+    
+    // Weekend area tasks collection (managed by admin)
+    match /weekend_area_tasks/{area} {
+      // Everyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // Only admin can create/update/delete
+      allow create, update, delete: if isAdmin();
+    }
   }
 }
 
