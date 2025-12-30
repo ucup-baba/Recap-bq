@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'app/controllers/theme_controller.dart';
 import 'app/core/constants/app_constants.dart';
 import 'app/core/routes/app_pages.dart';
 import 'app/core/theme/app_theme.dart';
@@ -79,10 +80,42 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Register background message handler (MUST be before runApp)
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Initialize Firebase with retry mechanism for slow emulator startup
+  bool firebaseInitialized = false;
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    try {
+      debugPrint('Firebase initialization attempt $attempt starting...');
+
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      firebaseInitialized = true;
+      debugPrint('Firebase initialization SUCCESS on attempt $attempt');
+
+      // Register background message handler (MUST be after Firebase init)
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+
+      // Initialize notification services
+      await NotificationService.instance.initialize();
+      break; // Success, exit loop
+    } catch (e, stackTrace) {
+      debugPrint('Firebase initialization attempt $attempt failed: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (attempt < 3) {
+        // Wait longer between retries
+        await Future.delayed(Duration(milliseconds: 1000 * attempt));
+      }
+    }
+  }
+
+  if (!firebaseInitialized) {
+    debugPrint(
+      'Firebase initialization failed after 3 attempts. App will run in offline mode.',
+    );
+  }
 
   // Initialize date formatting for Indonesian locale
   try {
@@ -91,8 +124,8 @@ Future<void> main() async {
     // Ignore error if locale already initialized
   }
 
-  // Initialize notification services
-  await NotificationService.instance.initialize();
+  // Initialize Theme Controller
+  Get.put(ThemeController(), permanent: true);
 
   runApp(const PiketAsramaProApp());
 }
@@ -102,12 +135,18 @@ class PiketAsramaProApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Piket Asrama Pro',
-      debugShowCheckedModeBanner: false,
-      initialRoute: AppRoutes.splash,
-      getPages: AppPages.routes,
-      theme: AppTheme.light(),
+    return GetBuilder<ThemeController>(
+      builder: (themeController) {
+        return GetMaterialApp(
+          title: 'Piket Asrama Pro',
+          debugShowCheckedModeBanner: false,
+          initialRoute: AppRoutes.splash,
+          getPages: AppPages.routes,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: themeController.themeMode,
+        );
+      },
     );
   }
 }

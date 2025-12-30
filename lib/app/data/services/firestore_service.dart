@@ -21,7 +21,12 @@ class FirestoreService {
 
   static final FirestoreService instance = FirestoreService._();
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  // Use lazy initialization to avoid accessing Firebase before it's initialized
+  FirebaseFirestore? _dbInstance;
+  FirebaseFirestore get _db {
+    _dbInstance ??= FirebaseFirestore.instance;
+    return _dbInstance!;
+  }
 
   /// Batch update: final_score, group_score, personal_points, dan streak
   /// Semua dalam satu batch untuk konsistensi data

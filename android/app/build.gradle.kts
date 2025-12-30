@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "recap.app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -27,6 +27,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -40,8 +41,16 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
-    implementation("com.google.firebase:firebase-messaging")
+    
+    // Firebase BoM (Bill of Materials) - forces consistent native versions
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    
+    // Firebase libraries (version managed by BoM)
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-storage")
 }
 
 flutter {

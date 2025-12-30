@@ -4,10 +4,13 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
+import '../../widgets/nalya_feedback_card.dart';
+import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../kedisiplinan_ibadah/kedisiplinan_ibadah_controller.dart';
 import '../manage_violation_rules/manage_violation_rules_controller.dart';
 import '../manage_violation_rules/manage_violation_rules_view.dart';
+import '../nalya/nalya_feedback_controller.dart';
 import '../record_violation/record_violation_controller.dart';
 import '../record_violation/record_violation_view.dart';
 import '../violation_monitoring/violation_monitoring_controller.dart';
@@ -32,6 +35,10 @@ class KedisiplinanDashboardView
     }
     if (!Get.isRegistered<ManageViolationRulesController>()) {
       Get.put(ManageViolationRulesController());
+    }
+    // Nalya controller
+    if (!Get.isRegistered<NalyaFeedbackController>()) {
+      Get.put(NalyaFeedbackController());
     }
 
     return Scaffold(
@@ -187,6 +194,18 @@ class KedisiplinanDashboardView
                 }),
               ],
             ),
+          ),
+          const SizedBox(height: 16),
+          // Nalya Feedback Card
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: NalyaFeedbackCard(),
+          ),
+          const SizedBox(height: 16),
+          // Reading Tracker Widget
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: ReadingTrackerWidget(),
           ),
           const SizedBox(height: 16),
         ],

@@ -7,12 +7,15 @@ import '../../data/models/daily_report_model.dart';
 import '../../data/models/weekend_report_model.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
+import '../../widgets/nalya_feedback_card.dart';
+import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../admin_ibadah/admin_ibadah_controller.dart';
 import '../leaderboard/leaderboard_controller.dart';
 import '../leaderboard/leaderboard_view.dart';
 import '../manage_members/manage_members_controller.dart';
 import '../manage_members/manage_members_view.dart';
+import '../nalya/nalya_feedback_controller.dart';
 import 'admin_dashboard_controller.dart';
 
 class AdminDashboardView extends GetView<AdminDashboardController> {
@@ -29,6 +32,10 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     }
     if (!Get.isRegistered<ManageMembersController>()) {
       Get.put(ManageMembersController());
+    }
+    // Nalya controller
+    if (!Get.isRegistered<NalyaFeedbackController>()) {
+      Get.put(NalyaFeedbackController());
     }
 
     return Scaffold(
@@ -109,6 +116,18 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
         children: [
           // Header with Ibadah Tracker
           _buildIbadahTracker(),
+          const SizedBox(height: 16),
+          // Nalya Feedback Card
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: NalyaFeedbackCard(),
+          ),
+          const SizedBox(height: 16),
+          // Reading Tracker Widget
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: ReadingTrackerWidget(),
+          ),
           const SizedBox(height: 16),
           // Laporan Masuk Title
           const Padding(

@@ -76,6 +76,24 @@ service cloud.firestore {
            && request.resource.data.kelompok_id != null
            && request.resource.data.diff(resource.data).unchangedKeys().hasAll(['email', 'displayName', 'role']))
         );
+      
+      // Nalya profile sub-collection (AI coach data)
+      match /nalya_profile/{docId} {
+        // Users can read/write their own Nalya profile
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+      
+      // Nalya history sub-collection (check-in history)
+      match /nalya_history/{docId} {
+        // Users can read/write their own Nalya history
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+      
+      // Reading log sub-collection (book reading progress)
+      match /reading_log/{docId} {
+        // Users can read/write their own reading log
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
     
     // Daily reports collection

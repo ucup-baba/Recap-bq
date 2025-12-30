@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import '../../core/utils/logger.dart';
+import '../../../firebase_options.dart';
 import '../models/user_model.dart';
 import 'firestore_service.dart';
 
@@ -10,22 +12,58 @@ class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirestoreService _firestore = FirestoreService.instance;
+  FirebaseAuth? _auth;
+  FirebaseAuth get auth {
+    _auth ??= FirebaseAuth.instance;
+    return _auth!;
+  }
+
+  // Use lazy getter to avoid accessing Firebase before it's initialized
+  FirestoreService? _firestoreInstance;
+  FirestoreService get _firestore {
+    _firestoreInstance ??= FirestoreService.instance;
+    return _firestoreInstance!;
+  }
 
   Future<User?> signInWithEmail(String email, String password) async {
-    final credential = await _auth.signInWithEmailAndPassword(
+    // Ensure Firebase is initialized (handles case where init failed at startup)
+    try {
+      if (Firebase.apps.isEmpty) {
+        Logger.info(
+          'Firebase not initialized, attempting re-initialization...',
+        );
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        Logger.info('Firebase re-initialization successful');
+      }
+    } catch (e) {
+      Logger.error('Firebase re-initialization failed', e);
+      throw Exception(
+        'Gagal mengakses database: Firebase belum terinisialisasi. '
+        'Pastikan koneksi internet stabil dan restart aplikasi.',
+      );
+    }
+
+    final credential = await auth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
     return credential.user;
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() => auth.signOut();
 
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser {
+    try {
+      return auth.currentUser;
+    } catch (e) {
+      Logger.error('Error getting current user (Firebase not initialized?)', e);
+      return null;
+    }
+  }
 
-  Stream<User?> authStateChanges() => _auth.authStateChanges();
+  Stream<User?> authStateChanges() => auth.authStateChanges();
 
   Future<UserModel?> loadUserProfile(String uid) => _firestore.fetchUser(uid);
 
@@ -69,7 +107,7 @@ class AuthService {
 
     try {
       // Try to create user in Firebase Auth with short timeout
-      final credential = await _auth
+      final credential = await auth
           .createUserWithEmailAndPassword(email: email, password: password)
           .timeout(const Duration(seconds: 3));
       Logger.info(
@@ -126,7 +164,7 @@ class AuthService {
 
     try {
       // Try to create user in Firebase Auth with short timeout
-      final credential = await _auth
+      final credential = await auth
           .createUserWithEmailAndPassword(email: email, password: password)
           .timeout(const Duration(seconds: 3));
       Logger.info(
@@ -201,7 +239,7 @@ class AuthService {
         }
 
         // Try to create user in Firebase Auth
-        await _auth.createUserWithEmailAndPassword(
+        await auth.createUserWithEmailAndPassword(
           email: user.email,
           password: password,
         );

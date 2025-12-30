@@ -8,7 +8,10 @@ import '../../core/utils/logger.dart';
 import '../../data/services/rotation_service.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
+import '../../widgets/nalya_feedback_card.dart';
+import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
+import '../nalya/nalya_feedback_controller.dart';
 import 'santri_dashboard_controller.dart';
 
 class SantriDashboardView extends GetView<SantriDashboardController> {
@@ -16,6 +19,11 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
 
   @override
   Widget build(BuildContext context) {
+    // Nalya controller
+    if (!Get.isRegistered<NalyaFeedbackController>()) {
+      Get.put(NalyaFeedbackController());
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -25,6 +33,22 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
             children: [
               // Header Gradient Card
               _buildHeader(context),
+
+              const SizedBox(height: 16),
+
+              // Nalya Feedback Card
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: NalyaFeedbackCard(),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Reading Tracker Widget
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: ReadingTrackerWidget(),
+              ),
 
               const SizedBox(height: 24),
 
@@ -61,13 +85,13 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
                   child: Material(
                     color: Colors.transparent,
                     child: Obx(() {
-                      final user = controller.user.value;
-                      final kelompokId = user?.kelompokId;
+                      final userMap = controller.userProfile.value;
+                      final kelompokId = userMap?['kelompokId'] as int?;
                       var area = controller.areaTugas.value;
 
                       // Debug logging
                       Logger.info(
-                        'Dashboard Obx: user=${user != null}, kelompokId=$kelompokId, area=$area',
+                        'Dashboard Obx: user=${userMap != null}, kelompokId=$kelompokId, area=$area',
                       );
 
                       // Fallback: hitung area langsung jika kosong
@@ -82,7 +106,7 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
 
                       // Enable tombol jika user sudah ter-load
                       // KelompokId akan di-handle di report input controller sebagai fallback
-                      final isDataReady = user != null;
+                      final isDataReady = userMap != null;
 
                       // Hitung status untuk display
                       final status = controller.reportStatus.value;

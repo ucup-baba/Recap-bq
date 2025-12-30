@@ -1,13 +1,1 @@
-{
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs20"
-  },
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
-  "storage": {
-    "rules": "storage.rules"
-  }
-}
+{"functions":{"source":"functions","runtime":"nodejs20"},"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"storage":{"rules":"storage.rules"},"flutter":{"platforms":{"android":{"default":{"projectId":"recap-bq","appId":"1:733581949032:android:6cb0417e68d591536123dd","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"recap-bq","configurations":{"android":"1:733581949032:android:6cb0417e68d591536123dd"}}}}}}

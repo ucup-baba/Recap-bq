@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_pages.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/snackbar_helper.dart';
@@ -62,7 +63,7 @@ class SantriDashboardController extends GetxController
   final weekendSlot = ''.obs;
 
   // Getters
-  String get today => DateUtilsHelper.formatDate(DateTime.now());
+  String get today => AppDateUtils.formatDate(DateTime.now());
   bool get isFriday => selectedDate.value.weekday == DateTime.friday;
 
   @override
@@ -104,7 +105,7 @@ class SantriDashboardController extends GetxController
       title: randomMotivation['title']!,
       middleText: randomMotivation['body']!,
       textConfirm: 'Oke!',
-      buttonColor: AppColors.primary,
+      buttonColor: AppColors.primaryBlue,
       confirmTextColor: Colors.white,
       onConfirm: () => Get.back(),
     );
@@ -129,7 +130,7 @@ class SantriDashboardController extends GetxController
       title: randomMotivation['title']!,
       middleText: randomMotivation['body']!,
       textConfirm: 'Siap!',
-      buttonColor: AppColors.primary,
+      buttonColor: AppColors.primaryBlue,
       confirmTextColor: Colors.white,
       onConfirm: () => Get.back(),
     );
@@ -157,7 +158,7 @@ class SantriDashboardController extends GetxController
       }
     }
     _loadUser();
-    todayDate.value = DateUtilsHelper.formatDateFull(DateTime.now());
+    todayDate.value = AppDateUtils.formatDate(DateTime.now());
   }
 
   @override
@@ -181,8 +182,8 @@ class SantriDashboardController extends GetxController
       _userSubscription = _firestore.watchUser(user.uid).listen((userData) {
         if (userData != null) {
           userProfile.value = userData.toMap();
-          poin.value = userData.points;
-          streak.value = userData.streak;
+          poin.value = userData.totalPoin;
+          streak.value = userData.currentStreak;
           kelompokIdStr.value = userData.kelompokId?.toString() ?? '-';
 
           final hour = DateTime.now().hour;
@@ -197,22 +198,10 @@ class SantriDashboardController extends GetxController
 
           if (userData.kelompokId != null) {
             final kelompokId = userData.kelompokId!;
-            final schedule = _rotationService.getScheduleForDate(
+            areaTugas.value = _rotationService.getAreaForGroup(
+              kelompokId,
               DateTime.now(),
             );
-
-            if (schedule.halaman == kelompokId)
-              areaTugas.value = 'Halaman';
-            else if (schedule.kamarMandi == kelompokId)
-              areaTugas.value = 'Kamar Mandi';
-            else if (schedule.masjid == kelompokId)
-              areaTugas.value = 'Masjid';
-            else if (schedule.koridor == kelompokId)
-              areaTugas.value = 'Koridor';
-            else if (schedule.jemuran == kelompokId)
-              areaTugas.value = 'Jemuran';
-            else
-              areaTugas.value = 'Libur Piket';
 
             _watchTodayReport(kelompokId);
             loadTodayIbadah();

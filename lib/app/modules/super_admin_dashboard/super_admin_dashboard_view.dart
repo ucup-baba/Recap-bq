@@ -5,10 +5,13 @@ import '../../core/routes/app_pages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
+import '../../widgets/nalya_feedback_card.dart';
+import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../../modules/admin_ibadah/admin_ibadah_controller.dart';
 import '../../modules/leaderboard/leaderboard_view.dart';
 import '../../modules/violation_monitoring/violation_monitoring_view.dart';
+import '../nalya/nalya_feedback_controller.dart';
 import 'super_admin_dashboard_controller.dart';
 import '../super_admin_report/super_admin_report_view.dart';
 import '../super_admin_account/super_admin_account_view.dart';
@@ -21,6 +24,10 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
     // Ensure AdminIbadahController is available for ibadah tracking
     if (!Get.isRegistered<AdminIbadahController>()) {
       Get.put(AdminIbadahController());
+    }
+    // Nalya controller for Nalya features
+    if (!Get.isRegistered<NalyaFeedbackController>()) {
+      Get.put(NalyaFeedbackController());
     }
 
     return Scaffold(
@@ -207,6 +214,12 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            // Nalya Feedback Card - bawah header
+            const NalyaFeedbackCard(),
+            const SizedBox(height: 16),
+            // Reading Tracker Widget
+            const ReadingTrackerWidget(),
             const SizedBox(height: 16),
             // Ibadah Cards (full version)
             Obx(() {
