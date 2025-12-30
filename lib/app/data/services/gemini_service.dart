@@ -1,5 +1,4 @@
-// TEMPORARILY DISABLED - firebase_vertexai causes channel-error
-// import 'package:firebase_vertexai/firebase_vertexai.dart';
+import 'package:firebase_ai/firebase_ai.dart';
 
 import '../../core/utils/logger.dart';
 
@@ -10,14 +9,11 @@ class GeminiService {
 
   static GeminiService get instance => _instance;
 
-  // STUB: Firebase Vertex AI temporarily disabled
-  // GenerativeModel? _model;
-  // GenerativeModel get model {
-  //   _model ??= FirebaseVertexAI.instance.generativeModel(
-  //     model: 'gemini-2.5-flash',
-  //   );
-  //   return _model!;
-  // }
+  GenerativeModel? _model;
+  GenerativeModel get model {
+    _model ??= FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.0-flash');
+    return _model!;
+  }
 
   /// Generate daily feedback for user
   ///
@@ -31,16 +27,28 @@ class GeminiService {
   /// - ibadahData: Map (with percentages for each sholat)
   /// - readingData: Map (currentBook, pagesReadThisWeek, readingTarget)
   Future<String> generateDailyFeedback(Map<String, dynamic> context) async {
-    // TEMPORARILY DISABLED - firebase_vertexai causes channel-error
-    // Just return fallback message while testing Firebase core
-    Logger.info(
-      'GeminiService: Using fallback message (Vertex AI disabled for testing)',
-    );
-    return _getFallbackMessage(context);
+    try {
+      Logger.info(
+        'GeminiService: Generating AI feedback with Gemini 2.0 Flash',
+      );
+
+      final prompt = _buildPrompt(context);
+      final response = await model.generateContent([Content.text(prompt)]);
+
+      final text = response.text;
+      if (text != null && text.isNotEmpty) {
+        Logger.info('GeminiService: AI feedback generated successfully');
+        return text.trim();
+      } else {
+        Logger.warning('GeminiService: Empty response from AI, using fallback');
+        return _getFallbackMessage(context);
+      }
+    } catch (e) {
+      Logger.error('GeminiService: Error generating AI feedback', e);
+      return _getFallbackMessage(context);
+    }
   }
 
-  // TEMPORARILY DISABLED - method unused while firebase_vertexai is disabled
-  // ignore: unused_element
   String _buildPrompt(Map<String, dynamic> context) {
     final displayName = context['displayName'] ?? 'Santri';
     final role = context['role'] ?? 'koordinator';
@@ -166,12 +174,55 @@ Contoh untuk senior:
 
   /// Generate feedback after user completes weekly check-in
   Future<String> generateCheckInFeedback(Map<String, dynamic> responses) async {
-    // TEMPORARILY DISABLED - firebase_vertexai causes channel-error
-    // Just return fallback message while testing Firebase core
-    Logger.info(
-      'GeminiService: Using fallback check-in feedback (Vertex AI disabled for testing)',
-    );
+    try {
+      Logger.info(
+        'GeminiService: Generating check-in feedback with Gemini 2.0 Flash',
+      );
 
+      final prompt = _buildCheckInPrompt(responses);
+      final response = await model.generateContent([Content.text(prompt)]);
+
+      final text = response.text;
+      if (text != null && text.isNotEmpty) {
+        Logger.info('GeminiService: Check-in feedback generated successfully');
+        return text.trim();
+      } else {
+        return _getCheckInFallback(responses);
+      }
+    } catch (e) {
+      Logger.error('GeminiService: Error generating check-in feedback', e);
+      return _getCheckInFallback(responses);
+    }
+  }
+
+  String _buildCheckInPrompt(Map<String, dynamic> responses) {
+    final mood = responses['mood'] ?? 'biasa';
+    final target = responses['target'] ?? '';
+    final book = responses['book'] ?? 'bukumu';
+    final challenges = responses['challenges'] ?? '';
+    final focusAmalan = (responses['focusAmalan'] as List?)?.join(', ') ?? '';
+
+    return '''
+Kamu adalah Nalya, asisten santri yang ramah dan supportive.
+
+User baru saja melakukan weekly check-in dengan data:
+- Mood: $mood
+- Target minggu ini: $target
+- Fokus amalan: $focusAmalan
+- Tantangan: $challenges
+- Buku yang dibaca: $book
+
+Berikan respons singkat (2-3 kalimat) yang:
+1. Acknowledge mood mereka dengan empati
+2. Dukung target dan fokus mereka
+3. Berikan tips ringan untuk tantangan mereka
+4. Gunakan emoji yang sesuai
+
+Contoh: "MasyaAllah, senang banget kamu lagi semangat! 🌟 Targetmu untuk fokus tahajud minggu ini keren banget. Untuk tantangan ngantuk, coba tidur lebih awal dan pasang alarm 30 menit sebelum Subuh ya! Bismillah pasti bisa! 💪"
+''';
+  }
+
+  String _getCheckInFallback(Map<String, dynamic> responses) {
     final mood = responses['mood'] ?? 'biasa';
     final book = responses['book'] ?? 'bukumu';
 

@@ -55,6 +55,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   shared_preferences: ^2.5.4
+  firebase_ai: ^3.6.1
 
 dev_dependencies:
   flutter_test:
