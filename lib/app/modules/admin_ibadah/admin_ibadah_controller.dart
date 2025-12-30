@@ -103,6 +103,7 @@ class AdminIbadahController extends GetxController
       textConfirm: 'Siap!',
       confirmTextColor: Colors.white,
       buttonColor: Colors.deepPurple.shade600,
+      onConfirm: () => Get.back(),
     );
   }
 
@@ -158,6 +159,7 @@ class AdminIbadahController extends GetxController
       textConfirm: 'Siap!',
       confirmTextColor: Colors.white,
       buttonColor: Colors.deepPurple.shade600,
+      onConfirm: () => Get.back(),
     );
   }
 }

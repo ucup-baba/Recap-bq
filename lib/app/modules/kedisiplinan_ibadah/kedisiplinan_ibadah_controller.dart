@@ -102,6 +102,7 @@ class KedisiplinanIbadahController extends GetxController
       textConfirm: 'Siap!',
       confirmTextColor: Colors.white,
       buttonColor: Colors.deepPurple.shade600,
+      onConfirm: () => Get.back(),
     );
   }
 
@@ -157,6 +158,7 @@ class KedisiplinanIbadahController extends GetxController
       textConfirm: 'Siap!',
       confirmTextColor: Colors.white,
       buttonColor: Colors.deepPurple.shade600,
+      onConfirm: () => Get.back(),
     );
   }
 }
