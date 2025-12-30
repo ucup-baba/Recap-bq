@@ -148,18 +148,19 @@ class ManageMembersView extends GetView<ManageMembersController> {
                                 ),
                               )
                               .toList(),
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            color: context.isDark
+                                ? const Color(0xFF90CAF9)
+                                : AppColors.primaryBlue,
+                            size: 32,
+                          ),
                           onChanged: (val) {
                             if (val != null) controller.loadMembers(val);
                           },
                         ),
                       ],
                     ),
-                  ),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    color: context.isDark
-                        ? const Color(0xFF90CAF9)
-                        : AppColors.primaryBlue,
                   ),
                 ],
               ),

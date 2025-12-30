@@ -120,18 +120,19 @@ class ManageTasksView extends GetView<ManageTasksController> {
                                 ),
                               )
                               .toList(),
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            color: context.isDark
+                                ? const Color(0xFF90CAF9)
+                                : AppColors.primaryBlue,
+                            size: 32,
+                          ),
                           onChanged: (value) {
                             if (value != null) controller.loadAreaTasks(value);
                           },
                         ),
                       ],
                     ),
-                  ),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    color: context.isDark
-                        ? const Color(0xFF90CAF9)
-                        : AppColors.primaryBlue,
                   ),
                 ],
               ),
