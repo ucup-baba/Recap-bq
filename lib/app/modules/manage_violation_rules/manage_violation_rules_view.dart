@@ -22,17 +22,27 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.rule, size: 64, color: Colors.grey[300]),
+              Icon(
+                Icons.rule,
+                size: 64,
+                color: context.isDark ? Colors.grey[600] : Colors.grey[300],
+              ),
               const SizedBox(height: 16),
               Text(
                 'Belum ada aturan',
-                style: TextStyle(color: Colors.grey[500]),
+                style: TextStyle(color: context.subtextColor),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () => controller.showAddEditDialog(),
                 icon: const Icon(Icons.add),
                 label: const Text('Tambah Aturan Pertama'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: context.isDark
+                      ? const Color(0xFF90CAF9)
+                      : AppColors.primaryBlue,
+                  foregroundColor: context.isDark ? Colors.black : Colors.white,
+                ),
               ),
             ],
           ),
@@ -46,7 +56,7 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
           itemCount: controller.rules.length,
           itemBuilder: (context, index) {
             final rule = controller.rules[index];
-            return _buildRuleCard(rule);
+            return _buildRuleCard(rule, context);
           },
         ),
       );
@@ -54,10 +64,14 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
 
     if (hideAppBar) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.backgroundColor,
         appBar: AppBar(
           title: const Text('Kelola Aturan'),
-          backgroundColor: AppColors.primaryBlue,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: AppColors.getHeaderGradient(context),
+            ),
+          ),
           foregroundColor: Colors.white,
           automaticallyImplyLeading: false,
           actions: [
@@ -73,10 +87,14 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       appBar: AppBar(
         title: const Text('Kelola Aturan Pelanggaran'),
-        backgroundColor: AppColors.primaryBlue,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: AppColors.getHeaderGradient(context),
+          ),
+        ),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -90,15 +108,17 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
     );
   }
 
-  Widget _buildRuleCard(ViolationRuleModel rule) {
+  Widget _buildRuleCard(ViolationRuleModel rule, BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: context.isDark
+                ? Colors.black26
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -109,27 +129,43 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
         leading: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withValues(alpha: 0.1),
+            color:
+                (context.isDark
+                        ? const Color(0xFF90CAF9)
+                        : AppColors.primaryBlue)
+                    .withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.rule, color: AppColors.primaryBlue),
+          child: Icon(
+            Icons.rule,
+            color: context.isDark
+                ? const Color(0xFF90CAF9)
+                : AppColors.primaryBlue,
+          ),
         ),
         title: Text(
           rule.name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: context.textColor,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text('Kategori: ${rule.category}'),
+            Text(
+              'Kategori: ${rule.category}',
+              style: TextStyle(color: context.subtextColor),
+            ),
             const SizedBox(height: 4),
             Row(
               children: [
                 Icon(
                   rule.requiresTimeDetail ? Icons.access_time : Icons.info,
                   size: 14,
-                  color: Colors.grey[600],
+                  color: context.subtextColor,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -137,7 +173,7 @@ class ManageViolationRulesView extends GetView<ManageViolationRulesController> {
                     rule.requiresTimeDetail
                         ? 'Butuh Detail Waktu'
                         : 'Tidak Butuh Detail Waktu',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: context.subtextColor),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
