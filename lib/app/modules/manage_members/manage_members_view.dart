@@ -13,7 +13,7 @@ class ManageMembersView extends GetView<ManageMembersController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           // Header Gradient (hidden when embedded)
@@ -25,9 +25,9 @@ class ManageMembersView extends GetView<ManageMembersController> {
                 left: 16,
                 right: 16,
               ),
-              decoration: const BoxDecoration(
-                gradient: AppColors.headerGradient,
-                borderRadius: BorderRadius.vertical(
+              decoration: BoxDecoration(
+                gradient: AppColors.getHeaderGradient(context),
+                borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(24),
                 ),
               ),
@@ -66,14 +66,14 @@ class ManageMembersView extends GetView<ManageMembersController> {
                 right: 16,
                 bottom: 8,
               ),
-              child: const Align(
+              child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Kelola Anggota Kelompok',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.text,
+                    color: context.textColor,
                   ),
                 ),
               ),
@@ -84,11 +84,13 @@ class ManageMembersView extends GetView<ManageMembersController> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: context.isDark
+                      ? Colors.black26
+                      : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -100,12 +102,18 @@ class ManageMembersView extends GetView<ManageMembersController> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      color:
+                          (context.isDark
+                                  ? const Color(0xFF90CAF9)
+                                  : AppColors.primaryBlue)
+                              .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.group,
-                      color: AppColors.primaryBlue,
+                      color: context.isDark
+                          ? const Color(0xFF90CAF9)
+                          : AppColors.primaryBlue,
                       size: 24,
                     ),
                   ),
@@ -114,19 +122,23 @@ class ManageMembersView extends GetView<ManageMembersController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Kelompok',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          style: TextStyle(
+                            color: context.subtextColor,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         DropdownButton<int>(
                           value: controller.selectedKelompok.value,
                           isExpanded: true,
                           underline: const SizedBox(),
-                          style: const TextStyle(
+                          dropdownColor: context.cardColor,
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.text,
+                            color: context.textColor,
                           ),
                           items: controller.kelompokList
                               .map(
@@ -143,9 +155,11 @@ class ManageMembersView extends GetView<ManageMembersController> {
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.arrow_drop_down,
-                    color: AppColors.primaryBlue,
+                    color: context.isDark
+                        ? const Color(0xFF90CAF9)
+                        : AppColors.primaryBlue,
                   ),
                 ],
               ),
@@ -163,13 +177,15 @@ class ManageMembersView extends GetView<ManageMembersController> {
                           Icon(
                             Icons.people_outline,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: context.isDark
+                                ? Colors.grey[600]
+                                : Colors.grey[300],
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Belum ada anggota',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: context.subtextColor,
                               fontSize: 16,
                             ),
                           ),
@@ -177,7 +193,9 @@ class ManageMembersView extends GetView<ManageMembersController> {
                           Text(
                             'Tap tombol + untuk menambah anggota',
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: context.subtextColor.withValues(
+                                alpha: 0.7,
+                              ),
                               fontSize: 14,
                             ),
                           ),
@@ -197,11 +215,13 @@ class ManageMembersView extends GetView<ManageMembersController> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cardColor,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
+                                color: context.isDark
+                                    ? Colors.black26
+                                    : Colors.black.withValues(alpha: 0.03),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -236,9 +256,10 @@ class ManageMembersView extends GetView<ManageMembersController> {
                             ),
                             title: Text(
                               member,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                color: context.textColor,
                               ),
                             ),
                             trailing: Row(
@@ -246,17 +267,21 @@ class ManageMembersView extends GetView<ManageMembersController> {
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryBlue.withValues(
-                                      alpha: 0.1,
-                                    ),
+                                    color:
+                                        (context.isDark
+                                                ? const Color(0xFF90CAF9)
+                                                : AppColors.primaryBlue)
+                                            .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: IconButton(
                                     onPressed: () =>
                                         controller.editMember(index),
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.edit,
-                                      color: AppColors.primaryBlue,
+                                      color: context.isDark
+                                          ? const Color(0xFF90CAF9)
+                                          : AppColors.primaryBlue,
                                       size: 20,
                                     ),
                                   ),
@@ -291,11 +316,19 @@ class ManageMembersView extends GetView<ManageMembersController> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.addMember,
-        backgroundColor: AppColors.primaryBlue,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
+        backgroundColor: context.isDark
+            ? const Color(0xFF90CAF9)
+            : AppColors.primaryBlue,
+        icon: Icon(
+          Icons.add,
+          color: context.isDark ? Colors.black : Colors.white,
+        ),
+        label: Text(
           'Tambah Anggota',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: context.isDark ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

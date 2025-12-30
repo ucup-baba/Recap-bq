@@ -11,7 +11,7 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           // Header
@@ -22,9 +22,11 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
               left: 16,
               right: 16,
             ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            decoration: BoxDecoration(
+              gradient: AppColors.getHeaderGradient(context),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
             ),
             child: SafeArea(
               bottom: false,
@@ -145,24 +147,28 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   // Masak Section
-                  _buildSectionTitle('🍳 Jadwal Masak'),
+                  _buildSectionTitle('🍳 Jadwal Masak', context),
                   const SizedBox(height: 12),
                   _buildScheduleCard(
+                    context: context,
                     slotIndex: 0,
                     kelompokId: schedule.sabtuPagi,
                     color: Colors.orange,
                   ),
                   _buildScheduleCard(
+                    context: context,
                     slotIndex: 1,
                     kelompokId: schedule.sabtuMalam,
                     color: Colors.deepOrange,
                   ),
                   _buildScheduleCard(
+                    context: context,
                     slotIndex: 2,
                     kelompokId: schedule.ahadPagi,
                     color: Colors.amber,
                   ),
                   _buildScheduleCard(
+                    context: context,
                     slotIndex: 3,
                     kelompokId: schedule.ahadMalam,
                     color: Colors.orange.shade800,
@@ -171,21 +177,24 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
                   const SizedBox(height: 24),
 
                   // Piket Section
-                  _buildSectionTitle('🧹 Jadwal Piket'),
+                  _buildSectionTitle('🧹 Jadwal Piket', context),
                   const SizedBox(height: 12),
                   _buildPiketCard(
+                    context: context,
                     area: 'Halaman',
                     kelompokId: schedule.sabtuPagi,
                     icon: Icons.grass,
                     color: Colors.green,
                   ),
                   _buildPiketCard(
+                    context: context,
                     area: 'Kamar Aula',
                     kelompokId: schedule.sabtuMalam,
                     icon: Icons.meeting_room,
                     color: Colors.purple,
                   ),
                   _buildPiketCard(
+                    context: context,
                     area: 'Wudhu / Rongsokan',
                     kelompokId: schedule.ahadPagi,
                     icon: Icons.water_drop,
@@ -193,12 +202,14 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
                     subtitle: 'Sabtu: Wudhu, Ahad: Rongsokan',
                   ),
                   _buildPiketCard(
+                    context: context,
                     area: 'Masjid',
                     kelompokId: schedule.ahadMalam,
                     icon: Icons.mosque,
                     color: Colors.teal,
                   ),
                   _buildPiketCard(
+                    context: context,
                     area: 'Dapur',
                     kelompokId: schedule.dapur,
                     icon: Icons.kitchen,
@@ -214,18 +225,19 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: AppColors.text,
+        color: context.textColor,
       ),
     );
   }
 
   Widget _buildScheduleCard({
+    required BuildContext context,
     required int slotIndex,
     required int kelompokId,
     required Color color,
@@ -234,11 +246,13 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.1),
+            color: context.isDark
+                ? Colors.black26
+                : color.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -262,14 +276,15 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
               children: [
                 Text(
                   controller.getSlotName(slotIndex),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
+                    color: context.textColor,
                   ),
                 ),
                 Text(
                   'Piket: ${controller.getPiketArea(slotIndex)}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  style: TextStyle(color: context.subtextColor, fontSize: 13),
                 ),
               ],
             ),
@@ -294,6 +309,7 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
   }
 
   Widget _buildPiketCard({
+    required BuildContext context,
     required String area,
     required int kelompokId,
     required IconData icon,
@@ -304,11 +320,13 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.1),
+            color: context.isDark
+                ? Colors.black26
+                : color.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -332,15 +350,16 @@ class WeekendScheduleView extends GetView<WeekendScheduleController> {
               children: [
                 Text(
                   area,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
+                    color: context.textColor,
                   ),
                 ),
                 if (subtitle != null)
                   Text(
                     subtitle,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    style: TextStyle(color: context.subtextColor, fontSize: 13),
                   ),
               ],
             ),

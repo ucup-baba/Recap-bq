@@ -10,7 +10,7 @@ class ManageTasksView extends GetView<ManageTasksController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           // Header Gradient
@@ -21,9 +21,11 @@ class ManageTasksView extends GetView<ManageTasksController> {
               left: 16,
               right: 16,
             ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            decoration: BoxDecoration(
+              gradient: AppColors.getHeaderGradient(context),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
             ),
             child: SafeArea(
               bottom: false,
@@ -54,11 +56,13 @@ class ManageTasksView extends GetView<ManageTasksController> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: context.isDark
+                      ? Colors.black26
+                      : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -70,12 +74,18 @@ class ManageTasksView extends GetView<ManageTasksController> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      color:
+                          (context.isDark
+                                  ? const Color(0xFF90CAF9)
+                                  : AppColors.primaryBlue)
+                              .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.location_on,
-                      color: AppColors.primaryBlue,
+                      color: context.isDark
+                          ? const Color(0xFF90CAF9)
+                          : AppColors.primaryBlue,
                       size: 24,
                     ),
                   ),
@@ -84,19 +94,23 @@ class ManageTasksView extends GetView<ManageTasksController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Area',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          style: TextStyle(
+                            color: context.subtextColor,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         DropdownButton<String>(
                           value: controller.selectedArea.value,
                           isExpanded: true,
                           underline: const SizedBox(),
-                          style: const TextStyle(
+                          dropdownColor: context.cardColor,
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.text,
+                            color: context.textColor,
                           ),
                           items: controller.areas
                               .map(
@@ -113,9 +127,11 @@ class ManageTasksView extends GetView<ManageTasksController> {
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.arrow_drop_down,
-                    color: AppColors.primaryBlue,
+                    color: context.isDark
+                        ? const Color(0xFF90CAF9)
+                        : AppColors.primaryBlue,
                   ),
                 ],
               ),
@@ -133,13 +149,15 @@ class ManageTasksView extends GetView<ManageTasksController> {
                           Icon(
                             Icons.task_alt,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: context.isDark
+                                ? Colors.grey[600]
+                                : Colors.grey[300],
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Belum ada task',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: context.subtextColor,
                               fontSize: 16,
                             ),
                           ),
@@ -147,7 +165,9 @@ class ManageTasksView extends GetView<ManageTasksController> {
                           Text(
                             'Tap tombol + untuk menambah task',
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: context.subtextColor.withValues(
+                                alpha: 0.7,
+                              ),
                               fontSize: 14,
                             ),
                           ),
@@ -162,11 +182,13 @@ class ManageTasksView extends GetView<ManageTasksController> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cardColor,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
+                                color: context.isDark
+                                    ? Colors.black26
+                                    : Colors.black.withValues(alpha: 0.03),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -181,22 +203,27 @@ class ManageTasksView extends GetView<ManageTasksController> {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: AppColors.primaryBlue.withValues(
-                                  alpha: 0.1,
-                                ),
+                                color:
+                                    (context.isDark
+                                            ? const Color(0xFF90CAF9)
+                                            : AppColors.primaryBlue)
+                                        .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.checklist,
-                                color: AppColors.primaryBlue,
+                                color: context.isDark
+                                    ? const Color(0xFF90CAF9)
+                                    : AppColors.primaryBlue,
                                 size: 20,
                               ),
                             ),
                             title: Text(
                               task,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                color: context.textColor,
                               ),
                             ),
                             trailing: Row(
@@ -204,16 +231,20 @@ class ManageTasksView extends GetView<ManageTasksController> {
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryBlue.withValues(
-                                      alpha: 0.1,
-                                    ),
+                                    color:
+                                        (context.isDark
+                                                ? const Color(0xFF90CAF9)
+                                                : AppColors.primaryBlue)
+                                            .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: IconButton(
                                     onPressed: () => controller.editTask(index),
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.edit,
-                                      color: AppColors.primaryBlue,
+                                      color: context.isDark
+                                          ? const Color(0xFF90CAF9)
+                                          : AppColors.primaryBlue,
                                       size: 20,
                                     ),
                                   ),
@@ -248,11 +279,19 @@ class ManageTasksView extends GetView<ManageTasksController> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.addTask,
-        backgroundColor: AppColors.primaryBlue,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
+        backgroundColor: context.isDark
+            ? const Color(0xFF90CAF9)
+            : AppColors.primaryBlue,
+        icon: Icon(
+          Icons.add,
+          color: context.isDark ? Colors.black : Colors.white,
+        ),
+        label: Text(
           'Tambah Task',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: context.isDark ? Colors.black : Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

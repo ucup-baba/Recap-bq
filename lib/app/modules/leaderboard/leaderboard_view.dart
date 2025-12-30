@@ -8,28 +8,25 @@ import 'leaderboard_controller.dart';
 
 class LeaderboardView extends GetView<LeaderboardController> {
   final bool hideAppBar;
-  
+
   const LeaderboardView({super.key, this.hideAppBar = false});
 
   @override
   Widget build(BuildContext context) {
-    final bodyContent = _buildBodyContent();
-    
+    final bodyContent = _buildBodyContent(context);
+
     if (hideAppBar) {
       // Return only body without Scaffold/header
-      return Container(
-        color: AppColors.background,
-        child: bodyContent,
-      );
+      return Container(color: context.backgroundColor, child: bodyContent);
     }
-    
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: bodyContent,
     );
   }
 
-  Widget _buildBodyContent() {
+  Widget _buildBodyContent(BuildContext context) {
     return Column(
       children: [
         if (!hideAppBar)
@@ -40,9 +37,11 @@ class LeaderboardView extends GetView<LeaderboardController> {
               left: 16,
               right: 16,
             ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            decoration: BoxDecoration(
+              gradient: AppColors.getHeaderGradient(context),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
             ),
             child: SafeArea(
               bottom: false,
@@ -117,22 +116,24 @@ class LeaderboardView extends GetView<LeaderboardController> {
                                 value: controller.selectedKelompok.value,
                                 isExpanded: true,
                                 underline: const SizedBox(),
-                                dropdownColor: Colors.white,
-                                style: const TextStyle(
+                                dropdownColor: context.cardColor,
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                                  color: context.textColor,
                                 ),
                                 icon: const Icon(
                                   Icons.arrow_drop_down,
                                   color: Colors.white,
                                 ),
                                 items: [
-                                  const DropdownMenuItem<int?>(
+                                  DropdownMenuItem<int?>(
                                     value: null,
                                     child: Text(
                                       'Semua Kelompok',
-                                      style: TextStyle(color: AppColors.text),
+                                      style: TextStyle(
+                                        color: context.textColor,
+                                      ),
                                     ),
                                   ),
                                   ...List.generate(5, (index) {
@@ -141,8 +142,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
                                       value: kelompokId,
                                       child: Text(
                                         'Kelompok $kelompokId',
-                                        style: const TextStyle(
-                                          color: AppColors.text,
+                                        style: TextStyle(
+                                          color: context.textColor,
                                         ),
                                       ),
                                     );
@@ -175,11 +176,13 @@ class LeaderboardView extends GetView<LeaderboardController> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.cardColor,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: context.isDark
+                          ? Colors.black26
+                          : Colors.black.withValues(alpha: 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -187,17 +190,20 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.filter_list,
-                      color: AppColors.primaryBlue,
+                      color: context.isDark
+                          ? const Color(0xFF90CAF9)
+                          : AppColors.primaryBlue,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Filter:',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
+                        color: context.textColor,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -206,22 +212,24 @@ class LeaderboardView extends GetView<LeaderboardController> {
                         value: controller.selectedKelompok.value,
                         isExpanded: true,
                         underline: const SizedBox(),
-                        dropdownColor: Colors.white,
-                        style: const TextStyle(
+                        dropdownColor: context.cardColor,
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.text,
+                          color: context.textColor,
                         ),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.arrow_drop_down,
-                          color: AppColors.primaryBlue,
+                          color: context.isDark
+                              ? const Color(0xFF90CAF9)
+                              : AppColors.primaryBlue,
                         ),
                         items: [
-                          const DropdownMenuItem<int?>(
+                          DropdownMenuItem<int?>(
                             value: null,
                             child: Text(
                               'Semua Kelompok',
-                              style: TextStyle(color: AppColors.text),
+                              style: TextStyle(color: context.textColor),
                             ),
                           ),
                           ...List.generate(5, (index) {
@@ -230,9 +238,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
                               value: kelompokId,
                               child: Text(
                                 'Kelompok $kelompokId',
-                                style: const TextStyle(
-                                  color: AppColors.text,
-                                ),
+                                style: TextStyle(color: context.textColor),
                               ),
                             );
                           }),
@@ -250,12 +256,16 @@ class LeaderboardView extends GetView<LeaderboardController> {
           }),
         // Tab Bar
         Container(
-          color: Colors.white,
+          color: context.cardColor,
           child: TabBar(
             controller: controller.tabController,
-            labelColor: AppColors.primaryBlue,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: AppColors.primaryBlue,
+            labelColor: context.isDark
+                ? const Color(0xFF90CAF9)
+                : AppColors.primaryBlue,
+            unselectedLabelColor: context.subtextColor,
+            indicatorColor: context.isDark
+                ? const Color(0xFF90CAF9)
+                : AppColors.primaryBlue,
             tabs: const [
               Tab(text: 'Individual'),
               Tab(text: 'Kelompok'),
@@ -266,8 +276,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
           child: TabBarView(
             controller: controller.tabController,
             children: [
-              _buildIndividualLeaderboard(),
-              _buildGroupLeaderboard(),
+              _buildIndividualLeaderboard(context),
+              _buildGroupLeaderboard(context),
             ],
           ),
         ),
@@ -275,7 +285,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  Widget _buildIndividualLeaderboard() {
+  Widget _buildIndividualLeaderboard(BuildContext context) {
     return StreamBuilder<List<UserModel>>(
       stream: controller.individualLeaderboardStream,
       initialData: controller.cachedIndividualData,
@@ -287,7 +297,10 @@ class LeaderboardView extends GetView<LeaderboardController> {
 
         final users = snapshot.data ?? [];
         if (users.isEmpty) {
-          return _buildEmptyState('Belum ada data papan peringkat individual');
+          return _buildEmptyState(
+            'Belum ada data papan peringkat individual',
+            context,
+          );
         }
 
         return RefreshIndicator(
@@ -303,6 +316,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
               final rankColor = _getRankColor(rank);
 
               return _buildLeaderboardCard(
+                context: context,
                 rank: rank,
                 rankColor: rankColor,
                 title: user.displayName,
@@ -318,7 +332,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  Widget _buildGroupLeaderboard() {
+  Widget _buildGroupLeaderboard(BuildContext context) {
     return StreamBuilder<List<GroupModel>>(
       stream: controller.groupLeaderboardStream,
       builder: (context, snapshot) {
@@ -327,12 +341,15 @@ class LeaderboardView extends GetView<LeaderboardController> {
         }
 
         if (snapshot.hasError) {
-          return _buildEmptyState('Error: ${snapshot.error}');
+          return _buildEmptyState('Error: ${snapshot.error}', context);
         }
 
         final groups = snapshot.data ?? [];
         if (groups.isEmpty) {
-          return _buildEmptyState('Belum ada data papan peringkat kelompok');
+          return _buildEmptyState(
+            'Belum ada data papan peringkat kelompok',
+            context,
+          );
         }
 
         return RefreshIndicator(
@@ -348,6 +365,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
               final rankColor = _getRankColor(rank);
 
               return _buildLeaderboardCard(
+                context: context,
                 rank: rank,
                 rankColor: rankColor,
                 title: 'Kelompok ${group.groupId}',
@@ -363,6 +381,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
   }
 
   Widget _buildLeaderboardCard({
+    required BuildContext context,
     required int rank,
     required Color rankColor,
     required String title,
@@ -373,11 +392,13 @@ class LeaderboardView extends GetView<LeaderboardController> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: context.isDark
+                ? Colors.black26
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -396,7 +417,11 @@ class LeaderboardView extends GetView<LeaderboardController> {
                     : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: rank <= 3 ? rankColor : Colors.grey[300]!,
+                  color: rank <= 3
+                      ? rankColor
+                      : (context.isDark
+                            ? Colors.grey[600]!
+                            : Colors.grey[300]!),
                   width: 2,
                 ),
               ),
@@ -405,14 +430,20 @@ class LeaderboardView extends GetView<LeaderboardController> {
                   '$rank',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: rank <= 3 ? rankColor : Colors.grey,
+                    color: rank <= 3 ? rankColor : context.subtextColor,
                     fontSize: 16,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 16),
-            Icon(icon, color: AppColors.primaryBlue, size: 24),
+            Icon(
+              icon,
+              color: context.isDark
+                  ? const Color(0xFF90CAF9)
+                  : AppColors.primaryBlue,
+              size: 24,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -420,15 +451,16 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: context.textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: context.subtextColor, fontSize: 12),
                   ),
                 ],
               ),
@@ -436,13 +468,19 @@ class LeaderboardView extends GetView<LeaderboardController> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                color:
+                    (context.isDark
+                            ? const Color(0xFF90CAF9)
+                            : AppColors.primaryBlue)
+                        .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 points,
-                style: const TextStyle(
-                  color: AppColors.primaryBlue,
+                style: TextStyle(
+                  color: context.isDark
+                      ? const Color(0xFF90CAF9)
+                      : AppColors.primaryBlue,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -453,14 +491,18 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState(String message, BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey[300]),
+          Icon(
+            Icons.emoji_events_outlined,
+            size: 64,
+            color: context.isDark ? Colors.grey[600] : Colors.grey[300],
+          ),
           const SizedBox(height: 16),
-          Text(message, style: TextStyle(color: Colors.grey[500])),
+          Text(message, style: TextStyle(color: context.subtextColor)),
         ],
       ),
     );
