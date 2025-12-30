@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/theme_controller.dart';
 import '../../core/routes/app_pages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/daily_report_model.dart';
@@ -39,7 +40,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -56,7 +57,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                     // Tab 0: Home (Ibadah Tracker + Laporan Masuk)
                     KeyedSubtree(
                       key: const ValueKey('tab_0_home'),
-                      child: _buildHomeTab(),
+                      child: _buildHomeTab(context),
                     ),
                     // Tab 1: Leaderboard
                     const KeyedSubtree(
@@ -71,12 +72,12 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                     // Tab 3: Task
                     KeyedSubtree(
                       key: const ValueKey('tab_3_task'),
-                      child: _buildTaskTab(),
+                      child: _buildTaskTab(context),
                     ),
                     // Tab 4: Akun
                     KeyedSubtree(
                       key: const ValueKey('tab_4_account'),
-                      child: _buildAccountTab(),
+                      child: _buildAccountTab(context),
                     ),
                   ],
                 );
@@ -85,151 +86,329 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
           ],
         ),
       ),
-      bottomNavigationBar: Obx(
-        () => BottomNavigationBar(
-          currentIndex: controller.currentTabIndex.value,
-          onTap: controller.changeTab,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppColors.primaryBlue,
-          unselectedItemColor: Colors.grey,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.emoji_events),
-              label: 'Leaderboard',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          boxShadow: [
+            BoxShadow(
+              color: _getBottomNavColor(
+                controller.currentTabIndex.value,
+                context,
+              ).withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Anggota'),
-            BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Task'),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
+          ],
+        ),
+        child: Obx(
+          () => BottomNavigationBar(
+            currentIndex: controller.currentTabIndex.value,
+            onTap: controller.changeTab,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: context.cardColor,
+            elevation: 0,
+            selectedItemColor: _getBottomNavColor(
+              controller.currentTabIndex.value,
+              context,
+            ),
+            unselectedItemColor: context.subtextColor,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+            unselectedLabelStyle: const TextStyle(fontSize: 10),
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.emoji_events),
+                label: 'Ranking',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.group),
+                label: 'Anggota',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.list_alt),
+                label: 'Task',
+              ),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getBottomNavColor(int index, BuildContext context) {
+    if (context.isDark) {
+      switch (index) {
+        case 0:
+          return const Color(0xFF90CAF9); // Light Blue
+        case 1:
+          return const Color(0xFFFFCC80); // Light Orange/Amber
+        case 2:
+          return const Color(0xFFA5D6A7); // Light Green
+        case 3:
+          return const Color(0xFFB39DDB); // Light Purple
+        case 4:
+          return const Color(0xFFCE93D8); // Light Pink/Purple
+        default:
+          return AppColors.darkText;
+      }
+    } else {
+      switch (index) {
+        case 0:
+          return AppColors.primaryBlue;
+        case 1:
+          return Colors.amber.shade800;
+        case 2:
+          return Colors.green.shade700;
+        case 3:
+          return Colors.deepPurple.shade600;
+        case 4:
+          return Colors.purple.shade600;
+        default:
+          return AppColors.primaryBlue;
+      }
+    }
+  }
+
+  // ============ TAB 0: HOME ============
+  Widget _buildHomeTab(BuildContext context) {
+    final ibadahController = Get.find<AdminIbadahController>();
+    return Container(
+      color: context.backgroundColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            _buildHeader(context),
+            const SizedBox(height: 16),
+            // Nalya Feedback Card
+            const NalyaFeedbackCard(),
+            const SizedBox(height: 16),
+            // Reading Tracker Widget
+            const ReadingTrackerWidget(),
+            const SizedBox(height: 16),
+            // Statistik Ibadah Card
+            _buildStatistikIbadahCard(context),
+            const SizedBox(height: 16),
+            // Ibadah Cards
+            Obx(() {
+              final ibadahData = ibadahController.todayIbadah();
+              return Column(
+                children: [
+                  SholatWajibCard(
+                    ibadahData: ibadahData,
+                    onUpdate: (updated) =>
+                        ibadahController.updateIbadah(updated),
+                  ),
+                  const SizedBox(height: 16),
+                  AmalanHarianCard(
+                    ibadahData: ibadahData,
+                    selectedDate: DateTime.now(),
+                    onUpdate: (updated) =>
+                        ibadahController.updateIbadah(updated),
+                  ),
+                  const SizedBox(height: 16),
+                  FisikCard(
+                    ibadahData: ibadahData,
+                    onUpdate: (updated) =>
+                        ibadahController.updateIbadah(updated),
+                  ),
+                ],
+              );
+            }),
+            const SizedBox(height: 24),
+            // Laporan Masuk Title
+            Text(
+              'Laporan Masuk',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: context.textColor,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Pending Reports Section
+            _buildPendingReportsSection(context),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  // ============ TAB 0: HOME ============
-  Widget _buildHomeTab() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with Ibadah Tracker
-          _buildIbadahTracker(),
-          const SizedBox(height: 16),
-          // Nalya Feedback Card
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: NalyaFeedbackCard(),
-          ),
-          const SizedBox(height: 16),
-          // Reading Tracker Widget
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: ReadingTrackerWidget(),
-          ),
-          const SizedBox(height: 16),
-          // Laporan Masuk Title
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Laporan Masuk',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Pending Reports List (not Expanded, just inline)
-          _buildPendingReportsSection(),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIbadahTracker() {
-    final ibadahController = Get.find<AdminIbadahController>();
+  Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 20, bottom: 20, left: 24, right: 24),
-      decoration: const BoxDecoration(
-        gradient: AppColors.headerGradient,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppColors.getHeaderGradient(context),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.getGradientEnd(context).withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Dashboard Admin',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Dashboard Admin',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Text(
+                        'Assalamu\'alaikum',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Amalan Ibadah Harian',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.admin_panel_settings,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Admin',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              IconButton(
-                onPressed: () => Get.toNamed(AppRoutes.statistics),
-                icon: const Icon(
-                  Icons.bar_chart,
-                  color: Colors.white,
-                  size: 24,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                tooltip: 'Statistik',
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          // Ibadah Cards
-          Obx(() {
-            final ibadahData = ibadahController.todayIbadah();
-            return Column(
-              children: [
-                SholatWajibCard(
-                  ibadahData: ibadahData,
-                  onUpdate: (updated) => ibadahController.updateIbadah(updated),
-                ),
-                const SizedBox(height: 12),
-                AmalanHarianCard(
-                  ibadahData: ibadahData,
-                  selectedDate: DateTime.now(),
-                  onUpdate: (updated) => ibadahController.updateIbadah(updated),
-                ),
-                const SizedBox(height: 12),
-                FisikCard(
-                  ibadahData: ibadahData,
-                  onUpdate: (updated) => ibadahController.updateIbadah(updated),
-                ),
-              ],
-            );
-          }),
         ],
       ),
     );
   }
 
-  Widget _buildPendingReportsSection() {
+  Widget _buildStatistikIbadahCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Get.toNamed(AppRoutes.statistics),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: AppColors.getHeaderGradient(context),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.getGradientEnd(context).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.bar_chart_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Statistik Ibadah',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Lihat grafik perkembangan ibadah',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white,
+                size: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingReportsSection(BuildContext context) {
     return StreamBuilder(
       stream: controller.pendingReportsStream,
       builder: (context, weekdaySnapshot) {
@@ -280,12 +459,14 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                       Icon(
                         Icons.check_circle_outline,
                         size: 64,
-                        color: Colors.grey[300],
+                        color: context.isDark
+                            ? Colors.grey[600]
+                            : Colors.grey[300],
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Semua laporan sudah divalidasi',
-                        style: TextStyle(color: Colors.grey[500]),
+                        style: TextStyle(color: context.subtextColor),
                       ),
                     ],
                   ),
@@ -293,13 +474,10 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
               );
             }
             // Return Column instead of ListView since we're inside SingleChildScrollView
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: allReports
-                    .map((item) => _buildReportCard(item))
-                    .toList(),
-              ),
+            return Column(
+              children: allReports
+                  .map((item) => _buildReportCard(item, context))
+                  .toList(),
             );
           },
         );
@@ -307,16 +485,18 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 
-  Widget _buildReportCard(_PendingReportItem item) {
+  Widget _buildReportCard(_PendingReportItem item, BuildContext context) {
     final isWeekend = item.type == 'weekend';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: context.isDark
+                ? Colors.black26
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -358,15 +538,19 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                     children: [
                       Text(
                         item.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: context.textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         item.subtitle,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        style: TextStyle(
+                          color: context.subtextColor,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -398,26 +582,24 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
   }
 
   // ============ TAB 3: TASK ============
-  Widget _buildTaskTab() {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Kelola Task'),
-        backgroundColor: AppColors.primaryBlue,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: controller.openWeekendSchedule,
-            icon: const Icon(Icons.calendar_month),
-            tooltip: 'Jadwal Weekend',
-          ),
-        ],
-      ),
-      body: ListView(
+  Widget _buildTaskTab(BuildContext context) {
+    return Container(
+      color: context.backgroundColor,
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const SizedBox(height: 16),
+          Text(
+            'Kelola Task',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: context.textColor,
+            ),
+          ),
+          const SizedBox(height: 16),
           _buildTaskCard(
+            context: context,
             title: 'Kelola Tasks',
             subtitle: 'Kelola tugas piket harian',
             icon: Icons.list_alt,
@@ -426,6 +608,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
           ),
           const SizedBox(height: 12),
           _buildTaskCard(
+            context: context,
             title: 'Task Weekend',
             subtitle: 'Kelola tugas piket weekend',
             icon: Icons.weekend,
@@ -434,6 +617,7 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
           ),
           const SizedBox(height: 12),
           _buildTaskCard(
+            context: context,
             title: 'Jadwal Weekend',
             subtitle: 'Lihat jadwal rotasi weekend',
             icon: Icons.calendar_month,
@@ -446,46 +630,67 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
   }
 
   Widget _buildTaskCard({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: context.isDark ? Colors.black26 : Colors.black12,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: color.withValues(alpha: 0.1),
           child: Icon(icon, color: color),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: context.textColor,
+          ),
+        ),
+        subtitle: Text(subtitle, style: TextStyle(color: context.subtextColor)),
+        trailing: Icon(Icons.chevron_right, color: context.subtextColor),
         onTap: onTap,
       ),
     );
   }
 
   // ============ TAB 4: AKUN ============
-  Widget _buildAccountTab() {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Akun'),
-        backgroundColor: AppColors.primaryBlue,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-      ),
-      body: ListView(
+  Widget _buildAccountTab(BuildContext context) {
+    return Container(
+      color: context.backgroundColor,
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const SizedBox(height: 16),
+          // Dark Mode Toggle
+          _buildDarkModeSwitch(context),
+          const SizedBox(height: 16),
           // Recalculate Personal Points Card
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
+          Container(
+            decoration: BoxDecoration(
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: context.isDark ? Colors.black26 : Colors.black12,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: ListTile(
               leading: CircleAvatar(
@@ -500,21 +705,34 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                       : const Icon(Icons.calculate, color: Colors.blue),
                 ),
               ),
-              title: const Text(
+              title: Text(
                 'Recalculate Personal Points',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: context.textColor,
+                ),
               ),
-              subtitle: const Text('Hitung ulang poin personal semua user'),
-              trailing: const Icon(Icons.chevron_right),
+              subtitle: Text(
+                'Hitung ulang poin personal semua user',
+                style: TextStyle(color: context.subtextColor),
+              ),
+              trailing: Icon(Icons.chevron_right, color: context.subtextColor),
               onTap: controller.showRecalculateDialog,
             ),
           ),
           const SizedBox(height: 12),
           // Reset Data Card
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
+          Container(
+            decoration: BoxDecoration(
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: context.isDark ? Colors.black26 : Colors.black12,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: ListTile(
               leading: CircleAvatar(
@@ -529,23 +747,35 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                       : const Icon(Icons.refresh, color: Colors.orange),
                 ),
               ),
-              title: const Text(
+              title: Text(
                 'Reset Data',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: context.textColor,
+                ),
               ),
-              subtitle: const Text('Reset data laporan dan statistik'),
-              trailing: const Icon(Icons.chevron_right),
+              subtitle: Text(
+                'Reset data laporan dan statistik',
+                style: TextStyle(color: context.subtextColor),
+              ),
+              trailing: Icon(Icons.chevron_right, color: context.subtextColor),
               onTap: controller.showResetDialog,
             ),
           ),
           const SizedBox(height: 12),
           // Logout Card
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
+          Container(
+            decoration: BoxDecoration(
+              color: context.isDark ? context.cardColor : Colors.red.shade50,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: context.isDark ? Colors.black26 : Colors.black12,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            color: Colors.red.shade50,
             child: ListTile(
               leading: const CircleAvatar(
                 backgroundColor: Colors.red,
@@ -558,12 +788,55 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                   color: Colors.red,
                 ),
               ),
-              subtitle: const Text('Keluar dari akun'),
+              subtitle: Text(
+                'Keluar dari akun',
+                style: TextStyle(color: context.subtextColor),
+              ),
               trailing: const Icon(Icons.chevron_right, color: Colors.red),
               onTap: controller.logout,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDarkModeSwitch(BuildContext context) {
+    if (!Get.isRegistered<ThemeController>()) {
+      return const SizedBox.shrink();
+    }
+    final themeController = Get.find<ThemeController>();
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: context.isDark ? Colors.black26 : Colors.black12,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Obx(
+        () => SwitchListTile(
+          title: Text(
+            'Mode Gelap',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: context.textColor,
+            ),
+          ),
+          secondary: Icon(
+            themeController.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+            color: themeController.isDarkMode
+                ? Colors.purple.shade300
+                : Colors.orange,
+          ),
+          value: themeController.isDarkMode,
+          onChanged: (value) => themeController.toggleTheme(),
+          activeColor: Colors.purple.shade300,
+        ),
       ),
     );
   }
