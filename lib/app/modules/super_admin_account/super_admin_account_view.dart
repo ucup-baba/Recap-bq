@@ -26,6 +26,9 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
           padding: const EdgeInsets.all(16),
           children: [
             const SizedBox(height: 16),
+            // Dark Mode Toggle
+            _buildDarkModeSwitch(context),
+            const SizedBox(height: 12),
             // Akun Terdaftar button
             _buildRegisteredAccountsButton(context),
             const SizedBox(height: 12),
@@ -34,9 +37,6 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
             const SizedBox(height: 12),
             // Logout button
             _buildLogoutButton(context),
-            const SizedBox(height: 12),
-            // Dark Mode Toggle
-            _buildDarkModeSwitch(context),
           ],
         );
       }),
