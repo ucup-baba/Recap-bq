@@ -19,21 +19,31 @@ class NalyaFeedbackCard extends StatelessWidget {
         return const SizedBox.shrink();
       }
 
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final textColor = AppColors.getText(context);
+
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              AppColors.primaryBlue.withValues(alpha: 0.1),
-              AppColors.gradientEnd.withValues(alpha: 0.05),
-            ],
+            colors: isDark
+                ? [
+                    AppColors.darkGradientStart.withValues(alpha: 0.3),
+                    AppColors.darkGradientEnd.withValues(alpha: 0.2),
+                  ]
+                : [
+                    AppColors.primaryBlue.withValues(alpha: 0.1),
+                    AppColors.gradientEnd.withValues(alpha: 0.05),
+                  ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primaryBlue.withValues(alpha: 0.2),
+            color: isDark
+                ? AppColors.darkGradientStart.withValues(alpha: 0.4)
+                : AppColors.primaryBlue.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -61,7 +71,7 @@ class NalyaFeedbackCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.text,
+                      color: textColor,
                     ),
                   ),
                 ),
@@ -118,11 +128,7 @@ class NalyaFeedbackCard extends StatelessWidget {
             else
               Text(
                 controller.feedback.value,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.text,
-                  height: 1.5,
-                ),
+                style: TextStyle(fontSize: 14, color: textColor, height: 1.5),
               ),
             const SizedBox(height: 12),
             // Button to open weekly check-in (disabled if already checked in this week)
@@ -139,9 +145,15 @@ class NalyaFeedbackCard extends StatelessWidget {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: isDark
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade300,
+                      ),
                     ),
                     child: Row(
                       children: [

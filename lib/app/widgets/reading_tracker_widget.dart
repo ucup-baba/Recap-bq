@@ -13,15 +13,20 @@ class ReadingTrackerWidget extends StatelessWidget {
     final controller = Get.put(ReadingTrackerController());
     final pagesController = TextEditingController();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = AppColors.getCard(context);
+    final textColor = AppColors.getText(context);
+    final subtextColor = AppColors.getSubtext(context);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -47,7 +52,7 @@ class ReadingTrackerWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.text,
+                    color: textColor,
                   ),
                 ),
               ),
@@ -69,7 +74,9 @@ class ReadingTrackerWidget extends StatelessWidget {
             () => Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withValues(alpha: 0.05),
+                color: isDark
+                    ? AppColors.darkGradientStart.withValues(alpha: 0.1)
+                    : AppColors.primaryBlue.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -90,8 +97,8 @@ class ReadingTrackerWidget extends StatelessWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: controller.currentBook.value != null
-                                ? AppColors.text
-                                : Colors.grey,
+                                ? textColor
+                                : subtextColor,
                             fontStyle: controller.currentBook.value != null
                                 ? FontStyle.normal
                                 : FontStyle.italic,
@@ -114,7 +121,9 @@ class ReadingTrackerWidget extends StatelessWidget {
                                           controller.readingTarget.value)
                                       .clamp(0.0, 1.0)
                                 : 0,
-                            backgroundColor: Colors.grey.shade200,
+                            backgroundColor: isDark
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade200,
                             valueColor: const AlwaysStoppedAnimation(
                               AppColors.primaryBlue,
                             ),
@@ -140,7 +149,7 @@ class ReadingTrackerWidget extends StatelessWidget {
                         '💡 Klik "Cerita ke Nalya" untuk pilih buku',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: subtextColor,
                           fontStyle: FontStyle.italic,
                         ),
                       ),

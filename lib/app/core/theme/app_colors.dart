@@ -19,7 +19,7 @@ class AppColors {
   static const Color darkText = Color(0xFFE0E0E0);
   static const Color darkSubtext = Color(0xFFB0B0B0);
 
-  // Gradient Colors (New UI)
+  // Gradient Colors (Light Mode - Red/Orange)
   static const Color gradientStart = Color(0xFFFF8A80); // Red Accent 100
   static const Color gradientEnd = Color(0xFFFF5252); // Red Accent 200
   static const Color orangeAccent = Color(0xFFFF9E80);
@@ -29,6 +29,30 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  // Gradient Colors (Dark Mode - Purple)
+  static const Color darkGradientStart = Color(0xFF9C27B0); // Purple
+  static const Color darkGradientEnd = Color(0xFF7B1FA2); // Purple 700
+
+  static const LinearGradient darkHeaderGradient = LinearGradient(
+    colors: [Color(0xFFAB47BC), Color(0xFF7B1FA2)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Get header gradient based on current theme
+  static LinearGradient getHeaderGradient(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkHeaderGradient
+        : headerGradient;
+  }
+
+  /// Get gradient end color based on current theme (for shadows)
+  static Color getGradientEnd(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkGradientEnd
+        : gradientEnd;
+  }
 
   // ========== Context-aware color getters ==========
 
