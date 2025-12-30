@@ -10,7 +10,7 @@ class AuthView extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -18,9 +18,9 @@ class AuthView extends GetView<AuthController> {
             Container(
               width: double.infinity,
               height: 280,
-              decoration: const BoxDecoration(
-                gradient: AppColors.headerGradient,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                gradient: AppColors.getHeaderGradient(context),
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(40),
                   bottomRight: Radius.circular(40),
                 ),
@@ -66,29 +66,37 @@ class AuthView extends GetView<AuthController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Login',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.text,
+                      color: context.textColor,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Masuk dengan akun koordinator atau admin',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: context.subtextColor),
                   ),
                   const SizedBox(height: 32),
 
                   // Email Field
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: context.isDark
+                            ? Colors.grey[700]!
+                            : Colors.transparent,
+                        width: 1,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: context.isDark
+                              ? Colors.black26
+                              : Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -96,14 +104,16 @@ class AuthView extends GetView<AuthController> {
                     ),
                     child: TextField(
                       controller: controller.emailController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: context.textColor),
+                      decoration: InputDecoration(
                         hintText: 'Email',
+                        hintStyle: TextStyle(color: context.subtextColor),
                         prefixIcon: Icon(
                           Icons.email_outlined,
-                          color: Colors.grey,
+                          color: context.subtextColor,
                         ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 16,
                         ),
@@ -117,11 +127,19 @@ class AuthView extends GetView<AuthController> {
                   Obx(
                     () => Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.cardColor,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: context.isDark
+                              ? Colors.grey[700]!
+                              : Colors.transparent,
+                          width: 1,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
+                            color: context.isDark
+                                ? Colors.black26
+                                : Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -130,18 +148,20 @@ class AuthView extends GetView<AuthController> {
                       child: TextField(
                         controller: controller.passwordController,
                         obscureText: controller.isPasswordObscure.value,
+                        style: TextStyle(color: context.textColor),
                         decoration: InputDecoration(
                           hintText: 'Password',
-                          prefixIcon: const Icon(
+                          hintStyle: TextStyle(color: context.subtextColor),
+                          prefixIcon: Icon(
                             Icons.lock_outline,
-                            color: Colors.grey,
+                            color: context.subtextColor,
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
                               controller.isPasswordObscure.value
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Colors.grey,
+                              color: context.subtextColor,
                             ),
                             onPressed: controller.togglePasswordVisibility,
                           ),
@@ -167,28 +187,41 @@ class AuthView extends GetView<AuthController> {
                             ? null
                             : controller.login,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryBlue,
+                          backgroundColor: context.isDark
+                              ? const Color(0xFF90CAF9)
+                              : AppColors.primaryBlue,
+                          foregroundColor: context.isDark
+                              ? Colors.black
+                              : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                           elevation: 4,
-                          shadowColor: AppColors.primaryBlue.withValues(alpha: 0.4),
+                          shadowColor:
+                              (context.isDark
+                                      ? const Color(0xFF90CAF9)
+                                      : AppColors.primaryBlue)
+                                  .withValues(alpha: 0.4),
                         ),
                         child: controller.isLoading.value
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 24,
                                 width: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: context.isDark
+                                      ? Colors.black
+                                      : Colors.white,
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Masuk',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: context.isDark
+                                      ? Colors.black
+                                      : Colors.white,
                                 ),
                               ),
                       ),
@@ -199,7 +232,10 @@ class AuthView extends GetView<AuthController> {
                   Center(
                     child: Text(
                       'v1.0.0 • by PatraBQ Group',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                      style: TextStyle(
+                        color: context.subtextColor.withValues(alpha: 0.6),
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
