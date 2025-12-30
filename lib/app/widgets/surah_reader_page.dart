@@ -22,13 +22,16 @@ class SurahReaderPage extends StatelessWidget {
     final int verseCount = quran.getVerseCount(surahNumber);
 
     return Scaffold(
+      backgroundColor: context.backgroundColor,
       appBar: AppBar(
         title: Text(
           'Surah $surahName',
           style: const TextStyle(color: Colors.white),
         ),
         flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: AppColors.headerGradient),
+          decoration: BoxDecoration(
+            gradient: AppColors.getHeaderGradient(context),
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -59,7 +62,7 @@ class SurahReaderPage extends StatelessWidget {
                       fontSize: 26,
                       height: 2.0,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.text,
+                      color: context.textColor,
                     ),
                   ),
                 ),
@@ -125,7 +128,7 @@ class SurahReaderPage extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              gradient: AppColors.headerGradient,
+                              gradient: AppColors.getHeaderGradient(context),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -149,7 +152,7 @@ class SurahReaderPage extends StatelessWidget {
                         style: GoogleFonts.amiri(
                           fontSize: 24,
                           height: 1.8,
-                          color: AppColors.text,
+                          color: context.textColor,
                         ),
                       ),
 
@@ -163,7 +166,7 @@ class SurahReaderPage extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           height: 1.6,
-                          color: AppColors.text.withValues(alpha: 0.8),
+                          color: context.subtextColor,
                         ),
                       ),
                     ],
@@ -188,7 +191,7 @@ class SurahReaderPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: AppColors.headerGradient,
+        gradient: AppColors.getHeaderGradient(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
