@@ -10,7 +10,7 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           Container(
@@ -20,9 +20,11 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
               left: 16,
               right: 16,
             ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            decoration: BoxDecoration(
+              gradient: AppColors.getHeaderGradient(context),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
             ),
             child: SafeArea(
               bottom: false,
@@ -54,13 +56,13 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
               ),
             ),
           ),
-          Expanded(child: _buildLevelLeaderboard()),
+          Expanded(child: _buildLevelLeaderboard(context)),
         ],
       ),
     );
   }
 
-  Widget _buildLevelLeaderboard() {
+  Widget _buildLevelLeaderboard(BuildContext context) {
     return Obx(() {
       if (controller.isLoadingLevelLeaderboard.value) {
         return const Center(child: CircularProgressIndicator());
@@ -68,7 +70,7 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
 
       final data = controller.levelLeaderboard;
       if (data.isEmpty) {
-        return _buildEmptyState('Belum ada data papan peringkat');
+        return _buildEmptyState('Belum ada data papan peringkat', context);
       }
 
       return RefreshIndicator(
@@ -91,21 +93,24 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
             final isSuperAdmin = entry['isSuperAdmin'] as bool? ?? false;
 
             return _buildLeaderboardCard(
+              context: context,
               rank: rank,
               rankColor: rankColor,
               title: displayName,
               subtitle: isSuperAdmin
                   ? 'Super Admin'
                   : (isAdmin
-                      ? 'Admin'
-                      : (isKedisiplinan ? 'Kedisiplinan' : 'Kelompok $kelompokId')),
+                        ? 'Admin'
+                        : (isKedisiplinan
+                              ? 'Kedisiplinan'
+                              : 'Kelompok $kelompokId')),
               points: '${avgLevel.toStringAsFixed(1)}%',
               totalPushups: totalPushups,
               icon: isSuperAdmin
                   ? Icons.supervisor_account
                   : (isAdmin
-                      ? Icons.admin_panel_settings
-                      : (isKedisiplinan ? Icons.gavel : Icons.person)),
+                        ? Icons.admin_panel_settings
+                        : (isKedisiplinan ? Icons.gavel : Icons.person)),
             );
           },
         ),
@@ -114,6 +119,7 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
   }
 
   Widget _buildLeaderboardCard({
+    required BuildContext context,
     required int rank,
     required Color rankColor,
     required String title,
@@ -125,11 +131,13 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: context.isDark
+                ? Colors.black26
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -148,7 +156,11 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
                     : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: rank <= 3 ? rankColor : Colors.grey[300]!,
+                  color: rank <= 3
+                      ? rankColor
+                      : (context.isDark
+                            ? Colors.grey[600]!
+                            : Colors.grey[300]!),
                   width: 2,
                 ),
               ),
@@ -157,14 +169,20 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
                   '$rank',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: rank <= 3 ? rankColor : Colors.grey,
+                    color: rank <= 3 ? rankColor : context.subtextColor,
                     fontSize: 16,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 16),
-            Icon(icon, color: AppColors.primaryBlue, size: 24),
+            Icon(
+              icon,
+              color: context.isDark
+                  ? const Color(0xFF90CAF9)
+                  : AppColors.primaryBlue,
+              size: 24,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -172,15 +190,16 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: context.textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: context.subtextColor, fontSize: 12),
                   ),
                   const SizedBox(height: 2),
                   Row(
@@ -188,13 +207,13 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
                       Icon(
                         Icons.fitness_center,
                         size: 12,
-                        color: Colors.grey[600],
+                        color: context.subtextColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${totalPushups}x',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: context.subtextColor,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -208,15 +227,24 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                    color:
+                        (context.isDark
+                                ? const Color(0xFF90CAF9)
+                                : AppColors.primaryBlue)
+                            .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     points,
-                    style: const TextStyle(
-                      color: AppColors.primaryBlue,
+                    style: TextStyle(
+                      color: context.isDark
+                          ? const Color(0xFF90CAF9)
+                          : AppColors.primaryBlue,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -230,14 +258,18 @@ class LeaderboardIbadahView extends GetView<LeaderboardIbadahController> {
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState(String message, BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey[300]),
+          Icon(
+            Icons.emoji_events_outlined,
+            size: 64,
+            color: context.isDark ? Colors.grey[600] : Colors.grey[300],
+          ),
           const SizedBox(height: 16),
-          Text(message, style: TextStyle(color: Colors.grey[500])),
+          Text(message, style: TextStyle(color: context.subtextColor)),
         ],
       ),
     );
