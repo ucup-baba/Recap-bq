@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/user_model.dart';
 import '../../widgets/kelompok_badge.dart';
 import '../super_admin_dashboard/super_admin_dashboard_controller.dart';
+import '../../controllers/theme_controller.dart';
 import 'super_admin_account_controller.dart';
 
 class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
@@ -15,7 +16,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
@@ -26,24 +27,27 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
           children: [
             const SizedBox(height: 16),
             // Akun Terdaftar button
-            _buildRegisteredAccountsButton(),
+            _buildRegisteredAccountsButton(context),
             const SizedBox(height: 12),
             // Notification settings button
-            _buildNotificationSettingsButton(),
+            _buildNotificationSettingsButton(context),
             const SizedBox(height: 12),
             // Logout button
-            _buildLogoutButton(),
+            _buildLogoutButton(context),
+            const SizedBox(height: 12),
+            // Dark Mode Toggle
+            _buildDarkModeSwitch(context),
           ],
         );
       }),
     );
   }
 
-  Widget _buildRegisteredAccountsButton() {
+  Widget _buildRegisteredAccountsButton(BuildContext context) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.blue.shade50,
+      color: context.isDark ? context.cardColor : Colors.blue.shade50,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.blue.shade100,
@@ -224,12 +228,12 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
     );
   }
 
-  Widget _buildNotificationSettingsButton() {
+  Widget _buildNotificationSettingsButton(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(top: 16, bottom: 8),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.purple.shade50,
+      color: context.isDark ? context.cardColor : Colors.purple.shade50,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.purple.shade100,
@@ -249,7 +253,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
     );
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     // Get SuperAdminDashboardController to access logout method
     final dashboardController = Get.find<SuperAdminDashboardController>();
 
@@ -257,7 +261,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
       margin: const EdgeInsets.only(top: 16, bottom: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.red.shade50,
+      color: context.isDark ? context.cardColor : Colors.red.shade50,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.red.shade100,
@@ -273,6 +277,42 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.red),
         onTap: () => dashboardController.logout(),
+      ),
+    );
+  }
+
+  Widget _buildDarkModeSwitch(BuildContext context) {
+    if (!Get.isRegistered<ThemeController>()) {
+      return const SizedBox.shrink();
+    }
+    final themeController = Get.find<ThemeController>();
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Obx(
+        () => SwitchListTile(
+          title: Text(
+            'Mode Gelap',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: context.textColor,
+            ),
+          ),
+          secondary: Icon(
+            themeController.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+            color: themeController.isDarkMode
+                ? Colors.purple.shade300
+                : Colors.orange,
+          ),
+          value: themeController.isDarkMode,
+          onChanged: (value) => themeController.toggleTheme(),
+          activeColor: Colors.purple.shade300,
+        ),
       ),
     );
   }

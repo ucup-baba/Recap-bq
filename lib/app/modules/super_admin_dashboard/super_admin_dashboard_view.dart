@@ -31,7 +31,7 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -51,7 +51,7 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                     // Tab 0: Ibadah Tracker (with icon to Statistics)
                     KeyedSubtree(
                       key: const ValueKey('tab_0_ibadah_tracker'),
-                      child: _buildIbadahTrackerTab(),
+                      child: _buildIbadahTrackerTab(context),
                     ),
                     // Tab 1: Leaderboard - hide header for embedded use
                     const KeyedSubtree(
@@ -80,146 +80,281 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
           ],
         ),
       ),
-      bottomNavigationBar: Obx(
-        () => BottomNavigationBar(
-          currentIndex: controller.currentTabIndex.value,
-          onTap: controller.changeTab,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppColors.primaryBlue,
-          unselectedItemColor: Colors.grey,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.mosque),
-              label: 'Ibadah Tracker',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          boxShadow: [
+            BoxShadow(
+              color: _getBottomNavColor(
+                controller.currentTabIndex.value,
+                context,
+              ).withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.emoji_events),
-              label: 'Leaderboard',
+          ],
+        ),
+        child: Obx(
+          () => BottomNavigationBar(
+            currentIndex: controller.currentTabIndex.value,
+            onTap: controller.changeTab,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: context.cardColor,
+            elevation: 0,
+            selectedItemColor: _getBottomNavColor(
+              controller.currentTabIndex.value,
+              context,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.gavel),
-              label: 'Pelanggaran',
+            unselectedItemColor: context.subtextColor,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.mosque),
+                label: 'Ibadah',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.emoji_events),
+                label: 'Leaderboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.gavel),
+                label: 'Pelanggaran',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.assignment),
+                label: 'Report',
+              ),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getBottomNavColor(int index, BuildContext context) {
+    if (context.isDark) {
+      switch (index) {
+        case 0:
+          return const Color(0xFF90CAF9); // Light Blue
+        case 1:
+          return const Color(0xFFFFCC80); // Light Orange
+        case 2:
+          return const Color(0xFFEF9A9A); // Light Red
+        case 3:
+          return const Color(0xFFA5D6A7); // Light Green
+        case 4:
+          return const Color(0xFFCE93D8); // Light Purple
+        default:
+          return AppColors.darkText;
+      }
+    } else {
+      switch (index) {
+        case 0:
+          return AppColors.primaryBlue;
+        case 1:
+          return Colors.amber.shade800;
+        case 2:
+          return Colors.red.shade700;
+        case 3:
+          return Colors.green.shade700;
+        case 4:
+          return Colors.purple.shade600;
+        default:
+          return AppColors.primaryBlue;
+      }
+    }
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    // Simple date formatting manually or use package if available,
+    // but sticking to simple string for now or just generic greeting
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppColors.getHeaderGradient(context),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.getGradientEnd(context).withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Super Admin Dashboard',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Text(
+                        'Assalamu\'alaikum',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.verified_user,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Super Admin',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatistikIbadahCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Get.toNamed(AppRoutes.statistics),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: AppColors.getHeaderGradient(context),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.getGradientEnd(context).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.assignment),
-              label: 'Report',
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.bar_chart_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Statistik Ibadah',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Lihat grafik perkembangan ibadah',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white,
+                size: 14,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildIbadahTracker() {
+  Widget _buildIbadahTrackerTab(BuildContext context) {
     final ibadahController = Get.find<AdminIbadahController>();
     return Container(
-      padding: const EdgeInsets.only(top: 20, bottom: 20, left: 24, right: 24),
-      decoration: const BoxDecoration(
-        gradient: AppColors.headerGradient,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Super Admin Dashboard',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Amalan Ibadah Harian',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: controller.logout,
-                icon: const Icon(Icons.logout, color: Colors.white, size: 24),
-                tooltip: 'Logout',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Ibadah Cards (compact version)
-          Obx(() {
-            final ibadahData = ibadahController.todayIbadah();
-            return Column(
-              children: [
-                SholatWajibCard(
-                  ibadahData: ibadahData,
-                  onUpdate: (updated) => ibadahController.updateIbadah(updated),
-                ),
-                const SizedBox(height: 8),
-                AmalanHarianCard(
-                  ibadahData: ibadahData,
-                  selectedDate: DateTime.now(),
-                  onUpdate: (updated) => ibadahController.updateIbadah(updated),
-                ),
-                const SizedBox(height: 8),
-                FisikCard(
-                  ibadahData: ibadahData,
-                  onUpdate: (updated) => ibadahController.updateIbadah(updated),
-                ),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIbadahTrackerTab() {
-    final ibadahController = Get.find<AdminIbadahController>();
-    return Container(
-      color: AppColors.background,
+      color: context.backgroundColor,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header dengan icon ke Statistics
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Ibadah Tracker',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Get.toNamed(AppRoutes.statistics),
-                  icon: const Icon(Icons.bar_chart_rounded),
-                  tooltip: 'Lihat Statistik Ibadah',
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue.withValues(
-                      alpha: 0.1,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // Header
+            _buildHeader(context),
             const SizedBox(height: 16),
-            // Nalya Feedback Card - bawah header
+            // Nalya Feedback Card
             const NalyaFeedbackCard(),
             const SizedBox(height: 16),
             // Reading Tracker Widget
             const ReadingTrackerWidget(),
+            const SizedBox(height: 16),
+            // Statistik Ibadah Card
+            _buildStatistikIbadahCard(context),
             const SizedBox(height: 16),
             // Ibadah Cards (full version)
             Obx(() {
