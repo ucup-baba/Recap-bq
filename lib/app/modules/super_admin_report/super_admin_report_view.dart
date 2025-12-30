@@ -14,7 +14,7 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           // Filter dropdown untuk hari
@@ -75,209 +75,229 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
   }
 
   Widget _buildDayFilter() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.calendar_today,
-            color: AppColors.primaryBlue,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Filter Hari:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Obx(
-              () => DropdownButton<int>(
-                value: controller.selectedDay.value,
-                isExpanded: true,
-                underline: const SizedBox(),
-                dropdownColor: Colors.white,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text,
-                ),
-                icon: const Icon(
-                  Icons.arrow_drop_down,
-                  color: AppColors.primaryBlue,
-                ),
-                items: List.generate(7, (index) {
-                  final dayOfWeek = index + 1;
-                  return DropdownMenuItem<int>(
-                    value: dayOfWeek,
-                    child: Text(controller.getDayName(dayOfWeek)),
-                  );
-                }),
-                onChanged: (val) {
-                  if (val != null) {
-                    controller.changeDay(val);
-                  }
-                },
+    return Builder(
+      builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: context.isDark
+                  ? Colors.black26
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today,
+              color: context.isDark
+                  ? const Color(0xFF90CAF9)
+                  : AppColors.primaryBlue,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Filter Hari:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textColor,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Obx(
+                () => DropdownButton<int>(
+                  value: controller.selectedDay.value,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  dropdownColor: context.cardColor,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: context.textColor,
+                  ),
+                  icon: Icon(
+                    Icons.arrow_drop_down,
+                    color: context.isDark
+                        ? const Color(0xFF90CAF9)
+                        : AppColors.primaryBlue,
+                  ),
+                  items: List.generate(7, (index) {
+                    final dayOfWeek = index + 1;
+                    return DropdownMenuItem<int>(
+                      value: dayOfWeek,
+                      child: Text(controller.getDayName(dayOfWeek)),
+                    );
+                  }),
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.changeDay(val);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildKelompokCard(int kelompokId) {
-    return Obx(() {
-      final isWeekend = controller.isWeekendDay;
-      final weekdayReport = controller.reportsByKelompok[kelompokId];
-      final weekendReport = controller.weekendReportsByKelompok[kelompokId];
-      final status = controller.getReportStatus(kelompokId);
-      final statusColor = controller.getStatusColor(status);
-      final statusLabel = controller.getStatusLabel(status);
+    return Builder(
+      builder: (context) => Obx(() {
+        final isWeekend = controller.isWeekendDay;
+        final weekdayReport = controller.reportsByKelompok[kelompokId];
+        final weekendReport = controller.weekendReportsByKelompok[kelompokId];
+        final status = controller.getReportStatus(kelompokId);
+        final statusColor = controller.getStatusColor(status);
+        final statusLabel = controller.getStatusLabel(status);
 
-      // Determine area to show
-      String? area;
-      bool hasReport = false;
-      int? finalScore;
+        // Determine area to show
+        String? area;
+        bool hasReport = false;
+        int? finalScore;
 
-      if (isWeekend && weekendReport != null) {
-        area = weekendReport.area;
-        hasReport = true;
-        finalScore = weekendReport.finalScore;
-      } else if (!isWeekend && weekdayReport != null) {
-        area = weekdayReport.areaTugas;
-        hasReport = true;
-        finalScore = weekdayReport.finalScore;
-      }
+        if (isWeekend && weekendReport != null) {
+          area = weekendReport.area;
+          hasReport = true;
+          finalScore = weekendReport.finalScore;
+        } else if (!isWeekend && weekdayReport != null) {
+          area = weekdayReport.areaTugas;
+          hasReport = true;
+          finalScore = weekdayReport.finalScore;
+        }
 
-      return Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: hasReport
-              ? () {
-                  if (isWeekend && weekendReport != null) {
-                    // Super admin can only view, not validate
-                    _showWeekendReportDetailDialog(weekendReport);
-                  } else if (!isWeekend && weekdayReport != null) {
-                    _showReportDetailDialog(weekdayReport);
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          color: context.cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: hasReport
+                ? () {
+                    if (isWeekend && weekendReport != null) {
+                      // Super admin can only view, not validate
+                      _showWeekendReportDetailDialog(weekendReport);
+                    } else if (!isWeekend && weekdayReport != null) {
+                      _showReportDetailDialog(weekdayReport);
+                    }
                   }
-                }
-              : null,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Kelompok Badge
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: isWeekend
-                        ? Colors.purple.withValues(alpha: 0.1)
-                        : AppColors.primaryBlue.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      'K$kelompokId',
-                      style: TextStyle(
-                        color: isWeekend
-                            ? Colors.purple
-                            : AppColors.primaryBlue,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Kelompok Badge
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: isWeekend
+                          ? Colors.purple.withValues(alpha: 0.1)
+                          : AppColors.primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        'K$kelompokId',
+                        style: TextStyle(
+                          color: isWeekend
+                              ? Colors.purple
+                              : AppColors.primaryBlue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                // Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Kelompok $kelompokId',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      if (area != null) ...[
+                  const SizedBox(width: 16),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          area,
+                          'Kelompok $kelompokId',
                           style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: context.textColor,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        if (finalScore != null)
+                        if (area != null) ...[
                           Text(
-                            'Poin: $finalScore',
-                            style: const TextStyle(
-                              color: AppColors.primaryBlue,
-                              fontWeight: FontWeight.bold,
+                            area,
+                            style: TextStyle(
+                              color: context.subtextColor,
                               fontSize: 14,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          if (finalScore != null)
+                            Text(
+                              'Poin: $finalScore',
+                              style: TextStyle(
+                                color: context.isDark
+                                    ? const Color(0xFF90CAF9)
+                                    : AppColors.primaryBlue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-                // Status Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
                     ),
                   ),
-                ),
-                if (hasReport) const SizedBox(width: 8),
-                if (hasReport)
-                  Icon(
-                    (status == 'pending' || status == 'submitted')
-                        ? Icons.chevron_right
-                        : (status == 'verified' || status == 'validated')
-                        ? Icons.check_circle
-                        : status == 'draft'
-                        ? Icons.edit
-                        : Icons.info,
-                    color: statusColor,
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
-              ],
+                  if (hasReport) const SizedBox(width: 8),
+                  if (hasReport)
+                    Icon(
+                      (status == 'pending' || status == 'submitted')
+                          ? Icons.chevron_right
+                          : (status == 'verified' || status == 'validated')
+                          ? Icons.check_circle
+                          : status == 'draft'
+                          ? Icons.edit
+                          : Icons.info,
+                      color: statusColor,
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      }),
+    );
   }
 
   void _showReportDetailDialog(DailyReportModel report) {
