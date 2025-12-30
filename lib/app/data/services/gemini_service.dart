@@ -11,9 +11,7 @@ class GeminiService {
 
   GenerativeModel? _model;
   GenerativeModel get model {
-    _model ??= FirebaseAI.vertexAI().generativeModel(
-      model: 'gemini-2.5-flash-preview-05-20',
-    );
+    _model ??= FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.0-flash');
     return _model!;
   }
 
