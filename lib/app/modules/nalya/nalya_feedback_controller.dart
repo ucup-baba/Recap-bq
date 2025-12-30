@@ -128,37 +128,11 @@ class NalyaFeedbackController extends GetxController {
         hasCheckedInThisWeek.value = false;
       }
 
-      // Check if we need to generate new feedback
-      final shouldGenerate = await _nalyaService.shouldGenerateNewFeedback(
-        _currentUserId!,
+      // Always generate fresh feedback on each login
+      Logger.info(
+        'NalyaFeedbackController: Generating fresh feedback on login...',
       );
-
-      Logger.info('NalyaFeedbackController: shouldGenerate=$shouldGenerate');
-
-      if (shouldGenerate) {
-        await generateFeedback();
-      } else {
-        // Load cached feedback
-        Logger.info(
-          'NalyaFeedbackController: Profile exists=${profile != null}, lastFeedback=${profile?.lastFeedback?.isNotEmpty == true ? "has content" : "empty"}',
-        );
-
-        if (profile != null &&
-            profile.lastFeedback != null &&
-            profile.lastFeedback!.isNotEmpty) {
-          feedback.value = profile.lastFeedback!;
-          Logger.info(
-            'NalyaFeedbackController: Loaded cached feedback: ${feedback.value.substring(0, feedback.value.length.clamp(0, 50))}...',
-          );
-        } else {
-          // No cached feedback or empty, show default message
-          Logger.info(
-            'NalyaFeedbackController: No cached feedback, showing default',
-          );
-          feedback.value =
-              'Assalamu\'alaikum! Semangat menjalani hari ini dan jaga ibadahmu ya! 💪✨';
-        }
-      }
+      await generateFeedback();
     } catch (e) {
       Logger.error('Error loading today feedback', e);
       feedback.value = 'Tetap semangat hari ini! 💪';
