@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../controllers/theme_controller.dart';
+import '../../core/routes/app_pages.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
@@ -42,7 +44,7 @@ class KedisiplinanDashboardView
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: Obx(() {
           final currentIndex = controller.currentTabIndex.value;
@@ -52,7 +54,7 @@ class KedisiplinanDashboardView
               // Tab 0: Home (Header + Ibadah Tracker)
               KeyedSubtree(
                 key: const ValueKey('tab_0_home'),
-                child: _buildHomeTab(),
+                child: _buildHomeTab(context),
               ),
               // Tab 1: Catat Kasus
               const KeyedSubtree(
@@ -72,184 +74,372 @@ class KedisiplinanDashboardView
               // Tab 4: Akun
               KeyedSubtree(
                 key: const ValueKey('tab_4_account'),
-                child: _buildAccountTab(),
+                child: _buildAccountTab(context),
               ),
             ],
           );
         }),
       ),
-      bottomNavigationBar: Obx(
-        () => BottomNavigationBar(
-          currentIndex: controller.currentTabIndex.value,
-          onTap: controller.changeTab,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppColors.headerGradient.colors.first,
-          unselectedItemColor: Colors.grey,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.note_add),
-              label: 'Catat Kasus',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          boxShadow: [
+            BoxShadow(
+              color: _getBottomNavColor(
+                controller.currentTabIndex.value,
+                context,
+              ).withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.visibility),
-              label: 'Monitoring',
+          ],
+        ),
+        child: Obx(
+          () => BottomNavigationBar(
+            currentIndex: controller.currentTabIndex.value,
+            onTap: controller.changeTab,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: context.cardColor,
+            elevation: 0,
+            selectedItemColor: _getBottomNavColor(
+              controller.currentTabIndex.value,
+              context,
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.rule), label: 'Aturan'),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
+            unselectedItemColor: context.subtextColor,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+            unselectedLabelStyle: const TextStyle(fontSize: 10),
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.note_add),
+                label: 'Catat',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.visibility),
+                label: 'Monitor',
+              ),
+              BottomNavigationBarItem(icon: Icon(Icons.rule), label: 'Aturan'),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getBottomNavColor(int index, BuildContext context) {
+    if (context.isDark) {
+      switch (index) {
+        case 0:
+          return const Color(0xFF90CAF9); // Light Blue
+        case 1:
+          return const Color(0xFFFFCC80); // Light Orange
+        case 2:
+          return const Color(0xFFA5D6A7); // Light Green
+        case 3:
+          return const Color(0xFFEF9A9A); // Light Red
+        case 4:
+          return const Color(0xFFCE93D8); // Light Purple
+        default:
+          return AppColors.darkText;
+      }
+    } else {
+      switch (index) {
+        case 0:
+          return AppColors.primaryBlue;
+        case 1:
+          return Colors.amber.shade800;
+        case 2:
+          return Colors.green.shade700;
+        case 3:
+          return Colors.red.shade700;
+        case 4:
+          return Colors.purple.shade600;
+        default:
+          return AppColors.primaryBlue;
+      }
+    }
+  }
+
+  // ============ TAB 0: HOME ============
+  Widget _buildHomeTab(BuildContext context) {
+    final ibadahController = Get.find<KedisiplinanIbadahController>();
+    return Container(
+      color: context.backgroundColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            _buildHeader(context),
+            const SizedBox(height: 16),
+            // Nalya Feedback Card
+            const NalyaFeedbackCard(),
+            const SizedBox(height: 16),
+            // Reading Tracker Widget
+            const ReadingTrackerWidget(),
+            const SizedBox(height: 16),
+            // Statistik Ibadah Card
+            _buildStatistikIbadahCard(context),
+            const SizedBox(height: 16),
+            // Ibadah Cards
+            Obx(() {
+              final ibadahData = ibadahController.todayIbadah();
+              return Column(
+                children: [
+                  SholatWajibCard(
+                    ibadahData: ibadahData,
+                    onUpdate: (updated) =>
+                        ibadahController.updateIbadah(updated),
+                  ),
+                  const SizedBox(height: 16),
+                  AmalanHarianCard(
+                    ibadahData: ibadahData,
+                    selectedDate: DateTime.now(),
+                    onUpdate: (updated) =>
+                        ibadahController.updateIbadah(updated),
+                  ),
+                  const SizedBox(height: 16),
+                  FisikCard(
+                    ibadahData: ibadahData,
+                    onUpdate: (updated) =>
+                        ibadahController.updateIbadah(updated),
+                  ),
+                ],
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  // ============ TAB 0: HOME ============
-  Widget _buildHomeTab() {
-    final ibadahController = Get.find<KedisiplinanIbadahController>();
-    return SingleChildScrollView(
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppColors.getHeaderGradient(context),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.getGradientEnd(context).withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Gradient
-          Container(
-            padding: const EdgeInsets.only(
-              top: 20,
-              bottom: 20,
-              left: 24,
-              right: 24,
-            ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(32),
-                bottomRight: Radius.circular(32),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Dashboard Kedisiplinan',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Amalan Ibadah Harian',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Dashboard Kedisiplinan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
-                    // Kedisiplinan Icon
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.gavel, color: Colors.white),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Ibadah Cards
-                Obx(() {
-                  final ibadahData = ibadahController.todayIbadah();
-                  return Column(
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
                     children: [
-                      SholatWajibCard(
-                        ibadahData: ibadahData,
-                        onUpdate: (updated) =>
-                            ibadahController.updateIbadah(updated),
+                      const Text(
+                        'Assalamu\'alaikum',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      AmalanHarianCard(
-                        ibadahData: ibadahData,
-                        selectedDate: DateTime.now(),
-                        onUpdate: (updated) =>
-                            ibadahController.updateIbadah(updated),
-                      ),
-                      const SizedBox(height: 12),
-                      FisikCard(
-                        ibadahData: ibadahData,
-                        onUpdate: (updated) =>
-                            ibadahController.updateIbadah(updated),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.gavel, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              'Kedisiplinan',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                  );
-                }),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          // Nalya Feedback Card
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: NalyaFeedbackCard(),
-          ),
-          const SizedBox(height: 16),
-          // Reading Tracker Widget
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: ReadingTrackerWidget(),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  // ============ TAB 4: AKUN ============
-  Widget _buildAccountTab() {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Akun'),
-        backgroundColor: AppColors.headerGradient.colors.first,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
+  Widget _buildStatistikIbadahCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Get.toNamed(AppRoutes.statistics),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: AppColors.getHeaderGradient(context),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.getGradientEnd(context).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.bar_chart_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Statistik Ibadah',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Lihat grafik perkembangan ibadah',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white,
+                size: 14,
+              ),
+            ),
+          ],
+        ),
       ),
-      body: ListView(
+    );
+  }
+
+  // ============ TAB 4: AKUN ============
+  Widget _buildAccountTab(BuildContext context) {
+    return Container(
+      color: context.backgroundColor,
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const SizedBox(height: 16),
+          // Dark Mode Toggle
+          _buildDarkModeSwitch(context),
+          const SizedBox(height: 16),
           // User Info
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
+          Container(
+            decoration: BoxDecoration(
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: context.isDark ? Colors.black26 : Colors.black12,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: const ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Color(0xFFE57373),
-                child: Icon(Icons.gavel, color: Colors.white),
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppColors.getHeaderGradient(context),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.gavel, color: Colors.white, size: 20),
               ),
               title: Text(
                 'Kedisiplinan BQ',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: context.textColor,
+                ),
               ),
-              subtitle: Text('Pengelola Kedisiplinan'),
+              subtitle: Text(
+                'Pengelola Kedisiplinan',
+                style: TextStyle(color: context.subtextColor),
+              ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           // Logout Card
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
+          Container(
+            decoration: BoxDecoration(
+              color: context.isDark ? context.cardColor : Colors.red.shade50,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: context.isDark ? Colors.black26 : Colors.black12,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: ListTile(
               leading: CircleAvatar(
@@ -263,12 +453,55 @@ class KedisiplinanDashboardView
                   color: Colors.red,
                 ),
               ),
-              subtitle: const Text('Keluar dari aplikasi'),
+              subtitle: Text(
+                'Keluar dari aplikasi',
+                style: TextStyle(color: context.subtextColor),
+              ),
               trailing: const Icon(Icons.chevron_right, color: Colors.red),
               onTap: controller.logout,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDarkModeSwitch(BuildContext context) {
+    if (!Get.isRegistered<ThemeController>()) {
+      return const SizedBox.shrink();
+    }
+    final themeController = Get.find<ThemeController>();
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: context.isDark ? Colors.black26 : Colors.black12,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Obx(
+        () => SwitchListTile(
+          title: Text(
+            'Mode Gelap',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: context.textColor,
+            ),
+          ),
+          secondary: Icon(
+            themeController.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+            color: themeController.isDarkMode
+                ? Colors.purple.shade300
+                : Colors.orange,
+          ),
+          value: themeController.isDarkMode,
+          onChanged: (value) => themeController.toggleTheme(),
+          activeColor: Colors.purple.shade300,
+        ),
       ),
     );
   }

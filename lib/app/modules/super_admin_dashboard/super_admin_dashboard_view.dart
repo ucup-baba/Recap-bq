@@ -106,7 +106,11 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
               context,
             ),
             unselectedItemColor: context.subtextColor,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+            unselectedLabelStyle: const TextStyle(fontSize: 10),
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.mosque),
@@ -114,11 +118,11 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.emoji_events),
-                label: 'Leaderboard',
+                label: 'Ranking',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.gavel),
-                label: 'Pelanggaran',
+                label: 'Disiplin',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.assignment),
