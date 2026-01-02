@@ -22,7 +22,6 @@ class _NalyaFeedbackCardState extends State<NalyaFeedbackCard>
 
   late Animation<double> _iconPulseAnimation;
   late Animation<double> _fadeInAnimation;
-  late Animation<double> _shimmerAnimation;
   late Animation<double> _typingAnimation;
 
   @override
@@ -50,13 +49,10 @@ class _NalyaFeedbackCardState extends State<NalyaFeedbackCard>
     );
     _fadeInController.forward();
 
-    // Shimmer animation for loading
+    // Shimmer controller for loading (used via _shimmerController directly)
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    );
-    _shimmerAnimation = Tween<double>(begin: -1.0, end: 2.0).animate(
-      CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut),
     );
     _shimmerController.repeat();
 

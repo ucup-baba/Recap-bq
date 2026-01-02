@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_pages.dart';
-import '../../core/theme/app_colors.dart';
+
 import '../../widgets/motivation_dialog.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/snackbar_helper.dart';
 import '../../data/models/daily_ibadah_model.dart';
-import '../../data/models/daily_report_model.dart';
-import '../../data/models/user_model.dart';
+
 import '../../data/services/auth_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/ibadah_tracking_service.dart';
