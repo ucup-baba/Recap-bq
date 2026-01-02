@@ -36,9 +36,9 @@ class ExecutorBottomSheet {
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(Get.context!).size.height * 0.8,
           ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(Get.context!).cardColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -68,7 +68,6 @@ class ExecutorBottomSheet {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.text,
                       ),
                     ),
                     const SizedBox(height: 8),

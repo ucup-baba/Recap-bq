@@ -234,4 +234,108 @@ Contoh: "MasyaAllah, senang banget kamu lagi semangat! 🌟 Targetmu untuk fokus
       return 'Terima kasih sudah cerita ke aku! 😊 Target minggu ini bagus, semoga Allah mudahkan. Untuk tantanganmu, coba pecah jadi langkah-langkah kecil ya. Selamat membaca dan semangat beribadah! 💪';
     }
   }
+
+  /// Generate daily wisdom with history insights and Islamic motivation
+  Future<String> generateDailyWisdom(String displayName) async {
+    try {
+      Logger.info('GeminiService: Generating daily wisdom');
+
+      final dayName = _getDayName();
+      final prompt =
+          '''
+Kamu adalah Nalya, asisten islami yang bijak dan menginspirasi.
+
+Hari ini: $dayName
+Nama user: $displayName
+
+Buatkan renungan harian dengan format PERSIS seperti ini:
+
+[CONTENT]
+Satu paragraf yang menggabungkan: 
+1. Pilih SATU fakta sejarah menarik (bebas memilih dari kategori: penemuan teknologi, ilmuwan Muslim, sejarah Islam, tokoh inspiratif, atau momen bersejarah lainnya)
+2. Hubungkan dengan dalil Al-Quran atau Hadits yang relevan
+3. Akhiri dengan analogi/motivasi untuk menjauhi maksiat atau meningkatkan ibadah
+
+Gunakan bahasa mengalir seperti bercerita.
+
+[SOURCES]
+- Sumber 1: [nama sumber untuk fakta sejarah]
+- Sumber 2: [referensi ayat/hadits lengkap]
+
+PENTING:
+- PILIH fakta sejarah yang BERBEDA setiap kali diminta (jangan selalu tentang hal yang sama)
+- Paragraf harus mengalir natural, bukan terpisah-pisah
+- Fakta sejarah harus akurat dan menarik
+- Hubungkan sejarah dengan wisdom islami secara smooth
+- Total paragraf max 100 kata
+- Gunakan emoji yang relevan (max 2-3)
+''';
+
+      final response = await model.generateContent([Content.text(prompt)]);
+      final text = response.text;
+
+      if (text != null && text.isNotEmpty) {
+        Logger.info('GeminiService: Daily wisdom generated successfully');
+        return text.trim();
+      }
+
+      return _getWisdomFallback();
+    } catch (e) {
+      Logger.error('GeminiService: Error generating daily wisdom', e);
+      return _getWisdomFallback();
+    }
+  }
+
+  String _getDayName() {
+    final days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+    return days[DateTime.now().weekday - 1];
+  }
+
+  String _getWisdomFallback() {
+    // Random fallback dari berbagai topik sejarah
+    final fallbacks = [
+      '''[CONTENT]
+Tahukah kamu? Levi Hutchins menciptakan jam alarm pertama pada 1787 karena ia ingin bangun pagi untuk bekerja 🕐 Subhanallah, Islam sudah mengajarkan bangun pagi jauh sebelumnya - Rasulullah ﷺ bersabda bahwa waktu pagi adalah waktu yang diberkahi. Jadi, daripada snooze alarm sampai siang, yuk manfaatkan pagi untuk tahajud dan produktivitas! 💪
+
+[SOURCES]
+- Sumber 1: Encyclopedia Britannica - History of Timekeeping Devices
+- Sumber 2: HR. Tirmidzi No. 3449 tentang keberkahan waktu pagi''',
+      '''[CONTENT]
+Al-Khawarizmi, bapak aljabar, menciptakan konsep algoritma pada abad ke-9. Nama "algoritma" sendiri berasal dari namanya! 🧮 Beliau memulai karya-karyanya dengan "Bismillah". Allah berfirman: "Dan barangsiapa bertakwa kepada Allah, niscaya Dia akan membukakan jalan keluar baginya." Ilmu yang dimulai dengan nama Allah akan membawa berkah!
+
+[SOURCES]
+- Sumber 1: 1001 Inventions - Muslim Heritage in Our World
+- Sumber 2: QS. At-Talaq: 2 tentang ketakwaan''',
+      '''[CONTENT]
+Ibnu Sina menulis "Al-Qanun fi at-Tibb" (Canon of Medicine) yang menjadi rujukan kedokteran dunia selama 600 tahun! 👨‍⚕️ Beliau belajar Al-Quran sejak kecil sebelum mendalami ilmu kedokteran. Rasulullah ﷺ bersabda: "Berobatlah, karena Allah tidak menurunkan penyakit kecuali juga menurunkan obatnya." Jaga kesehatanmu, itu bagian dari syukur!
+
+[SOURCES]
+- Sumber 1: Stanford Encyclopedia of Philosophy - Ibn Sina
+- Sumber 2: HR. Abu Dawud No. 3874 tentang pengobatan''',
+      '''[CONTENT]
+Cai Lun menciptakan kertas di China tahun 105 M, mengubah cara manusia menyimpan ilmu 📜 Bayangkan dunia tanpa kertas - tidak ada buku, tidak ada Al-Quran tercetak! Rasulullah ﷺ bersabda: "Barangsiapa menempuh jalan untuk mencari ilmu, Allah mudahkan jalannya ke surga." Hari ini, luangkan waktu untuk membaca dan belajar!
+
+[SOURCES]
+- Sumber 1: Ancient History Encyclopedia - Invention of Paper
+- Sumber 2: HR. Muslim No. 2699 tentang mencari ilmu''',
+      '''[CONTENT]
+Abbas ibn Firnas melakukan penerbangan pertama manusia pada tahun 875 M, 1000 tahun sebelum Wright Brothers! 🦅 Beliau tidak takut gagal karena yakin Allah Maha Pencipta langit dan bumi. "Tidakkah mereka memperhatikan burung-burung yang dimudahkan terbang di angkasa?" Mimpi besarmu mungkin terlihat mustahil, tapi dengan izin Allah, semua bisa terwujud!
+
+[SOURCES]
+- Sumber 1: 1001 Inventions - Abbas ibn Firnas
+- Sumber 2: QS. An-Nahl: 79 tentang burung terbang''',
+    ];
+
+    // Pick random fallback based on current time
+    final index = DateTime.now().millisecond % fallbacks.length;
+    return fallbacks[index];
+  }
 }

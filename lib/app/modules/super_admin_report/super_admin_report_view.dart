@@ -17,6 +17,44 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
       backgroundColor: context.backgroundColor,
       body: Column(
         children: [
+          // Header gradient style
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: context.isDark
+                    ? [const Color(0xFFA5D6A7), const Color(0xFF81C784)]
+                    : [Colors.green.shade600, Colors.green.shade800],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Monitoring',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Laporan Piket',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
           // Filter dropdown untuk hari
           _buildDayFilter(),
           // Weekend shortcuts
@@ -75,76 +113,104 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
   }
 
   Widget _buildDayFilter() {
+    final weekdayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum'];
+    final weekendNames = ['Sab', 'Ahad'];
+
     return Builder(
       builder: (context) => Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: context.cardColor,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: context.isDark
-                  ? Colors.black26
-                  : Colors.black.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_today,
-              color: context.isDark
-                  ? const Color(0xFF90CAF9)
-                  : AppColors.primaryBlue,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Filter Hari:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: context.textColor,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Obx(
+          () => Column(
+            children: [
+              // Weekdays row (Senin - Jumat)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  final dayOfWeek = index + 1;
+                  return _buildDayChip(
+                    context,
+                    weekdayNames[index],
+                    dayOfWeek,
+                    controller.selectedDay.value == dayOfWeek,
+                  );
+                }),
               ),
+              const SizedBox(height: 8),
+              // Weekend row (Sabtu - Ahad)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(2, (index) {
+                  final dayOfWeek = index + 6; // 6=Sabtu, 7=Ahad
+                  return _buildDayChip(
+                    context,
+                    weekendNames[index],
+                    dayOfWeek,
+                    controller.selectedDay.value == dayOfWeek,
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayChip(
+    BuildContext context,
+    String dayName,
+    int dayOfWeek,
+    bool isSelected,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: GestureDetector(
+        onTap: () => controller.changeDay(dayOfWeek),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (context.isDark
+                      ? const Color(0xFFA5D6A7).withValues(alpha: 0.2)
+                      : Colors.green.shade50)
+                : (context.isDark ? context.cardColor : Colors.white),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? (context.isDark
+                        ? const Color(0xFFA5D6A7)
+                        : Colors.green.shade300)
+                  : (context.isDark ? Colors.grey[600]! : Colors.grey[300]!),
+              width: 1,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Obx(
-                () => DropdownButton<int>(
-                  value: controller.selectedDay.value,
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  dropdownColor: context.cardColor,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: context.textColor,
-                  ),
-                  icon: Icon(
-                    Icons.arrow_drop_down,
-                    color: context.isDark
-                        ? const Color(0xFF90CAF9)
-                        : AppColors.primaryBlue,
-                  ),
-                  items: List.generate(7, (index) {
-                    final dayOfWeek = index + 1;
-                    return DropdownMenuItem<int>(
-                      value: dayOfWeek,
-                      child: Text(controller.getDayName(dayOfWeek)),
-                    );
-                  }),
-                  onChanged: (val) {
-                    if (val != null) {
-                      controller.changeDay(val);
-                    }
-                  },
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                Icon(
+                  Icons.check,
+                  size: 16,
+                  color: context.isDark
+                      ? const Color(0xFFA5D6A7)
+                      : Colors.green.shade700,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                dayName,
+                style: TextStyle(
+                  color: isSelected
+                      ? (context.isDark
+                            ? const Color(0xFFA5D6A7)
+                            : Colors.green.shade700)
+                      : context.textColor,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

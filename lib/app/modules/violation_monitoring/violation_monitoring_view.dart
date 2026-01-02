@@ -52,8 +52,54 @@ class ViolationMonitoringView extends GetView<ViolationMonitoringController> {
     });
 
     if (hideAppBar) {
-      // Return only body without Scaffold/AppBar
-      return Container(color: context.backgroundColor, child: bodyContent);
+      // Return only body with header, without Scaffold/AppBar
+      return Container(
+        color: context.backgroundColor,
+        child: Column(
+          children: [
+            // Header gradient style
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: context.isDark
+                      ? [const Color(0xFFEF9A9A), const Color(0xFFE57373)]
+                      : [Colors.red.shade600, Colors.red.shade800],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(24),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mentoring',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Kedisiplinan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Body content
+            Expanded(child: bodyContent),
+          ],
+        ),
+      );
     }
 
     return Scaffold(

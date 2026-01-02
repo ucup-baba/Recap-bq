@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:get/get.dart';
@@ -32,7 +33,8 @@ class ReportInputController extends GetxController {
   final isReadOnly = false.obs;
   final status = AppConstants.reportStatusDraft.obs;
   final _hasFetchedOnce = false.obs;
-  final photoUrl = RxString('');
+  final photoUrls = <String>[].obs; // Changed to list for multiple photos
+  static const int maxPhotos = 5;
   final isUploadingPhoto = false.obs;
   final _imagePicker = ImagePicker();
 
@@ -436,7 +438,9 @@ class ReportInputController extends GetxController {
               // Set area dulu sebelum load tasks
               area = report.areaTugas;
               status.value = report.status;
-              photoUrl.value = report.photoUrl ?? '';
+              photoUrls.assignAll(
+                (report.photoUrl ?? '').isNotEmpty ? [report.photoUrl!] : [],
+              );
 
               // Pastikan tasks ter-load, bahkan jika laporan sudah verified
               if (report.tasks.isNotEmpty) {
@@ -503,7 +507,9 @@ class ReportInputController extends GetxController {
         // Set area dulu sebelum load tasks
         area = doc.areaTugas;
         status.value = doc.status;
-        photoUrl.value = doc.photoUrl ?? '';
+        photoUrls.assignAll(
+          (doc.photoUrl ?? '').isNotEmpty ? [doc.photoUrl!] : [],
+        );
 
         // Pastikan tasks ter-load, bahkan jika laporan sudah verified
         if (doc.tasks.isNotEmpty) {
@@ -596,7 +602,7 @@ class ReportInputController extends GetxController {
         areaTugas: area,
         status: AppConstants.reportStatusPending,
         tasks: tasks.toList(),
-        photoUrl: photoUrl.value.isEmpty ? null : photoUrl.value,
+        photoUrl: photoUrls.isNotEmpty ? photoUrls.first : null,
       );
       await _firestore.saveDailyReport(report);
       Logger.info('Report submitted successfully: $reportId');
@@ -644,7 +650,7 @@ class ReportInputController extends GetxController {
         areaTugas: area,
         status: AppConstants.reportStatusDraft,
         tasks: tasks.toList(),
-        photoUrl: photoUrl.value.isEmpty ? null : photoUrl.value,
+        photoUrl: photoUrls.isNotEmpty ? photoUrls.first : null,
       );
       await _firestore.saveDailyReport(draft);
       Logger.info('Auto-saved draft report: $reportId');
@@ -659,10 +665,10 @@ class ReportInputController extends GetxController {
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 100,
+        imageQuality: 85, // Compress at pick time for web
       );
       if (pickedFile != null) {
-        await _processAndUploadPhoto(File(pickedFile.path));
+        await _processAndUploadXFile(pickedFile);
       }
     } catch (e) {
       Logger.error('Error picking photo from camera', e);
@@ -676,10 +682,10 @@ class ReportInputController extends GetxController {
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 100,
+        imageQuality: 85, // Compress at pick time for web
       );
       if (pickedFile != null) {
-        await _processAndUploadPhoto(File(pickedFile.path));
+        await _processAndUploadXFile(pickedFile);
       }
     } catch (e) {
       Logger.error('Error picking photo from gallery', e);
@@ -687,8 +693,14 @@ class ReportInputController extends GetxController {
     }
   }
 
-  /// Compress image
+  /// Compress image (skips on web platform)
   Future<File?> compressImage(File file) async {
+    // Skip compression on web - flutter_image_compress doesn't work on web
+    if (kIsWeb) {
+      Logger.info('Skipping compression on web platform');
+      return file;
+    }
+
     try {
       final filePath = file.absolute.path;
       final lastIndex = filePath.lastIndexOf(RegExp(r'\.'));
@@ -710,24 +722,17 @@ class ReportInputController extends GetxController {
         Logger.info('Image compressed: $originalSize -> $compressedSize bytes');
         return File(result.path);
       }
-      return null;
+      return file; // Return original if compression fails
     } catch (e) {
       Logger.error('Error compressing image', e);
-      return null;
+      return file; // Return original on error
     }
   }
 
-  /// Process and upload photo
-  Future<void> _processAndUploadPhoto(File file) async {
+  /// Process and upload photo from XFile (works on both web and mobile)
+  Future<void> _processAndUploadXFile(XFile xFile) async {
     isUploadingPhoto.value = true;
     try {
-      // Compress image first
-      final compressedFile = await compressImage(file);
-      if (compressedFile == null) {
-        SnackbarHelper.showError('Gagal mengompres foto');
-        return;
-      }
-
       // Get current user
       final authService = AuthService.instance;
       final user = authService.currentUser;
@@ -736,17 +741,20 @@ class ReportInputController extends GetxController {
         return;
       }
 
-      // Upload to storage
-      final uploadedUrl = await _firestore.uploadPhotoToStorage(
+      // Read bytes from XFile (works on web)
+      final bytes = await xFile.readAsBytes();
+
+      // Upload to storage using bytes (works on web)
+      final uploadedUrl = await _firestore.uploadPhotoToStorageFromBytes(
         reportId,
-        compressedFile,
+        bytes,
         kelompokId,
         date,
         user.uid,
       );
 
-      // Update photoUrl
-      photoUrl.value = uploadedUrl;
+      // Add to photoUrls list
+      photoUrls.add(uploadedUrl);
 
       // Auto-save draft with photo
       await _autoSaveDraft();
@@ -762,17 +770,19 @@ class ReportInputController extends GetxController {
     }
   }
 
-  /// Delete photo
-  Future<void> deletePhoto() async {
+  /// Delete photo at specific index
+  Future<void> deletePhoto(int index) async {
     if (isReadOnly.value) return;
-    if (photoUrl.value.isEmpty) return;
+    if (index < 0 || index >= photoUrls.length) return;
 
     try {
-      // Delete from storage
-      await _firestore.deletePhotoFromStorage(photoUrl.value);
+      final urlToDelete = photoUrls[index];
 
-      // Clear photoUrl
-      photoUrl.value = '';
+      // Delete from storage
+      await _firestore.deletePhotoFromStorage(urlToDelete);
+
+      // Remove from list
+      photoUrls.removeAt(index);
 
       // Auto-save draft without photo
       await _autoSaveDraft();
@@ -783,4 +793,7 @@ class ReportInputController extends GetxController {
       SnackbarHelper.showError('Gagal menghapus foto');
     }
   }
+
+  /// Check if can add more photos
+  bool get canAddMorePhotos => photoUrls.length < maxPhotos;
 }

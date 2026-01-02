@@ -14,7 +14,7 @@ class AdminIbadahView extends GetView<AdminIbadahController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -28,8 +28,8 @@ class AdminIbadahView extends GetView<AdminIbadahController> {
                   left: 24,
                   right: 24,
                 ),
-                decoration: const BoxDecoration(
-                  gradient: AppColors.headerGradient,
+                decoration: BoxDecoration(
+                  gradient: AppColors.getHeaderGradient(context),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(32),
                     bottomRight: Radius.circular(32),

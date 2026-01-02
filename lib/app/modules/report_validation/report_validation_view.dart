@@ -27,7 +27,7 @@ class ReportValidationView extends GetView<ReportValidationController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           // Header Gradient
@@ -38,8 +38,8 @@ class ReportValidationView extends GetView<ReportValidationController> {
               left: 16,
               right: 16,
             ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
+            decoration: BoxDecoration(
+              gradient: AppColors.getHeaderGradient(context),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
             ),
             child: SafeArea(
@@ -84,7 +84,7 @@ class ReportValidationView extends GetView<ReportValidationController> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -158,7 +158,7 @@ class ReportValidationView extends GetView<ReportValidationController> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cardColor,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -228,37 +228,37 @@ class ReportValidationView extends GetView<ReportValidationController> {
                                                               ),
                                                           shape:
                                                               BoxShape.circle,
-                                                  ),
-                                                  child: Center(
-                                                    child: Text(
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
                                                             executor[0]
-                                                          .toUpperCase(),
+                                                                .toUpperCase(),
                                                             style:
                                                                 const TextStyle(
                                                                   fontSize: 7,
                                                                   color: Colors
                                                                       .white,
-                                                        fontWeight:
+                                                                  fontWeight:
                                                                       FontWeight
                                                                           .bold,
+                                                                ),
+                                                          ),
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ),
-                                                ),
                                                       const SizedBox(width: 3),
-                                                Text(
+                                                      Text(
                                                         executor,
-                                                  style: TextStyle(
+                                                        style: TextStyle(
                                                           color:
                                                               _getAvatarColor(
                                                                 executor,
-                                                    ),
+                                                              ),
                                                           fontSize: 10,
                                                           fontWeight:
                                                               FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 );
                                               }).toList(),
@@ -401,7 +401,7 @@ class ReportValidationView extends GetView<ReportValidationController> {
             () => Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardColor,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -427,12 +427,12 @@ class ReportValidationView extends GetView<ReportValidationController> {
                           ),
                           side: BorderSide(color: Colors.grey[300]!),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Batal',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.text,
+                            color: context.textColor,
                           ),
                         ),
                       ),
@@ -493,7 +493,7 @@ class ReportValidationView extends GetView<ReportValidationController> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

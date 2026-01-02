@@ -11,7 +11,9 @@ class SplashView extends GetView<SplashController> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.headerGradient),
+        decoration: BoxDecoration(
+          gradient: AppColors.getHeaderGradient(context),
+        ),
         child: SafeArea(
           child: Center(
             child: Padding(

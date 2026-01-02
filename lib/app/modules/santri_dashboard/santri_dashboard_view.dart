@@ -9,10 +9,13 @@ import '../../data/services/rotation_service.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
 import '../../widgets/nalya_feedback_card.dart';
+import '../../widgets/nalya_wisdom_card.dart';
 import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../leaderboard/leaderboard_view.dart';
 import '../nalya/nalya_feedback_controller.dart';
+import '../study_time/study_time_controller.dart';
+import '../study_time/study_time_view.dart';
 import 'santri_account_view.dart';
 import 'santri_dashboard_controller.dart';
 
@@ -44,9 +47,14 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
                 key: ValueKey('tab_1_leaderboard'),
                 child: LeaderboardView(hideAppBar: true),
               ),
-              // Tab 2: Akun
+              // Tab 2: Study Time (Belajar)
+              KeyedSubtree(
+                key: const ValueKey('tab_2_study_time'),
+                child: _buildStudyTimeTab(),
+              ),
+              // Tab 3: Akun
               const KeyedSubtree(
-                key: ValueKey('tab_2_account'),
+                key: ValueKey('tab_3_account'),
                 child: SantriAccountView(),
               ),
             ],
@@ -84,7 +92,11 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
               BottomNavigationBarItem(
                 icon: Icon(Icons.emoji_events),
-                label: 'Leaderboard',
+                label: 'Ranking',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.menu_book),
+                label: 'Belajar',
               ),
               BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
             ],
@@ -99,11 +111,13 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
       // Dark mode palette
       switch (index) {
         case 0:
-          return const Color(0xFF90CAF9); // Light Blue
+          return const Color(0xFF90CAF9); // Light Blue (Home)
         case 1:
-          return const Color(0xFFFFCC80); // Light Orange/Gold
+          return const Color(0xFFFFCC80); // Light Orange/Gold (Ranking)
         case 2:
-          return const Color(0xFFCE93D8); // Light Purple
+          return const Color(0xFF81D4FA); // Light Blue (Belajar)
+        case 3:
+          return const Color(0xFFCE93D8); // Light Purple (Akun)
         default:
           return AppColors.darkText;
       }
@@ -111,15 +125,26 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
       // Light mode palette
       switch (index) {
         case 0:
-          return AppColors.primaryBlue;
+          return AppColors.primaryBlue; // Home
         case 1:
-          return Colors.amber.shade800;
+          return Colors.amber.shade800; // Ranking
         case 2:
-          return Colors.purple.shade600;
+          return Colors.blue.shade600; // Belajar
+        case 3:
+          return Colors.purple.shade600; // Akun
         default:
           return AppColors.primaryBlue;
       }
     }
+  }
+
+  /// Build the Study Time tab
+  Widget _buildStudyTimeTab() {
+    // Register controller if not already registered
+    if (!Get.isRegistered<StudyTimeController>()) {
+      Get.put(StudyTimeController());
+    }
+    return const StudyTimeView(hideAppBar: true);
   }
 
   /// Build the Home tab content
@@ -169,6 +194,14 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
 
           // Action Button (Input Laporan Hari Ini)
           _buildInputLaporanCard(context),
+
+          const SizedBox(height: 16),
+
+          // Nalya Daily Wisdom Card
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: NalyaWisdomCard(),
+          ),
 
           const SizedBox(height: 24),
         ],
@@ -633,6 +666,7 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
             selectedDate: selectedDate,
             onUpdate: (updated) => controller.updateIbadah(updated),
           ),
+          // Combined Push-up + Running Card
           FisikCard(
             ibadahData: ibadahData,
             onUpdate: (updated) => controller.updateIbadah(updated),

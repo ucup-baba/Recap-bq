@@ -48,6 +48,8 @@ import '../../modules/weekend_report_input/weekend_report_input_binding.dart';
 import '../../modules/weekend_report_input/weekend_report_input_view.dart';
 import '../../modules/weekend_report_validation/weekend_report_validation_binding.dart';
 import '../../modules/weekend_report_validation/weekend_report_validation_view.dart';
+import '../../modules/running_tracker/running_tracker_binding.dart';
+import '../../modules/running_tracker/running_tracker_view.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -74,6 +76,7 @@ class AppRoutes {
   static const String weekendSchedule = '/weekend-schedule';
   static const String weekendReportInput = '/weekend-report-input';
   static const String weekendReportValidation = '/weekend-report-validation';
+  static const String runningTracker = '/running-tracker';
 }
 
 class AppPages {
@@ -197,6 +200,11 @@ class AppPages {
       name: AppRoutes.weekendReportValidation,
       page: () => const WeekendReportValidationView(),
       binding: WeekendReportValidationBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.runningTracker,
+      page: () => const RunningTrackerView(),
+      binding: RunningTrackerBinding(),
     ),
   ];
 }

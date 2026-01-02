@@ -11,25 +11,25 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
-          _buildHeader(),
-          Expanded(child: Obx(() => _buildQuestionContent())),
-          _buildNavigationButtons(),
+          _buildHeader(context),
+          Expanded(child: Obx(() => _buildQuestionContent(context))),
+          _buildNavigationButtons(context),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 20),
       decoration: BoxDecoration(
-        gradient: AppColors.headerGradient,
+        gradient: AppColors.getHeaderGradient(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -130,24 +130,24 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildQuestionContent() {
+  Widget _buildQuestionContent(BuildContext context) {
     // If first time user (no nickname), question 0 is nickname
     if (!controller.hasExistingNickname.value) {
       switch (controller.currentQuestion.value) {
         case 0:
-          return _buildNicknameQuestion();
+          return _buildNicknameQuestion(context);
         case 1:
-          return _buildQuestion1();
+          return _buildQuestion1(context);
         case 2:
-          return _buildQuestion2();
+          return _buildQuestion2(context);
         case 3:
-          return _buildQuestion3();
+          return _buildQuestion3(context);
         case 4:
-          return _buildQuestion4();
+          return _buildQuestion4(context);
         case 5:
-          return _buildQuestion5();
+          return _buildQuestion5(context);
         case 6:
-          return _buildQuestion6();
+          return _buildQuestion6(context);
         default:
           return const SizedBox();
       }
@@ -156,23 +156,23 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     // Returning user - regular flow (6 questions)
     switch (controller.currentQuestion.value) {
       case 0:
-        return _buildQuestion1();
+        return _buildQuestion1(context);
       case 1:
-        return _buildQuestion2();
+        return _buildQuestion2(context);
       case 2:
-        return _buildQuestion3();
+        return _buildQuestion3(context);
       case 3:
-        return _buildQuestion4();
+        return _buildQuestion4(context);
       case 4:
-        return _buildQuestion5();
+        return _buildQuestion5(context);
       case 5:
-        return _buildQuestion6();
+        return _buildQuestion6(context);
       default:
         return const SizedBox();
     }
   }
 
-  Widget _buildNicknameQuestion() {
+  Widget _buildNicknameQuestion(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -187,12 +187,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Hai! Aku Nalya, mau panggil kamu siapa?',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.text,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -231,7 +231,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildQuestion1() {
+  Widget _buildQuestion1(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -246,23 +246,23 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Gimana perasaanmu hari ini?',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.text,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: 32),
           Obx(
             () => Row(
               children: [
-                _buildMoodOption('😊', 'Semangat', 'semangat'),
+                _buildMoodOption(context, '😊', 'Semangat', 'semangat'),
                 const SizedBox(width: 16),
-                _buildMoodOption('😐', 'Biasa', 'biasa'),
+                _buildMoodOption(context, '😐', 'Biasa', 'biasa'),
                 const SizedBox(width: 16),
-                _buildMoodOption('😔', 'Kurang Fit', 'kurang_fit'),
+                _buildMoodOption(context, '😔', 'Kurang Fit', 'kurang_fit'),
               ],
             ),
           ),
@@ -271,7 +271,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildMoodOption(String emoji, String label, String value) {
+  Widget _buildMoodOption(
+    BuildContext context,
+    String emoji,
+    String label,
+    String value,
+  ) {
     final isSelected = controller.selectedMood.value == value;
     return Expanded(
       child: InkWell(
@@ -298,7 +303,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.primaryBlue : AppColors.text,
+                  color: isSelected ? AppColors.primaryBlue : context.textColor,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -309,7 +314,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildQuestion2() {
+  Widget _buildQuestion2(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -324,12 +329,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Ada target khusus minggu ini?',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.text,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: 24),
@@ -362,7 +367,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildQuestion3() {
+  Widget _buildQuestion3(BuildContext context) {
     final amalanOptions = [
       {'icon': '🌅', 'label': 'Subuh Tepat Waktu', 'value': 'subuh'},
       {'icon': '🌄', 'label': 'Tahajud', 'value': 'tahajud'},
@@ -384,12 +389,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Amalan mana yang mau difokuskan?',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.text,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -405,6 +410,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
                     (option) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _buildAmalanOption(
+                        context,
                         option['icon']!,
                         option['label']!,
                         option['value']!,
@@ -419,7 +425,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildAmalanOption(String icon, String label, String value) {
+  Widget _buildAmalanOption(
+    BuildContext context,
+    String icon,
+    String label,
+    String value,
+  ) {
     final isSelected = controller.selectedFocusAmalan.contains(value);
     return InkWell(
       onTap: () => controller.toggleFocusAmalan(value),
@@ -450,7 +461,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.primaryBlue : AppColors.text,
+                color: isSelected ? AppColors.primaryBlue : context.textColor,
               ),
             ),
           ],
@@ -459,7 +470,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildQuestion4() {
+  Widget _buildQuestion4(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -474,12 +485,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Tantangan terbesar minggu lalu?',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.text,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: 24),
@@ -512,7 +523,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildQuestion5() {
+  Widget _buildQuestion5(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -527,12 +538,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Mau diingatkan jam berapa?',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.text,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: 24),
@@ -587,7 +598,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildQuestion6() {
+  Widget _buildQuestion6(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -602,12 +613,12 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Buku apa yang akan kamu baca minggu ini?',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.text,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: 24),
@@ -648,11 +659,19 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
               () => Row(
                 children: [
                   Expanded(
-                    child: _buildBookOption('Ya, lanjut buku yang sama', true),
+                    child: _buildBookOption(
+                      context,
+                      'Ya, lanjut buku yang sama',
+                      true,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildBookOption('Tidak, ganti buku baru', false),
+                    child: _buildBookOption(
+                      context,
+                      'Tidak, ganti buku baru',
+                      false,
+                    ),
                   ),
                 ],
               ),
@@ -732,7 +751,11 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildBookOption(String label, bool continueBook) {
+  Widget _buildBookOption(
+    BuildContext context,
+    String label,
+    bool continueBook,
+  ) {
     final isSelected = controller.continueLastBook.value == continueBook;
     return InkWell(
       onTap: () => controller.continueLastBook.value = continueBook,
@@ -754,7 +777,7 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? AppColors.primaryBlue : AppColors.text,
+            color: isSelected ? AppColors.primaryBlue : context.textColor,
           ),
           textAlign: TextAlign.center,
         ),
@@ -762,11 +785,11 @@ class NalyaCheckInView extends GetView<NalyaCheckInController> {
     );
   }
 
-  Widget _buildNavigationButtons() {
+  Widget _buildNavigationButtons(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),

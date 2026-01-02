@@ -6,12 +6,14 @@ import '../../core/theme/app_colors.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
 import '../../widgets/nalya_feedback_card.dart';
+import '../../widgets/nalya_wisdom_card.dart';
 import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../../modules/admin_ibadah/admin_ibadah_controller.dart';
 import '../../modules/leaderboard/leaderboard_view.dart';
-import '../../modules/violation_monitoring/violation_monitoring_view.dart';
+import '../mentoring/combined_mentoring_view.dart';
 import '../nalya/nalya_feedback_controller.dart';
+import '../study_time/study_time_monitor_view.dart';
 import 'super_admin_dashboard_controller.dart';
 import '../super_admin_report/super_admin_report_view.dart';
 import '../super_admin_account/super_admin_account_view.dart';
@@ -28,6 +30,10 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
     // Nalya controller for Nalya features
     if (!Get.isRegistered<NalyaFeedbackController>()) {
       Get.put(NalyaFeedbackController());
+    }
+    // Study time monitor controller
+    if (!Get.isRegistered<StudyTimeMonitorController>()) {
+      Get.put(StudyTimeMonitorController());
     }
 
     return Scaffold(
@@ -58,10 +64,10 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                       key: ValueKey('tab_1_leaderboard'),
                       child: LeaderboardView(hideAppBar: true),
                     ),
-                    // Tab 2: Mentoring Pelanggaran - hide AppBar for embedded use
+                    // Tab 2: Combined Mentoring (Disiplin + Belajar)
                     const KeyedSubtree(
-                      key: ValueKey('tab_2_violation'),
-                      child: ViolationMonitoringView(hideAppBar: true),
+                      key: ValueKey('tab_2_mentoring'),
+                      child: CombinedMentoringView(),
                     ),
                     // Tab 3: Report
                     const KeyedSubtree(
@@ -121,8 +127,8 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                 label: 'Ranking',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.gavel),
-                label: 'Disiplin',
+                icon: Icon(Icons.supervisor_account),
+                label: 'Mentoring',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.assignment),
@@ -144,7 +150,7 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
         case 1:
           return const Color(0xFFFFCC80); // Light Orange
         case 2:
-          return const Color(0xFFEF9A9A); // Light Red
+          return const Color(0xFFEF9A9A); // Light Red (Mentoring)
         case 3:
           return const Color(0xFFA5D6A7); // Light Green
         case 4:
@@ -159,7 +165,7 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
         case 1:
           return Colors.amber.shade800;
         case 2:
-          return Colors.red.shade700;
+          return Colors.red.shade700; // Mentoring
         case 3:
           return Colors.green.shade700;
         case 4:
@@ -389,6 +395,9 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                     onUpdate: (updated) =>
                         ibadahController.updateIbadah(updated),
                   ),
+                  const SizedBox(height: 16),
+                  // Nalya Daily Wisdom Card
+                  const NalyaWisdomCard(),
                 ],
               );
             }),

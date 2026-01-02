@@ -5,6 +5,7 @@ import '../../core/interfaces/ibadah_controller_interface.dart';
 import '../../core/utils/logger.dart';
 import '../../data/models/daily_ibadah_model.dart';
 import '../../data/services/ibadah_tracking_service.dart';
+import '../../widgets/motivation_dialog.dart';
 
 class KedisiplinanIbadahController extends GetxController
     implements IbadahControllerInterface {
@@ -76,33 +77,26 @@ class KedisiplinanIbadahController extends GetxController
       {
         'title': 'Kenapa Harus Sholat?',
         'body':
-            'Karena sholat adalah tiang agama dan koneksi utama kita dengan Allah. Ini adalah hal pertama yang akan dihisab.',
+            'Karena sholat adalah tiang agama dan koneksi utama kita dengan Allah.',
+        'emoji': '🕌',
+        'button': 'Siap! 💪',
       },
       {
         'title': 'Merasa Berat Sholat?',
         'body':
-            'Ingat, sholat itu hanya beberapa menit. Waktu yang kita habiskan untuk media sosial jauh lebih lama. Prioritaskan yang abadi.',
+            'Ingat, sholat itu hanya beberapa menit. Prioritaskan yang abadi.',
+        'emoji': '🤲',
+        'button': 'Bismillah! 🤲',
       },
     ];
     final randomMotivation =
         motivations[(DateTime.now().millisecondsSinceEpoch %
             motivations.length)];
-    Get.defaultDialog(
+    MotivationDialog.show(
       title: randomMotivation['title']!,
-      middleText: randomMotivation['body']!,
-      backgroundColor: Get.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-      titleStyle: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Get.isDarkMode ? Colors.white : Colors.black,
-      ),
-      middleTextStyle: TextStyle(
-        color: Get.isDarkMode ? Colors.white70 : Colors.black87,
-      ),
-      radius: 16,
-      textConfirm: 'Siap!',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.deepPurple.shade600,
-      onConfirm: () => Get.back(),
+      body: randomMotivation['body']!,
+      emoji: randomMotivation['emoji']!,
+      buttonText: randomMotivation['button']!,
     );
   }
 
@@ -111,54 +105,45 @@ class KedisiplinanIbadahController extends GetxController
     const motivations = [
       {
         'title': 'Malas Tahajud?',
-        'body':
-            'Tahajud adalah waktu terbaik untuk curhat dengan Allah. Saat orang lain tidur, doa Anda menembus langit.',
+        'body': 'Tahajud adalah waktu terbaik untuk curhat dengan Allah.',
+        'emoji': '🌙',
+        'button': 'Insya Allah! 🌙',
       },
       {
         'title': 'Ragu Sholat Dhuha?',
         'body':
-            'Cukup 2 rakaat sholat Dhuha sebagai sedekah untuk seluruh sendi di tubuh Anda. Pembuka pintu rezeki!',
+            'Cukup 2 rakaat sholat Dhuha sebagai sedekah untuk seluruh tubuh.',
+        'emoji': '☀️',
+        'button': 'Semangat! ☀️',
       },
       {
         'title': 'Al-Mulk Setiap Malam?',
-        'body':
-            'Surah Al-Mulk adalah penjaga dari siksa kubur. Siapa yang membacanya setiap malam, Allah akan menjaganya.',
+        'body': 'Surah Al-Mulk adalah penjaga dari siksa kubur.',
+        'emoji': '📖',
+        'button': 'Bismillah! 📖',
       },
       {
-        'title': 'Al-Waqi\'ah untuk Rezeki',
+        'title': "Al-Waqi'ah untuk Rezeki",
         'body':
-            'Surah Al-Waqi\'ah adalah surah kekayaan. Rasulullah SAW bersabda: "Barangsiapa membaca surah Al-Waqi\'ah setiap malam, maka tidak akan ditimpa kefakiran."',
+            'Surah Al-Waqi\'ah adalah surah kekayaan. Bacalah setiap malam.',
+        'emoji': '📖',
+        'button': 'Bismillah! 📖',
       },
       {
         'title': 'Al-Kahfi di Jumat',
-        'body':
-            'Membaca surah Al-Kahfi di hari Jumat akan menerangi kita dengan cahaya di antara dua Jumat. Jangan lewatkan!',
-      },
-      {
-        'title': 'Yasin di Hari Lain',
-        'body':
-            'Surah Yasin adalah jantung Al-Quran. Membacanya akan memberikan ketenangan dan pahala yang besar.',
+        'body': 'Membaca Al-Kahfi di hari Jumat menerangi kita dengan cahaya.',
+        'emoji': '✨',
+        'button': 'InsyaAllah! ✨',
       },
     ];
     final randomMotivation =
         motivations[(DateTime.now().millisecondsSinceEpoch %
             motivations.length)];
-    Get.defaultDialog(
+    MotivationDialog.show(
       title: randomMotivation['title']!,
-      middleText: randomMotivation['body']!,
-      backgroundColor: Get.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-      titleStyle: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Get.isDarkMode ? Colors.white : Colors.black,
-      ),
-      middleTextStyle: TextStyle(
-        color: Get.isDarkMode ? Colors.white70 : Colors.black87,
-      ),
-      radius: 16,
-      textConfirm: 'Siap!',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.deepPurple.shade600,
-      onConfirm: () => Get.back(),
+      body: randomMotivation['body']!,
+      emoji: randomMotivation['emoji']!,
+      buttonText: randomMotivation['button']!,
     );
   }
 }

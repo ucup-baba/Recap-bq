@@ -17,29 +17,73 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.backgroundColor,
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      body: Column(
+        children: [
+          // Header gradient style
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: context.isDark
+                    ? [const Color(0xFFCE93D8), const Color(0xFFBA68C8)]
+                    : [Colors.purple.shade500, Colors.purple.shade700],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Akun',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Pengaturan',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Body content
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const SizedBox(height: 16),
-            // Dark Mode Toggle
-            _buildDarkModeSwitch(context),
-            const SizedBox(height: 12),
-            // Akun Terdaftar button
-            _buildRegisteredAccountsButton(context),
-            const SizedBox(height: 12),
-            // Notification settings button
-            _buildNotificationSettingsButton(context),
-            const SizedBox(height: 12),
-            // Logout button
-            _buildLogoutButton(context),
-          ],
-        );
-      }),
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Dark Mode Toggle
+                  _buildDarkModeSwitch(context),
+                  const SizedBox(height: 12),
+                  // Akun Terdaftar button
+                  _buildRegisteredAccountsButton(context),
+                  const SizedBox(height: 12),
+                  // Notification settings button
+                  _buildNotificationSettingsButton(context),
+                  const SizedBox(height: 12),
+                  // Logout button
+                  _buildLogoutButton(context),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 

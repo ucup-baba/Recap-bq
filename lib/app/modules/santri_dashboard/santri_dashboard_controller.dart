@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 
 import '../../core/routes/app_pages.dart';
 import '../../core/theme/app_colors.dart';
+import '../../widgets/motivation_dialog.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/snackbar_helper.dart';
@@ -89,25 +90,29 @@ class SantriDashboardController extends GetxController
       {
         'title': 'Malas Tahajud?',
         'body': 'Tahajud adalah waktu terbaik untuk curhat dengan Allah.',
+        'emoji': '🌙',
+        'button': 'Insya Allah! 🌙',
       },
       {
         'title': 'Ragu Sholat Dhuha?',
         'body':
             'Cukup 2 rakaat sholat Dhuha sebagai sedekah untuk seluruh tubuh.',
+        'emoji': '☀️',
+        'button': 'Semangat! ☀️',
       },
       {
         'title': 'Berat Baca Al-Mulk?',
         'body': 'Hanya 5 menit, tapi bisa menyelamatkan dari siksa kubur.',
+        'emoji': '📖',
+        'button': 'Bismillah! 📖',
       },
     ];
     final randomMotivation = motivations[Random().nextInt(motivations.length)];
-    Get.defaultDialog(
+    MotivationDialog.show(
       title: randomMotivation['title']!,
-      middleText: randomMotivation['body']!,
-      textConfirm: 'Oke!',
-      buttonColor: AppColors.primaryBlue,
-      confirmTextColor: Colors.white,
-      onConfirm: () => Get.back(),
+      body: randomMotivation['body']!,
+      emoji: randomMotivation['emoji']!,
+      buttonText: randomMotivation['button']!,
     );
   }
 
@@ -118,21 +123,23 @@ class SantriDashboardController extends GetxController
         'title': 'Kenapa Harus Sholat?',
         'body':
             'Karena sholat adalah tiang agama dan koneksi utama kita dengan Allah.',
+        'emoji': '🕌',
+        'button': 'Siap! 💪',
       },
       {
         'title': 'Merasa Berat Sholat?',
         'body':
             'Ingat, sholat itu hanya beberapa menit. Prioritaskan yang abadi.',
+        'emoji': '🤲',
+        'button': 'Bismillah! 🤲',
       },
     ];
     final randomMotivation = motivations[Random().nextInt(motivations.length)];
-    Get.defaultDialog(
+    MotivationDialog.show(
       title: randomMotivation['title']!,
-      middleText: randomMotivation['body']!,
-      textConfirm: 'Siap!',
-      buttonColor: AppColors.primaryBlue,
-      confirmTextColor: Colors.white,
-      onConfirm: () => Get.back(),
+      body: randomMotivation['body']!,
+      emoji: randomMotivation['emoji']!,
+      buttonText: randomMotivation['button']!,
     );
   }
 

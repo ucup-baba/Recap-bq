@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nalya Feedback Card Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        body.light {
+            background: #f5f5f5;
+        }
+
+        body.dark {
+            background: #121212;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        body.light .theme-toggle {
+            background: #333;
+            color: white;
+        }
+
+        body.dark .theme-toggle {
+            background: #fff;
+            color: #333;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 30px 0 10px 0;
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+
+        body.light .section-title {
+            color: #666;
+        }
+
+        body.dark .section-title {
+            color: #888;
+        }
+
+        .phone-frame {
+            width: 380px;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        body.light .phone-frame {
+            background: #fff;
+        }
+
+        body.dark .phone-frame {
+            background: #1E1E1E;
+        }
+
+        /* ========================================
+           VERSION 1: Card dengan Avatar Animasi
+           ======================================== */
+        .nalya-card-v1 {
+            margin: 16px;
+            padding: 20px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        body.light .nalya-card-v1 {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 50%, #A5D6A7 100%);
+            box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
+        }
+
+        body.dark .nalya-card-v1 {
+            background: linear-gradient(135deg, #1B3A1E 0%, #2E5233 50%, #1B5E20 100%);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Decorative patterns */
+        .pattern-dots {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            opacity: 0.1;
+            background: radial-gradient(circle, currentColor 2px, transparent 2px);
+            background-size: 10px 10px;
+        }
+
+        body.light .pattern-dots {
+            color: #2E7D32;
+        }
+
+        body.dark .pattern-dots {
+            color: #81C784;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Avatar dengan animasi */
+        .avatar-container {
+            width: 56px;
+            height: 56px;
+            position: relative;
+        }
+
+        .avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            position: relative;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        body.light .avatar {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        body.dark .avatar {
+            background: linear-gradient(135deg, #66BB6A 0%, #43A047 100%);
+            box-shadow: 0 4px 15px rgba(102, 187, 106, 0.3);
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        /* Glow ring animasi */
+        .avatar::before {
+            content: '';
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px solid;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+
+        body.light .avatar::before {
+            border-color: rgba(76, 175, 80, 0.5);
+        }
+
+        body.dark .avatar::before {
+            border-color: rgba(129, 199, 132, 0.4);
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
+        }
+
+        /* Sparkles animasi */
+        .sparkle {
+            position: absolute;
+            font-size: 12px;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        .sparkle:nth-child(1) {
+            top: -5px;
+            right: -5px;
+            animation-delay: 0s;
+        }
+
+        .sparkle:nth-child(2) {
+            bottom: 0;
+            left: -8px;
+            animation-delay: 0.5s;
+        }
+
+        .sparkle:nth-child(3) {
+            top: 50%;
+            right: -10px;
+            animation-delay: 1s;
+        }
+
+        @keyframes sparkle {
+
+            0%,
+            100% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .title-section {
+            flex: 1;
+        }
+
+        .nalya-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        body.light .nalya-title {
+            color: #1B5E20;
+        }
+
+        body.dark .nalya-title {
+            color: #A5D6A7;
+        }
+
+        .nalya-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        body.light .nalya-subtitle {
+            color: #388E3C;
+        }
+
+        body.dark .nalya-subtitle {
+            color: #81C784;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        body.light .action-btn {
+            background: rgba(255, 255, 255, 0.6);
+            color: #2E7D32;
+        }
+
+        body.dark .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #81C784;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Feedback content dengan typing effect */
+        .feedback-content {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        body.light .feedback-content {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+
+        body.dark .feedback-content {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(129, 199, 132, 0.2);
+        }
+
+        .feedback-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        body.light .feedback-text {
+            color: #2E7D32;
+        }
+
+        body.dark .feedback-text {
+            color: #C8E6C9;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        body.light .typing-dot {
+            background: #4CAF50;
+        }
+
+        body.dark .typing-dot {
+            background: #81C784;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-8px);
+            }
+        }
+
+        /* CTA Button */
+        .cta-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-button {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .cta-button.primary {
+            color: white;
+        }
+
+        body.light .cta-button.primary {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        body.dark .cta-button.primary {
+            background: linear-gradient(135deg, #66BB6A 0%, #43A047 100%);
+            box-shadow: 0 4px 12px rgba(102, 187, 106, 0.2);
+        }
+
+        .cta-button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+        }
+
+        .cta-button.secondary {
+            border: 1px solid;
+        }
+
+        body.light .cta-button.secondary {
+            background: rgba(255, 255, 255, 0.8);
+            color: #2E7D32;
+            border-color: rgba(76, 175, 80, 0.3);
+        }
+
+        body.dark .cta-button.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #81C784;
+            border-color: rgba(129, 199, 132, 0.3);
+        }
+
+        /* ========================================
+           VERSION 2: Compact dengan Wave Animation
+           ======================================== */
+        .nalya-card-v2 {
+            margin: 16px;
+            padding: 16px;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.light .nalya-card-v2 {
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.15);
+        }
+
+        body.dark .nalya-card-v2 {
+            background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Wave animation background */
+        .wave-bg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            overflow: hidden;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='rgba(255,255,255,0.1)'%3E%3C/path%3E%3C/svg%3E");
+            background-size: 50% 100%;
+            animation: wave 10s linear infinite;
+        }
+
+        @keyframes wave {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .compact-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .mini-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        body.light .mini-avatar {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            box-shadow: 0 3px 10px rgba(33, 150, 243, 0.3);
+        }
+
+        body.dark .mini-avatar {
+            background: linear-gradient(135deg, #42A5F5 0%, #1E88E5 100%);
+            box-shadow: 0 3px 10px rgba(66, 165, 245, 0.2);
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .compact-content {
+            flex: 1;
+        }
+
+        .compact-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        body.light .compact-title {
+            color: #1565C0;
+        }
+
+        body.dark .compact-title {
+            color: #90CAF9;
+        }
+
+        .compact-text {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        body.light .compact-text {
+            color: #1976D2;
+        }
+
+        body.dark .compact-text {
+            color: #BBDEFB;
+        }
+
+        .expand-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        body.light .expand-btn {
+            background: rgba(255, 255, 255, 0.8);
+            color: #1976D2;
+        }
+
+        body.dark .expand-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #90CAF9;
+        }
+
+        .expand-btn:hover {
+            transform: rotate(180deg);
+        }
+
+        /* ========================================
+           VERSION 3: Glassmorphism dengan Particles
+           ======================================== */
+        .nalya-card-v3 {
+            margin: 16px;
+            padding: 20px;
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.light .nalya-card-v3 {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
+        }
+
+        body.dark .nalya-card-v3 {
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Gradient orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            animation: orb-float 6s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 100px;
+            height: 100px;
+            top: -30px;
+            right: -30px;
+        }
+
+        body.light .orb-1 {
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        body.dark .orb-1 {
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .orb-2 {
+            width: 80px;
+            height: 80px;
+            bottom: -20px;
+            left: -20px;
+            animation-delay: -3s;
+        }
+
+        body.light .orb-2 {
+            background: rgba(236, 72, 153, 0.3);
+        }
+
+        body.dark .orb-2 {
+            background: rgba(236, 72, 153, 0.2);
+        }
+
+        @keyframes orb-float {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(10px, -10px);
+            }
+        }
+
+        /* Particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            animation: particle-rise 4s ease-in infinite;
+        }
+
+        body.light .particle {
+            background: rgba(139, 92, 246, 0.6);
+        }
+
+        body.dark .particle {
+            background: rgba(167, 139, 250, 0.4);
+        }
+
+        .particle:nth-child(1) {
+            left: 20%;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            left: 40%;
+            animation-delay: 1s;
+        }
+
+        .particle:nth-child(3) {
+            left: 60%;
+            animation-delay: 2s;
+        }
+
+        .particle:nth-child(4) {
+            left: 80%;
+            animation-delay: 3s;
+        }
+
+        @keyframes particle-rise {
+            0% {
+                bottom: 0;
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            100% {
+                bottom: 100%;
+                opacity: 0;
+            }
+        }
+
+        .glass-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .glass-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: relative;
+        }
+
+        body.light .glass-avatar {
+            background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        body.dark .glass-avatar {
+            background: linear-gradient(135deg, #A78BFA 0%, #F472B6 100%);
+            box-shadow: 0 4px 15px rgba(167, 139, 250, 0.3);
+        }
+
+        /* Halo effect */
+        .glass-avatar::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(236, 72, 153, 0.5));
+            z-index: -1;
+            animation: halo-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes halo-pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+
+        .glass-title {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        body.light .glass-title {
+            color: #7C3AED;
+        }
+
+        body.dark .glass-title {
+            color: #C4B5FD;
+        }
+
+        .glass-subtitle {
+            font-size: 12px;
+        }
+
+        body.light .glass-subtitle {
+            color: #9333EA;
+        }
+
+        body.dark .glass-subtitle {
+            color: #A78BFA;
+        }
+
+        .glass-content {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        body.light .glass-content {
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+        }
+
+        body.dark .glass-content {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+        }
+
+        .glass-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        body.light .glass-text {
+            color: #6B21A8;
+        }
+
+        body.dark .glass-text {
+            color: #DDD6FE;
+        }
+
+        .glass-cta {
+            margin-top: 16px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            position: relative;
+            z-index: 1;
+            transition: all 0.2s;
+        }
+
+        body.light .glass-cta {
+            background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        body.dark .glass-cta {
+            background: linear-gradient(135deg, #A78BFA 0%, #F472B6 100%);
+            box-shadow: 0 4px 15px rgba(167, 139, 250, 0.2);
+        }
+
+        .glass-cta:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body class="light">
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark Mode</button>
+
+    <h2 style="margin-top: 40px; color: #333;">Nalya UI Mockup</h2>
+
+    <!-- VERSION 1: Card dengan Avatar Animasi -->
+    <p class="section-title">Versi 1: Avatar dengan Sparkles</p>
+    <div class="phone-frame">
+        <div class="nalya-card-v1">
+            <div class="pattern-dots"></div>
+
+            <div class="header-row">
+                <div class="avatar-container">
+                    <div class="avatar">
+                        🤖
+                        <span class="sparkle">✨</span>
+                        <span class="sparkle">⭐</span>
+                        <span class="sparkle">✨</span>
+                    </div>
+                </div>
+                <div class="title-section">
+                    <div class="nalya-title">Hai! Nalya di sini 👋</div>
+                    <div class="nalya-subtitle">Asisten ibadah harianmu</div>
+                </div>
+                <div class="action-btn">🔄</div>
+                <div class="action-btn">✕</div>
+            </div>
+
+            <div class="feedback-content">
+                <div class="feedback-text">
+                    Alhamdulillah! Kamu sudah tahajud 5 hari berturut-turut minggu ini 🌙
+                    Tapi sholat Dhuha masih sering terlewat. Yuk, coba bangun 15 menit lebih awal! 💪
+                </div>
+            </div>
+
+            <div class="cta-row">
+                <button class="cta-button primary">
+                    💬 Cerita ke Nalya
+                </button>
+                <button class="cta-button secondary">
+                    📊 Lihat Progress
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VERSION 2: Compact dengan Wave -->
+    <p class="section-title">Versi 2: Compact dengan Wave</p>
+    <div class="phone-frame">
+        <div class="nalya-card-v2">
+            <div class="wave-bg">
+                <div class="wave"></div>
+            </div>
+
+            <div class="compact-header">
+                <div class="mini-avatar">🤖</div>
+                <div class="compact-content">
+                    <div class="compact-title">Pesan dari Nalya</div>
+                    <div class="compact-text">Push-up kamu sudah 30x hari ini! Mantap, tinggal 20x lagi 🔥</div>
+                </div>
+                <div class="expand-btn">▼</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VERSION 3: Glassmorphism dengan Particles -->
+    <p class="section-title">Versi 3: Glassmorphism Premium</p>
+    <div class="phone-frame">
+        <div class="nalya-card-v3">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+
+            <div class="glass-header">
+                <div class="glass-avatar">🤖</div>
+                <div class="title-section">
+                    <div class="glass-title">Nalya AI</div>
+                    <div class="glass-subtitle">Personal Ibadah Coach</div>
+                </div>
+                <div class="action-btn" style="background: rgba(139, 92, 246, 0.2);">🔄</div>
+            </div>
+
+            <div class="glass-content">
+                <div class="glass-text">
+                    Subhanallah! Streak Al-Mulk kamu sudah 7 hari 📖✨
+                    Ini sangat istimewa - terus jaga konsistensinya ya!
+                </div>
+            </div>
+
+            <button class="glass-cta">
+                ✨ Cerita ke Nalya
+            </button>
+        </div>
+    </div>
+
+    <!-- VERSION 4: Typing Indicator -->
+    <p class="section-title">Versi 4: Loading State (Typing)</p>
+    <div class="phone-frame">
+        <div class="nalya-card-v1">
+            <div class="pattern-dots"></div>
+
+            <div class="header-row">
+                <div class="avatar-container">
+                    <div class="avatar">🤖</div>
+                </div>
+                <div class="title-section">
+                    <div class="nalya-title">Nalya sedang berpikir...</div>
+                    <div class="nalya-subtitle">Menganalisis ibadahmu</div>
+                </div>
+            </div>
+
+            <div class="feedback-content">
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.querySelector('.theme-toggle');
+
+            if (body.classList.contains('light')) {
+                body.classList.remove('light');
+                body.classList.add('dark');
+                btn.textContent = '☀️ Light Mode';
+            } else {
+                body.classList.remove('dark');
+                body.classList.add('light');
+                btn.textContent = '🌙 Dark Mode';
+            }
+        }
+    </script>
+</body>
+
+</html>

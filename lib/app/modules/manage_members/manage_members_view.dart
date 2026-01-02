@@ -43,14 +43,26 @@ class ManageMembersView extends GetView<ManageMembersController> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Kelola Anggota Kelompok',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kelola',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 14,
+                            ),
+                          ),
+                          const Text(
+                            'Anggota Kelompok',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -80,89 +92,67 @@ class ManageMembersView extends GetView<ManageMembersController> {
             ),
 
           // Kelompok Selection Card
+          // Kelompok Selection - Horizontal Buttons
           Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: context.isDark
-                      ? Colors.black26
-                      : Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Obx(
               () => Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          (context.isDark
-                                  ? const Color(0xFF90CAF9)
-                                  : AppColors.primaryBlue)
-                              .withValues(alpha: 0.1),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: controller.kelompokList.map((id) {
+                  final isSelected = controller.selectedKelompok.value == id;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: InkWell(
+                      onTap: () => controller.loadMembers(id),
                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.group,
-                      color: context.isDark
-                          ? const Color(0xFF90CAF9)
-                          : AppColors.primaryBlue,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Kelompok',
-                          style: TextStyle(
-                            color: context.subtextColor,
-                            fontSize: 12,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? (context.isDark
+                                    ? const Color(0xFFA5D6A7)
+                                    : Colors.green.shade600)
+                              : context.cardColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.transparent
+                                : (context.isDark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade300),
+                            width: 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color:
+                                        (context.isDark
+                                                ? const Color(0xFFA5D6A7)
+                                                : Colors.green.shade600)
+                                            .withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '$id',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.white
+                                  : context.textColor,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        DropdownButton<int>(
-                          value: controller.selectedKelompok.value,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          dropdownColor: context.cardColor,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: context.textColor,
-                          ),
-                          items: controller.kelompokList
-                              .map(
-                                (id) => DropdownMenuItem(
-                                  value: id,
-                                  child: Text('Kelompok $id'),
-                                ),
-                              )
-                              .toList(),
-                          icon: Icon(
-                            Icons.arrow_drop_down,
-                            color: context.isDark
-                                ? const Color(0xFF90CAF9)
-                                : AppColors.primaryBlue,
-                            size: 32,
-                          ),
-                          onChanged: (val) {
-                            if (val != null) controller.loadMembers(val);
-                          },
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                }).toList(),
               ),
             ),
           ),

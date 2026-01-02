@@ -35,6 +35,16 @@ class SuperAdminReportController extends GetxController {
     _checkAndDeleteOldReports();
   }
 
+  /// Refresh to today's day - called when tab becomes active
+  void refreshToToday() {
+    final today = DateTime.now().weekday;
+    if (selectedDay.value != today) {
+      Logger.info('Report: Refreshing day filter to today ($today)');
+      selectedDay.value = today;
+      loadReportsForDay(today);
+    }
+  }
+
   Future<void> loadVerifiedReports() async {
     isLoading.value = true;
     try {

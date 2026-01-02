@@ -13,10 +13,11 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       appBar: AppBar(
         title: Obx(() {
-          final displayName = controller.userInfo.value?['displayName'] ?? 'Unknown';
+          final displayName =
+              controller.userInfo.value?['displayName'] ?? 'Unknown';
           return Text(displayName);
         }),
         backgroundColor: AppColors.primaryBlue,
@@ -34,15 +35,16 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.orange[300]),
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.orange[300],
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     controller.errorMessage.value!,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
@@ -69,8 +71,11 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline,
-                    size: 64, color: Colors.grey[300]),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 64,
+                  color: Colors.grey[300],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Tidak ada riwayat pelanggaran',
@@ -90,7 +95,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -121,7 +126,8 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          controller.userInfo.value?['displayName'] ?? 'Unknown',
+                          controller.userInfo.value?['displayName'] ??
+                              'Unknown',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -162,7 +168,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                   final case_ = controller.cases[index];
                   final isLast = index == controller.cases.length - 1;
 
-                  return _buildTimelineItem(case_, isLast);
+                  return _buildTimelineItem(context, case_, isLast);
                 },
               ),
             ),
@@ -172,11 +178,15 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
     );
   }
 
-  Widget _buildTimelineItem(ViolationCaseModel case_, bool isLast) {
+  Widget _buildTimelineItem(
+    BuildContext context,
+    ViolationCaseModel case_,
+    bool isLast,
+  ) {
     // Use try-catch to handle locale initialization
     DateFormat? dateFormat;
     DateFormat? timeFormat;
-    
+
     try {
       dateFormat = DateFormat('dd MMM yyyy', 'id_ID');
       timeFormat = DateFormat('HH:mm', 'id_ID');
@@ -202,11 +212,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
               ),
             ),
             if (!isLast)
-              Container(
-                width: 2,
-                height: 100,
-                color: Colors.grey[300],
-              ),
+              Container(width: 2, height: 100, color: Colors.grey[300]),
           ],
         ),
         const SizedBox(width: 16),
@@ -216,7 +222,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -266,10 +272,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                     const SizedBox(width: 4),
                     Text(
                       '${dateFormat.format(case_.recordedAt)} ${timeFormat.format(case_.recordedAt)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -277,15 +280,11 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.schedule,
-                          size: 14, color: Colors.grey[600]),
+                      Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
                         'Waktu: ${case_.timeDetail}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -297,10 +296,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                     const SizedBox(width: 4),
                     Text(
                       'Dicatat oleh admin',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -312,4 +308,3 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
     );
   }
 }
-

@@ -109,24 +109,16 @@ service cloud.firestore {
       }
       
       // Koordinator can read reports from their own kelompok
-      // Allow read if document exists and user has permission, or if document doesn't exist but ID matches user's kelompok
+      // Simplified: check document ID pattern instead of resource.data
       allow get: if isAuthenticated() && (
         isAdmin() || 
-        (isKoordinator() && (
-          // Document doesn't exist but ID format matches user's kelompok
-          (!resource.exists && belongsToUserKelompok()) ||
-          // Document exists and kelompok_id matches
-          (resource.exists && resource.data.kelompok_id == getUserKelompokId())
-        ))
+        (isKoordinator() && belongsToUserKelompok())
       );
       
       // Koordinator can list/query reports from their own kelompok
       allow list: if isAuthenticated() && (
         isAdmin() || 
-        (isKoordinator() && (
-          request.query.limit == null ||
-          request.query.limit <= 100
-        ))
+        isKoordinator()
       );
       
       // Koordinator can create reports for their own kelompok
@@ -251,8 +243,8 @@ service cloud.firestore {
       // Only admin and kedisiplinan can create
       allow create: if isAdmin() || isKedisiplinan();
       
-      // Only admin can update/delete
-      allow update, delete: if isAdmin();
+      // Admin and kedisiplinan can update/delete
+      allow update, delete: if isAdmin() || isKedisiplinan();
     }
     
     // Notification reminders collection
@@ -332,6 +324,56 @@ service cloud.firestore {
       
       // Only admin can create/update/delete
       allow create, update, delete: if isAdmin();
+    }
+    
+    // Running logs collection (personal running tracking)
+    match /running_logs/{logId} {
+      // Everyone authenticated can read their own running logs
+      allow read: if isAuthenticated() && (
+        // User can read their own data
+        resource.data.odooId == request.auth.uid ||
+        // Admin can read all
+        isAdmin()
+      );
+      
+      // Allow list queries with reasonable limit
+      allow list: if isAuthenticated() && (
+        request.query.limit == null || request.query.limit <= 100
+      );
+      
+      // User can create running logs for themselves
+      allow create: if isAuthenticated() && 
+        request.resource.data.odooId == request.auth.uid;
+      
+      // User can update their own running logs
+      allow update: if isAuthenticated() && (
+        resource.data.odooId == request.auth.uid ||
+        isAdmin()
+      );
+      
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+    
+    // Study time records collection (mandatory study hour attendance)
+    match /study_time_records/{recordId} {
+      // Helper to extract kelompok_id from document ID (format: {date}_{kelompokId})
+      function getKelompokIdFromStudyTimeId() {
+        return int(recordId.split('_')[1]);
+      }
+      
+      // Everyone authenticated can read study time records
+      allow get, list: if isAuthenticated();
+      
+      // Koordinator can create/update records for their own kelompok
+      allow create, update: if isAuthenticated() && (
+        isAdmin() || 
+        isKedisiplinan() ||
+        (isKoordinator() && request.resource.data.kelompokId == getUserKelompokId())
+      );
+      
+      // Admin and kedisiplinan can delete records
+      allow delete: if isAdmin() || isKedisiplinan();
     }
   }
 }

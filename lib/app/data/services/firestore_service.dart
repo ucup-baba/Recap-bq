@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../models/area_tasks_model.dart';
 import '../models/daily_report_model.dart';
@@ -12,6 +14,7 @@ import '../models/kelompok_members_model.dart';
 import '../models/user_model.dart';
 import '../models/violation_rule_model.dart';
 import '../models/violation_case_model.dart';
+import '../models/study_time_model.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/date_utils.dart';
@@ -1533,6 +1536,39 @@ class FirestoreService {
     }
   }
 
+  /// Delete all weekend_reports
+  Future<void> deleteAllWeekendReports() async {
+    final reportsSnapshot = await _db.collection('weekend_reports').get();
+    if (reportsSnapshot.docs.isEmpty) return;
+
+    // Firestore batch limit is 500, so we need to process in batches
+    final batches = <WriteBatch>[];
+    WriteBatch? currentBatch = _db.batch();
+    int count = 0;
+
+    for (final doc in reportsSnapshot.docs) {
+      currentBatch!.delete(doc.reference);
+      count++;
+
+      if (count >= 500) {
+        batches.add(currentBatch);
+        currentBatch = _db.batch();
+        count = 0;
+      }
+    }
+
+    if (count > 0 && currentBatch != null) {
+      batches.add(currentBatch);
+    }
+
+    // Commit all batches
+    for (final batch in batches) {
+      await batch.commit();
+    }
+
+    Logger.info('All weekend reports deleted');
+  }
+
   /// Area tasks (managed by admin)
   Future<AreaTasksModel?> getAreaTasks(String area) async {
     final doc = await _db.collection('area_tasks').doc(area).get();
@@ -2451,15 +2487,58 @@ class FirestoreService {
         },
       );
 
-      // Upload file
-      final uploadTask = ref.putFile(file, metadata);
-      final snapshot = await uploadTask;
+      // Upload file - use putData on web, putFile on mobile
+      TaskSnapshot snapshot;
+      if (kIsWeb) {
+        final bytes = await file.readAsBytes();
+        snapshot = await ref.putData(bytes, metadata);
+      } else {
+        snapshot = await ref.putFile(file, metadata);
+      }
+
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
       Logger.info('Photo uploaded successfully: $downloadUrl');
       return downloadUrl;
     } catch (e) {
       Logger.error('Error uploading photo to storage', e);
+      rethrow;
+    }
+  }
+
+  /// Upload photo to Firebase Storage from bytes (works on web)
+  Future<String> uploadPhotoToStorageFromBytes(
+    String reportId,
+    Uint8List bytes,
+    int kelompokId,
+    String date,
+    String userId,
+  ) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '$timestamp.jpg';
+      final path = 'report_photos/$reportId/$fileName';
+
+      final ref = FirebaseStorage.instance.ref().child(path);
+
+      // Set metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {
+          'kelompokId': kelompokId.toString(),
+          'date': date,
+          'uploadedBy': userId,
+        },
+      );
+
+      // Upload bytes directly (works on web)
+      final snapshot = await ref.putData(bytes, metadata);
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      Logger.info('Photo uploaded successfully: $downloadUrl');
+      return downloadUrl;
+    } catch (e) {
+      Logger.error('Error uploading photo to storage from bytes', e);
       rethrow;
     }
   }
@@ -2888,6 +2967,9 @@ class FirestoreService {
   }
 
   /// Validate weekend report with scoring
+  /// This method also:
+  /// 1. Updates group score (kelompok points)
+  /// 2. Updates personal points for each executor (+5 per valid task)
   Future<void> validateWeekendReport(
     String reportId,
     String validatorId, {
@@ -2895,6 +2977,26 @@ class FirestoreService {
     List<Map<String, dynamic>>? validatedTasks,
   }) async {
     try {
+      // First, get the report to extract kelompokId and executor info
+      final reportDoc = await _db
+          .collection('weekend_reports')
+          .doc(reportId)
+          .get();
+      if (!reportDoc.exists) {
+        throw Exception('Weekend report not found: $reportId');
+      }
+
+      final reportData = reportDoc.data()!;
+      final kelompokId = reportData['kelompokId'] as int;
+      final tasks =
+          validatedTasks ??
+          (reportData['tasks'] as List?)?.cast<Map<String, dynamic>>() ??
+          [];
+
+      // Create batch for atomic updates
+      final batch = _db.batch();
+
+      // 1. Update the report document
       final updateData = <String, dynamic>{
         'status': 'validated',
         'validatedAt': FieldValue.serverTimestamp(),
@@ -2906,8 +3008,114 @@ class FirestoreService {
       if (validatedTasks != null) {
         updateData['tasks'] = validatedTasks;
       }
-      await _db.collection('weekend_reports').doc(reportId).update(updateData);
-      Logger.info('Weekend report validated: $reportId');
+      batch.update(reportDoc.reference, updateData);
+
+      // 2. Update group score (atomic increment) - same as daily report
+      if (finalScore != null && finalScore > 0) {
+        final groupRef = _db.collection('groups').doc(kelompokId.toString());
+        batch.set(groupRef, {
+          'group_id': kelompokId,
+          'total_weekly_score': FieldValue.increment(finalScore),
+          'last_updated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        Logger.info(
+          'Weekend: Group $kelompokId score incremented by $finalScore',
+        );
+      }
+
+      // 3. Calculate personal points for each executor
+      // Map executor name to task count
+      final executorTaskCount = <String, int>{};
+
+      for (final task in tasks) {
+        final isValid = task['is_valid'] as bool? ?? false;
+        if (!isValid) continue; // Only count valid tasks
+
+        final executors = (task['executors'] as List?)?.cast<String>() ?? [];
+        for (final executor in executors) {
+          if (executor.isEmpty) continue;
+          // Handle "Semua Tim" case - will be expanded to all members later
+          executorTaskCount[executor] = (executorTaskCount[executor] ?? 0) + 1;
+        }
+      }
+
+      // 4. Update personal points for each executor
+      if (executorTaskCount.isNotEmpty) {
+        // Get all members of this kelompok
+        final membersDoc = await _db
+            .collection('kelompok_members')
+            .doc(kelompokId.toString())
+            .get();
+        final allMembers = membersDoc.exists
+            ? (membersDoc.data()?['members'] as List?)?.cast<String>() ?? []
+            : <String>[];
+
+        // Expand "Semua Tim" to all members
+        final expandedExecutorTaskCount = <String, int>{};
+        for (final entry in executorTaskCount.entries) {
+          if (entry.key == 'Semua Tim' && allMembers.isNotEmpty) {
+            // Distribute to all members
+            for (final member in allMembers) {
+              expandedExecutorTaskCount[member] =
+                  (expandedExecutorTaskCount[member] ?? 0) + entry.value;
+            }
+          } else {
+            expandedExecutorTaskCount[entry.key] =
+                (expandedExecutorTaskCount[entry.key] ?? 0) + entry.value;
+          }
+        }
+
+        // Get existing users in this kelompok
+        final usersSnapshot = await _db
+            .collection('users')
+            .where('kelompok_id', isEqualTo: kelompokId)
+            .get();
+        final existingUsers = <String, DocumentReference>{};
+        for (final doc in usersSnapshot.docs) {
+          final displayName = doc.data()['displayName'] as String? ?? '';
+          if (displayName.isNotEmpty) {
+            existingUsers[displayName] = doc.reference;
+          }
+        }
+
+        // Update or create user documents with personal points
+        for (final entry in expandedExecutorTaskCount.entries) {
+          final executorName = entry.key;
+          final taskCount = entry.value;
+          final pointsToAdd = taskCount * 5; // 5 points per valid task
+
+          if (existingUsers.containsKey(executorName)) {
+            // User exists: increment personal points
+            batch.update(existingUsers[executorName]!, {
+              'stats.personal_points': FieldValue.increment(pointsToAdd),
+            });
+            Logger.info('Weekend: $executorName personal points +$pointsToAdd');
+          } else {
+            // User doesn't exist: create new document
+            final newUserRef = _db.collection('users').doc();
+            batch.set(newUserRef, {
+              'email': '',
+              'displayName': executorName,
+              'role': 'koordinator',
+              'kelompok_id': kelompokId,
+              'stats': {
+                'total_poin': 0,
+                'current_streak': 0,
+                'personal_points': pointsToAdd,
+              },
+            });
+            Logger.info(
+              'Weekend: Created user $executorName with $pointsToAdd points',
+            );
+          }
+        }
+      }
+
+      // Commit all updates atomically
+      await batch.commit();
+      Logger.info(
+        'Weekend report validated with points: $reportId (score: $finalScore)',
+      );
     } catch (e) {
       Logger.error('Error validating weekend report', e);
       rethrow;
@@ -3105,6 +3313,345 @@ class FirestoreService {
       Logger.info('Default weekend tasks seeded');
     } catch (e) {
       Logger.error('Error seeding default weekend tasks', e);
+    }
+  }
+
+  // ============================================
+  // Study Time Methods
+  // ============================================
+
+  /// Save/update study time record
+  Future<void> saveStudyTimeRecord(StudyTimeRecord record) async {
+    try {
+      await _db
+          .collection('study_time_records')
+          .doc(record.id)
+          .set(record.toMap(), SetOptions(merge: true));
+      Logger.info('Study time record saved: ${record.id}');
+    } catch (e) {
+      Logger.error('Error saving study time record', e);
+      rethrow;
+    }
+  }
+
+  /// Get study time record for a specific date and kelompok
+  Future<StudyTimeRecord?> getStudyTimeRecord(
+    String date,
+    int kelompokId,
+  ) async {
+    try {
+      final docId = '${date}_$kelompokId';
+      final doc = await _db.collection('study_time_records').doc(docId).get();
+
+      if (!doc.exists) return null;
+      return StudyTimeRecord.fromFirestore(doc);
+    } catch (e) {
+      Logger.error('Error getting study time record', e);
+      return null;
+    }
+  }
+
+  /// Watch study time record for a specific date and kelompok
+  Stream<StudyTimeRecord?> watchStudyTimeRecord(String date, int kelompokId) {
+    final docId = '${date}_$kelompokId';
+    return _db
+        .collection('study_time_records')
+        .doc(docId)
+        .snapshots()
+        .map((doc) => doc.exists ? StudyTimeRecord.fromFirestore(doc) : null);
+  }
+
+  /// Get study time records for a date range (for weekly/monthly history)
+  Future<List<StudyTimeRecord>> getStudyTimeRecords({
+    required int kelompokId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final startStr = _formatDate(startDate);
+      final endStr = _formatDate(endDate);
+
+      final query = await _db
+          .collection('study_time_records')
+          .where('kelompokId', isEqualTo: kelompokId)
+          .get();
+
+      final allRecords = query.docs
+          .map((doc) => StudyTimeRecord.fromFirestore(doc))
+          .toList();
+
+      // Filter by date range and sort in Dart to avoid index requirement
+      final filteredRecords = allRecords.where((record) {
+        return record.date.compareTo(startStr) >= 0 &&
+            record.date.compareTo(endStr) <= 0;
+      }).toList();
+
+      filteredRecords.sort((a, b) => b.date.compareTo(a.date)); // Descending
+
+      return filteredRecords;
+    } catch (e) {
+      Logger.error('Error getting study time records', e);
+      return [];
+    }
+  }
+
+  /// Get weekly study time summary for a kelompok
+  Future<Map<String, Map<String, int>>> getWeeklyStudyTimeSummary({
+    required int kelompokId,
+    required DateTime weekStart,
+  }) async {
+    try {
+      final weekEnd = weekStart.add(const Duration(days: 6));
+      final records = await getStudyTimeRecords(
+        kelompokId: kelompokId,
+        startDate: weekStart,
+        endDate: weekEnd,
+      );
+
+      // Aggregate by member
+      final Map<String, Map<String, int>> memberStats = {};
+
+      for (final record in records) {
+        for (final attendance in record.attendances) {
+          if (!memberStats.containsKey(attendance.userId)) {
+            memberStats[attendance.userId] = {
+              'hadir': 0,
+              'sakit': 0,
+              'ijin': 0,
+              'displayName': 0, // Placeholder, will store name separately
+            };
+          }
+
+          switch (attendance.status) {
+            case AttendanceStatus.hadir:
+              memberStats[attendance.userId]!['hadir'] =
+                  (memberStats[attendance.userId]!['hadir'] ?? 0) + 1;
+              break;
+            case AttendanceStatus.sakit:
+              memberStats[attendance.userId]!['sakit'] =
+                  (memberStats[attendance.userId]!['sakit'] ?? 0) + 1;
+              break;
+            case AttendanceStatus.ijin:
+              memberStats[attendance.userId]!['ijin'] =
+                  (memberStats[attendance.userId]!['ijin'] ?? 0) + 1;
+              break;
+          }
+        }
+      }
+
+      return memberStats;
+    } catch (e) {
+      Logger.error('Error getting weekly study time summary', e);
+      return {};
+    }
+  }
+
+  /// Get monthly study time summary for a kelompok
+  Future<Map<String, Map<String, int>>> getMonthlyStudyTimeSummary({
+    required int kelompokId,
+    required int year,
+    required int month,
+  }) async {
+    try {
+      final monthStart = DateTime(year, month, 1);
+      final monthEnd = DateTime(year, month + 1, 0); // Last day of month
+
+      final records = await getStudyTimeRecords(
+        kelompokId: kelompokId,
+        startDate: monthStart,
+        endDate: monthEnd,
+      );
+
+      // Aggregate by member
+      final Map<String, Map<String, int>> memberStats = {};
+
+      for (final record in records) {
+        for (final attendance in record.attendances) {
+          if (!memberStats.containsKey(attendance.userId)) {
+            memberStats[attendance.userId] = {
+              'hadir': 0,
+              'sakit': 0,
+              'ijin': 0,
+            };
+          }
+
+          switch (attendance.status) {
+            case AttendanceStatus.hadir:
+              memberStats[attendance.userId]!['hadir'] =
+                  (memberStats[attendance.userId]!['hadir'] ?? 0) + 1;
+              break;
+            case AttendanceStatus.sakit:
+              memberStats[attendance.userId]!['sakit'] =
+                  (memberStats[attendance.userId]!['sakit'] ?? 0) + 1;
+              break;
+            case AttendanceStatus.ijin:
+              memberStats[attendance.userId]!['ijin'] =
+                  (memberStats[attendance.userId]!['ijin'] ?? 0) + 1;
+              break;
+          }
+        }
+      }
+
+      return memberStats;
+    } catch (e) {
+      Logger.error('Error getting monthly study time summary', e);
+      return {};
+    }
+  }
+
+  /// Helper to format date as yyyy-MM-dd
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Get members of a kelompok for study time attendance
+  Future<List<Map<String, dynamic>>> getKelompokMembersForStudyTime(
+    int kelompokId,
+  ) async {
+    try {
+      final List<Map<String, dynamic>> members = [];
+
+      // Get from kelompok_members collection first
+      final membersDoc = await _db
+          .collection(AppConstants.collectionKelompokMembers)
+          .doc(kelompokId.toString())
+          .get();
+
+      if (membersDoc.exists) {
+        final data = membersDoc.data();
+        final membersList = (data?['members'] as List?) ?? [];
+
+        for (final memberName in membersList) {
+          final memberNameStr = memberName.toString();
+
+          // Try to find userId from users collection
+          final userQuery = await _db
+              .collection(AppConstants.collectionUsers)
+              .where('displayName', isEqualTo: memberNameStr)
+              .where('kelompok_id', isEqualTo: kelompokId)
+              .limit(1)
+              .get();
+
+          String oderId;
+          if (userQuery.docs.isNotEmpty) {
+            oderId = userQuery.docs.first.id;
+          } else {
+            // Generate oderId if not found
+            oderId = 'member_${kelompokId}_${memberNameStr.hashCode.abs()}';
+          }
+
+          members.add({
+            'userId': oderId,
+            'displayName': memberNameStr,
+            'kelompokId': kelompokId,
+          });
+        }
+      }
+
+      // Sort by displayName
+      members.sort(
+        (a, b) =>
+            (a['displayName'] as String).compareTo(b['displayName'] as String),
+      );
+
+      return members;
+    } catch (e) {
+      Logger.error('Error getting kelompok members for study time', e);
+      return [];
+    }
+  }
+
+  // ============================================
+  // Reset Data Methods
+  // ============================================
+
+  /// Reset all violation cases (delete all violation records)
+  Future<int> resetAllViolationCases() async {
+    try {
+      final snapshot = await _db
+          .collection(AppConstants.collectionViolationCases)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        Logger.info('No violation cases to reset');
+        return 0;
+      }
+
+      // Delete in batches of 500 (Firestore limit)
+      int deleted = 0;
+      final batches = <WriteBatch>[];
+      WriteBatch batch = _db.batch();
+      int count = 0;
+
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+        count++;
+        deleted++;
+
+        if (count >= 500) {
+          batches.add(batch);
+          batch = _db.batch();
+          count = 0;
+        }
+      }
+
+      if (count > 0) {
+        batches.add(batch);
+      }
+
+      for (final b in batches) {
+        await b.commit();
+      }
+
+      Logger.info('Reset $deleted violation cases');
+      return deleted;
+    } catch (e) {
+      Logger.error('Error resetting violation cases', e);
+      rethrow;
+    }
+  }
+
+  /// Reset all study time records
+  Future<int> resetAllStudyTimeRecords() async {
+    try {
+      final snapshot = await _db.collection('study_time_records').get();
+
+      if (snapshot.docs.isEmpty) {
+        Logger.info('No study time records to reset');
+        return 0;
+      }
+
+      // Delete in batches of 500 (Firestore limit)
+      int deleted = 0;
+      final batches = <WriteBatch>[];
+      WriteBatch batch = _db.batch();
+      int count = 0;
+
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+        count++;
+        deleted++;
+
+        if (count >= 500) {
+          batches.add(batch);
+          batch = _db.batch();
+          count = 0;
+        }
+      }
+
+      if (count > 0) {
+        batches.add(batch);
+      }
+
+      for (final b in batches) {
+        await b.commit();
+      }
+
+      Logger.info('Reset $deleted study time records');
+      return deleted;
+    } catch (e) {
+      Logger.error('Error resetting study time records', e);
+      rethrow;
     }
   }
 }

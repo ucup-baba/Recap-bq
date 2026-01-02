@@ -65,9 +65,9 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
                       child: LeaderboardView(hideAppBar: true),
                     ),
                     // Tab 2: Kelola Anggota
-                    const KeyedSubtree(
-                      key: ValueKey('tab_2_members'),
-                      child: ManageMembersView(hideAppBar: true),
+                    KeyedSubtree(
+                      key: const ValueKey('tab_2_members'),
+                      child: _buildMembersTab(context),
                     ),
                     // Tab 3: Task
                     KeyedSubtree(
@@ -585,44 +585,79 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
   Widget _buildTaskTab(BuildContext context) {
     return Container(
       color: context.backgroundColor,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
         children: [
-          const SizedBox(height: 16),
-          Text(
-            'Kelola Task',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: context.textColor,
+          // Gradient Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: context.isDark
+                    ? [const Color(0xFFB39DDB), const Color(0xFF9575CD)]
+                    : [Colors.deepPurple.shade500, Colors.deepPurple.shade700],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kelola',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Tasks',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          _buildTaskCard(
-            context: context,
-            title: 'Kelola Tasks',
-            subtitle: 'Kelola tugas piket harian',
-            icon: Icons.list_alt,
-            color: Colors.blue,
-            onTap: controller.openManageTasks,
-          ),
-          const SizedBox(height: 12),
-          _buildTaskCard(
-            context: context,
-            title: 'Task Weekend',
-            subtitle: 'Kelola tugas piket weekend',
-            icon: Icons.weekend,
-            color: Colors.teal,
-            onTap: controller.openManageWeekendTasks,
-          ),
-          const SizedBox(height: 12),
-          _buildTaskCard(
-            context: context,
-            title: 'Jadwal Weekend',
-            subtitle: 'Lihat jadwal rotasi weekend',
-            icon: Icons.calendar_month,
-            color: Colors.purple,
-            onTap: controller.openWeekendSchedule,
+          // Content
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildTaskCard(
+                  context: context,
+                  title: 'Kelola Tasks',
+                  subtitle: 'Kelola tugas piket harian',
+                  icon: Icons.list_alt,
+                  color: Colors.blue,
+                  onTap: controller.openManageTasks,
+                ),
+                const SizedBox(height: 12),
+                _buildTaskCard(
+                  context: context,
+                  title: 'Task Weekend',
+                  subtitle: 'Kelola tugas piket weekend',
+                  icon: Icons.weekend,
+                  color: Colors.teal,
+                  onTap: controller.openManageWeekendTasks,
+                ),
+                const SizedBox(height: 12),
+                _buildTaskCard(
+                  context: context,
+                  title: 'Jadwal Weekend',
+                  subtitle: 'Lihat jadwal rotasi weekend',
+                  icon: Icons.calendar_month,
+                  color: Colors.purple,
+                  onTap: controller.openWeekendSchedule,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -668,132 +703,242 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
     );
   }
 
+  // ============ TAB 2: ANGGOTA ============
+  Widget _buildMembersTab(BuildContext context) {
+    return Container(
+      color: context.backgroundColor,
+      child: Column(
+        children: [
+          // Gradient Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: context.isDark
+                    ? [const Color(0xFFA5D6A7), const Color(0xFF81C784)]
+                    : [Colors.green.shade600, Colors.green.shade800],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kelola',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Anggota',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content - ManageMembersView content
+          const Expanded(child: ManageMembersView(hideAppBar: true)),
+        ],
+      ),
+    );
+  }
+
   // ============ TAB 4: AKUN ============
   Widget _buildAccountTab(BuildContext context) {
     return Container(
       color: context.backgroundColor,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
         children: [
-          const SizedBox(height: 16),
-          // Dark Mode Toggle
-          _buildDarkModeSwitch(context),
-          const SizedBox(height: 16),
-          // Recalculate Personal Points Card
+          // Gradient Header
           Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
             decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: context.isDark ? Colors.black26 : Colors.black12,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: context.isDark
+                    ? [const Color(0xFFCE93D8), const Color(0xFFBA68C8)]
+                    : [Colors.purple.shade500, Colors.purple.shade700],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Akun',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Pengaturan',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
-            ),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue.withValues(alpha: 0.1),
-                child: Obx(
-                  () => controller.isRecalculating.value
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.calculate, color: Colors.blue),
-                ),
-              ),
-              title: Text(
-                'Recalculate Personal Points',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: context.textColor,
-                ),
-              ),
-              subtitle: Text(
-                'Hitung ulang poin personal semua user',
-                style: TextStyle(color: context.subtextColor),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.subtextColor),
-              onTap: controller.showRecalculateDialog,
             ),
           ),
-          const SizedBox(height: 12),
-          // Reset Data Card
-          Container(
-            decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: context.isDark ? Colors.black26 : Colors.black12,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+          // Content
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Dark Mode Toggle
+                _buildDarkModeSwitch(context),
+                const SizedBox(height: 16),
+                // Recalculate Personal Points Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.isDark ? Colors.black26 : Colors.black12,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                      child: Obx(
+                        () => controller.isRecalculating.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.calculate, color: Colors.blue),
+                      ),
+                    ),
+                    title: Text(
+                      'Recalculate Personal Points',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: context.textColor,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Hitung ulang poin personal semua user',
+                      style: TextStyle(color: context.subtextColor),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: context.subtextColor,
+                    ),
+                    onTap: controller.showRecalculateDialog,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Reset Data Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.isDark ? Colors.black26 : Colors.black12,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                      child: Obx(
+                        () => controller.isResetting.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.refresh, color: Colors.orange),
+                      ),
+                    ),
+                    title: Text(
+                      'Reset Data',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: context.textColor,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Reset data laporan dan statistik',
+                      style: TextStyle(color: context.subtextColor),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: context.subtextColor,
+                    ),
+                    onTap: controller.showResetDialog,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Logout Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.isDark
+                        ? context.cardColor
+                        : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.isDark ? Colors.black26 : Colors.black12,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.logout, color: Colors.white),
+                    ),
+                    title: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Keluar dari akun',
+                      style: TextStyle(color: context.subtextColor),
+                    ),
+                    trailing: const Icon(
+                      Icons.chevron_right,
+                      color: Colors.red,
+                    ),
+                    onTap: controller.logout,
+                  ),
                 ),
               ],
-            ),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.orange.withValues(alpha: 0.1),
-                child: Obx(
-                  () => controller.isResetting.value
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.refresh, color: Colors.orange),
-                ),
-              ),
-              title: Text(
-                'Reset Data',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: context.textColor,
-                ),
-              ),
-              subtitle: Text(
-                'Reset data laporan dan statistik',
-                style: TextStyle(color: context.subtextColor),
-              ),
-              trailing: Icon(Icons.chevron_right, color: context.subtextColor),
-              onTap: controller.showResetDialog,
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Logout Card
-          Container(
-            decoration: BoxDecoration(
-              color: context.isDark ? context.cardColor : Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: context.isDark ? Colors.black26 : Colors.black12,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.red,
-                child: Icon(Icons.logout, color: Colors.white),
-              ),
-              title: const Text(
-                'Logout',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              subtitle: Text(
-                'Keluar dari akun',
-                style: TextStyle(color: context.subtextColor),
-              ),
-              trailing: const Icon(Icons.chevron_right, color: Colors.red),
-              onTap: controller.logout,
             ),
           ),
         ],

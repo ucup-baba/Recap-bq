@@ -13,137 +13,193 @@ class RecordViolationView extends GetView<RecordViolationController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.backgroundColor,
-      appBar: hideAppBar
-          ? null
-          : AppBar(
-              title: const Text('Catat Pelanggaran'),
-              flexibleSpace: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.getHeaderGradient(context),
-                ),
-              ),
-              foregroundColor: Colors.white,
-            ),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final bodyContent = _buildBody(context);
 
-        return Column(
+    if (hideAppBar) {
+      return Container(
+        color: context.backgroundColor,
+        child: Column(
           children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Langkah 1: Pilih Jenis Pelanggaran
-                    _buildSectionTitle('1. Pilih Jenis Pelanggaran', context),
-                    const SizedBox(height: 8),
-                    _buildRuleDropdown(context),
-                    const SizedBox(height: 24),
-
-                    // Langkah 2: Pilih Detail Waktu (Conditional)
-                    Obx(() {
-                      if (controller.selectedRule.value?.requiresTimeDetail ==
-                          true) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionTitle(
-                              '2. Pilih Detail Waktu',
-                              context,
-                            ),
-                            const SizedBox(height: 8),
-                            _buildTimeDetailDropdown(context),
-                            const SizedBox(height: 24),
-                          ],
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    }),
-
-                    // Langkah 3: Pilih Anggota
-                    Obx(
-                      () => _buildSectionTitle(
-                        controller.selectedRule.value?.requiresTimeDetail ==
-                                true
-                            ? '3. Pilih Anggota'
-                            : '2. Pilih Anggota',
-                        context,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSearchBar(context),
-                    const SizedBox(height: 12),
-                    _buildMembersList(context),
-                  ],
+            // Header gradient style
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: context.isDark
+                      ? [const Color(0xFFFFCC80), const Color(0xFFFFB74D)]
+                      : [Colors.amber.shade600, Colors.amber.shade800],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(24),
                 ),
               ),
-            ),
-
-            // Langkah 4: Tombol Simpan
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: context.cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: context.isDark
-                        ? Colors.black26
-                        : Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mentoring',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Catat Kasus',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
-              child: Obx(
-                () => SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: controller.isSaving.value
-                        ? null
-                        : controller.saveViolation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.isDark
-                          ? const Color(0xFF90CAF9)
-                          : AppColors.primaryBlue,
-                      foregroundColor: context.isDark
-                          ? Colors.black
-                          : Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+            ),
+            // Body content
+            Expanded(child: bodyContent),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: context.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Catat Pelanggaran'),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: context.isDark
+                  ? [const Color(0xFFFFCC80), const Color(0xFFFFB74D)]
+                  : [Colors.amber.shade600, Colors.amber.shade800],
+            ),
+          ),
+        ),
+        foregroundColor: Colors.white,
+      ),
+      body: bodyContent,
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      return Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Langkah 1: Pilih Jenis Pelanggaran
+                  _buildSectionTitle('1. Pilih Jenis Pelanggaran', context),
+                  const SizedBox(height: 8),
+                  _buildRuleDropdown(context),
+                  const SizedBox(height: 24),
+
+                  // Langkah 2: Pilih Detail Waktu (Conditional)
+                  Obx(() {
+                    if (controller.selectedRule.value?.requiresTimeDetail ==
+                        true) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle('2. Pilih Detail Waktu', context),
+                          const SizedBox(height: 8),
+                          _buildTimeDetailDropdown(context),
+                          const SizedBox(height: 24),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+
+                  // Langkah 3: Pilih Anggota
+                  Obx(
+                    () => _buildSectionTitle(
+                      controller.selectedRule.value?.requiresTimeDetail == true
+                          ? '3. Pilih Anggota'
+                          : '2. Pilih Anggota',
+                      context,
                     ),
-                    child: controller.isSaving.value
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                context.isDark ? Colors.black : Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Text(
-                            'Simpan',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSearchBar(context),
+                  const SizedBox(height: 12),
+                  _buildMembersList(context),
+                ],
+              ),
+            ),
+          ),
+
+          // Langkah 4: Tombol Simpan
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              boxShadow: [
+                BoxShadow(
+                  color: context.isDark
+                      ? Colors.black26
+                      : Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: Obx(
+              () => SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: controller.isSaving.value
+                      ? null
+                      : controller.saveViolation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.isDark
+                        ? const Color(0xFFFFCC80)
+                        : Colors.amber.shade800,
+                    foregroundColor: context.isDark
+                        ? Colors.black
+                        : Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: controller.isSaving.value
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              context.isDark ? Colors.black : Colors.white,
                             ),
                           ),
-                  ),
+                        )
+                      : const Text(
+                          'Simpan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ),
-          ],
-        );
-      }),
-    );
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildSectionTitle(String title, BuildContext context) {

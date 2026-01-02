@@ -59,15 +59,26 @@ class SuperAdminDashboardController extends GetxController {
 
   void changeTab(int index) {
     if (index >= 0 && index < 5) {
-      Logger.info('Super Admin: Changing tab from ${currentTabIndex.value} to $index');
+      Logger.info(
+        'Super Admin: Changing tab from ${currentTabIndex.value} to $index',
+      );
       currentTabIndex.value = index;
-      Logger.info('Super Admin: Tab changed successfully. Current index: ${currentTabIndex.value}');
+
+      // Refresh to today's date when Report tab is selected
+      if (index == 3 && Get.isRegistered<SuperAdminReportController>()) {
+        Get.find<SuperAdminReportController>().refreshToToday();
+      }
+
+      Logger.info(
+        'Super Admin: Tab changed successfully. Current index: ${currentTabIndex.value}',
+      );
     } else {
       Logger.warning('Super Admin: Invalid tab index: $index');
     }
   }
 
-  void openNotificationSettings() => Get.toNamed(AppRoutes.notificationSettings);
+  void openNotificationSettings() =>
+      Get.toNamed(AppRoutes.notificationSettings);
 
   Future<void> logout() async {
     try {
@@ -81,4 +92,3 @@ class SuperAdminDashboardController extends GetxController {
     }
   }
 }
-

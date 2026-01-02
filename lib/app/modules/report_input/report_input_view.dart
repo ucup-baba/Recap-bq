@@ -29,7 +29,7 @@ class ReportInputView extends GetView<ReportInputController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           // Header
@@ -40,8 +40,8 @@ class ReportInputView extends GetView<ReportInputController> {
               left: 16,
               right: 16,
             ),
-            decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
+            decoration: BoxDecoration(
+              gradient: AppColors.getHeaderGradient(context),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
             ),
             child: SafeArea(
@@ -108,35 +108,35 @@ class ReportInputView extends GetView<ReportInputController> {
 
               return Column(
                 children: [
-                    Container(
-                      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: statusColor.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                        Icon(statusIcon, color: statusColor),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                            statusText,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.text,
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
+                    child: Row(
+                      children: [
+                        Icon(statusIcon, color: statusColor),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: context.textColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                   // Photo Evidence Section
                   _buildPhotoEvidence(context),
@@ -151,75 +151,75 @@ class ReportInputView extends GetView<ReportInputController> {
 
                         return Obx(() {
                           // Wrap dengan Obx agar onTap reactive terhadap isReadOnly
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: context.cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: controller.isReadOnly.value
-                                ? null
-                                : () => controller.toggleDone(index),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  // Custom Checkbox Icon
-                                  AnimatedContainer(
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: controller.isReadOnly.value
+                                  ? null
+                                  : () => controller.toggleDone(index),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    // Custom Checkbox Icon
+                                    AnimatedContainer(
                                       duration: const Duration(
                                         milliseconds: 200,
                                       ),
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isDone
-                                          ? AppColors.successGreen
-                                          : Colors.transparent,
-                                      border: Border.all(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
                                         color: isDone
                                             ? AppColors.successGreen
-                                            : Colors.grey[300]!,
-                                        width: 2,
+                                            : Colors.transparent,
+                                        border: Border.all(
+                                          color: isDone
+                                              ? AppColors.successGreen
+                                              : Colors.grey[300]!,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.check,
+                                        size: 16,
+                                        color: isDone
+                                            ? Colors.white
+                                            : Colors.transparent,
                                       ),
                                     ),
-                                    child: Icon(
-                                      Icons.check,
-                                      size: 16,
-                                      color: isDone
-                                          ? Colors.white
-                                          : Colors.transparent,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          task.taskName,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDone
-                                                ? AppColors.text
-                                                : Colors.grey[600],
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            task.taskName,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDone
+                                                  ? context.textColor
+                                                  : Colors.grey[600],
                                             ),
                                           ),
                                           if (task.executors.isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 6,
-                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 6,
+                                              ),
                                               child: Wrap(
                                                 spacing: 6,
                                                 runSpacing: 4,
@@ -232,14 +232,14 @@ class ReportInputView extends GetView<ReportInputController> {
                                                           horizontal: 8,
                                                           vertical: 4,
                                                         ),
-                                                  decoration: BoxDecoration(
+                                                    decoration: BoxDecoration(
                                                       color: _getAvatarColor(
                                                         executor,
                                                       ).withValues(alpha: 0.1),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             12,
-                                                  ),
+                                                          ),
                                                       border: Border.all(
                                                         color: _getAvatarColor(
                                                           executor,
@@ -258,7 +258,7 @@ class ReportInputView extends GetView<ReportInputController> {
                                                             color:
                                                                 _getAvatarColor(
                                                                   executor,
-                                                        ),
+                                                                ),
                                                             shape:
                                                                 BoxShape.circle,
                                                           ),
@@ -270,56 +270,56 @@ class ReportInputView extends GetView<ReportInputController> {
                                                                 fontSize: 8,
                                                                 color: Colors
                                                                     .white,
-                                                        fontWeight:
+                                                                fontWeight:
                                                                     FontWeight
                                                                         .bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
                                                         const SizedBox(
                                                           width: 4,
                                                         ),
-                                                Text(
+                                                        Text(
                                                           executor,
-                                                  style: TextStyle(
+                                                          style: TextStyle(
                                                             color:
                                                                 _getAvatarColor(
                                                                   executor,
-                                                    ),
+                                                                ),
                                                             fontSize: 10,
                                                             fontWeight:
                                                                 FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   );
                                                 }).toList(),
-                                            ),
-                                          )
-                                        else if (!controller.isReadOnly.value)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 6,
-                                            ),
-                                            child: Text(
-                                              'Tap untuk pilih pelaksana',
-                                              style: TextStyle(
-                                                color: Colors.grey[400],
-                                                fontSize: 12,
-                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            )
+                                          else if (!controller.isReadOnly.value)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 6,
+                                              ),
+                                              child: Text(
+                                                'Tap untuk pilih pelaksana',
+                                                style: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: 12,
+                                                  fontStyle: FontStyle.italic,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
+                          );
                         });
                       },
                     ),
@@ -334,7 +334,7 @@ class ReportInputView extends GetView<ReportInputController> {
             () => Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardColor,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -360,12 +360,12 @@ class ReportInputView extends GetView<ReportInputController> {
                           ),
                           side: BorderSide(color: Colors.grey[300]!),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Batal',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.text,
+                            color: context.textColor,
                           ),
                         ),
                       ),
@@ -426,14 +426,15 @@ class ReportInputView extends GetView<ReportInputController> {
 
   Widget _buildPhotoEvidence(BuildContext context) {
     return Obx(() {
-      final hasPhoto = controller.photoUrl.value.isNotEmpty;
+      final photos = controller.photoUrls;
       final isUploading = controller.isUploadingPhoto.value;
       final isReadOnly = controller.isReadOnly.value;
+      final canAddMore = controller.canAddMorePhotos;
 
       return Container(
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -446,135 +447,204 @@ class ReportInputView extends GetView<ReportInputController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  const Icon(Icons.camera_alt, color: AppColors.primaryBlue),
-                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.photo_library,
+                      color: AppColors.primaryBlue,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   const Text(
                     'Foto Bukti',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
+                  const Spacer(),
+                  // Photo counter
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: photos.isEmpty
+                          ? Colors.grey.shade100
+                          : AppColors.primaryBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${photos.length}/${ReportInputController.maxPhotos}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: photos.isEmpty
+                            ? Colors.grey
+                            : AppColors.primaryBlue,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
+
+            // Photo gallery - Horizontal scroll
             if (isUploading)
               const Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(24),
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (hasPhoto)
-              Stack(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: CachedNetworkImage(
-                          imageUrl: controller.photoUrl.value,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.error),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (!isReadOnly)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.white),
-                          onPressed: controller.deletePhoto,
-                          iconSize: 20,
-                          padding: const EdgeInsets.all(8),
-                        ),
-                      ),
-                    ),
-                ],
-              )
-            else
+            else if (photos.isEmpty && isReadOnly)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: InkWell(
-                  onTap: isReadOnly
-                      ? null
-                      : () => _showPhotoPickerDialog(context),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.grey[300]!,
-                        width: 2,
-                        style: BorderStyle.solid,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.camera_alt,
-                          size: 40,
-                          color: isReadOnly
-                              ? Colors.grey[400]
-                              : AppColors.primaryBlue,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Ambil Foto',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: isReadOnly
-                                ? Colors.grey[400]
-                                : AppColors.primaryBlue,
-                          ),
-                        ),
-                      ],
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Tidak ada foto',
+                      style: TextStyle(color: context.subtextColor),
                     ),
                   ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 110,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  children: [
+                    // Existing photos
+                    ...photos.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final url = entry.value;
+                      return _buildPhotoItem(context, url, index, isReadOnly);
+                    }),
+                    // Add photo button
+                    if (!isReadOnly && canAddMore)
+                      _buildAddPhotoButton(context),
+                  ],
                 ),
               ),
           ],
         ),
       );
     });
+  }
+
+  Widget _buildPhotoItem(
+    BuildContext context,
+    String url,
+    int index,
+    bool isReadOnly,
+  ) {
+    return Container(
+      width: 100,
+      height: 100,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CachedNetworkImage(
+              imageUrl: url,
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: Colors.grey[200],
+                child: const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: Colors.grey[200],
+                child: const Icon(Icons.error, color: Colors.red),
+              ),
+            ),
+          ),
+          // Delete button
+          if (!isReadOnly)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: () => controller.deletePhoto(index),
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddPhotoButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showPhotoPickerDialog(context),
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.primaryBlue.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primaryBlue,
+            width: 2,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_a_photo, size: 32, color: AppColors.primaryBlue),
+            SizedBox(height: 8),
+            Text(
+              'Tambah',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showPhotoPickerDialog(BuildContext context) {

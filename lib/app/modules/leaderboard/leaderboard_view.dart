@@ -87,73 +87,23 @@ class LeaderboardView extends GetView<LeaderboardController> {
                         controller.currentTabIndex.value == 0) {
                       return Container(
                         margin: const EdgeInsets.only(top: 16),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
+                        height: 48,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
                           children: [
-                            const Icon(
-                              Icons.filter_list,
-                              color: Colors.white,
-                              size: 20,
+                            _buildKelompokFilterChip(
+                              context,
+                              controller,
+                              'Semua',
+                              null,
                             ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Filter:',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
+                            for (int i = 1; i <= 5; i++)
+                              _buildKelompokFilterChip(
+                                context,
+                                controller,
+                                '$i',
+                                i,
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButton<int?>(
-                                value: controller.selectedKelompok.value,
-                                isExpanded: true,
-                                underline: const SizedBox(),
-                                dropdownColor: context.cardColor,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: context.textColor,
-                                ),
-                                icon: const Icon(
-                                  Icons.arrow_drop_down,
-                                  color: Colors.white,
-                                ),
-                                items: [
-                                  DropdownMenuItem<int?>(
-                                    value: null,
-                                    child: Text(
-                                      'Semua Kelompok',
-                                      style: TextStyle(
-                                        color: context.textColor,
-                                      ),
-                                    ),
-                                  ),
-                                  ...List.generate(5, (index) {
-                                    final kelompokId = index + 1;
-                                    return DropdownMenuItem<int?>(
-                                      value: kelompokId,
-                                      child: Text(
-                                        'Kelompok $kelompokId',
-                                        style: TextStyle(
-                                          color: context.textColor,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-                                onChanged: (val) {
-                                  controller.setKelompokFilter(val);
-                                },
-                              ),
-                            ),
                           ],
                         ),
                       );
@@ -164,96 +114,45 @@ class LeaderboardView extends GetView<LeaderboardController> {
               ),
             ),
           ),
-        // Filter dropdown untuk admin/super_admin saat hideAppBar (embedded di Super Admin Dashboard)
+        // Header untuk embedded view (hideAppBar = true)
         if (hideAppBar)
-          Obx(() {
-            if (controller.isAdmin.value &&
-                controller.currentTabIndex.value == 0) {
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: context.isDark
+                    ? [const Color(0xFFFFCC80), const Color(0xFFFFB74D)]
+                    : [Colors.amber.shade700, Colors.amber.shade900],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Papan Peringkat',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: context.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: context.isDark
-                          ? Colors.black26
-                          : Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                const Text(
+                  'Leaderboard',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.filter_list,
-                      color: context.isDark
-                          ? const Color(0xFF90CAF9)
-                          : AppColors.primaryBlue,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Filter:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: context.textColor,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButton<int?>(
-                        value: controller.selectedKelompok.value,
-                        isExpanded: true,
-                        underline: const SizedBox(),
-                        dropdownColor: context.cardColor,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: context.textColor,
-                        ),
-                        icon: Icon(
-                          Icons.arrow_drop_down,
-                          color: context.isDark
-                              ? const Color(0xFF90CAF9)
-                              : AppColors.primaryBlue,
-                        ),
-                        items: [
-                          DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text(
-                              'Semua Kelompok',
-                              style: TextStyle(color: context.textColor),
-                            ),
-                          ),
-                          ...List.generate(5, (index) {
-                            final kelompokId = index + 1;
-                            return DropdownMenuItem<int?>(
-                              value: kelompokId,
-                              child: Text(
-                                'Kelompok $kelompokId',
-                                style: TextStyle(color: context.textColor),
-                              ),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) {
-                          controller.setKelompokFilter(val);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
+              ],
+            ),
+          ),
         // Tab Bar
         Container(
           color: context.cardColor,
@@ -272,6 +171,31 @@ class LeaderboardView extends GetView<LeaderboardController> {
             ],
           ),
         ),
+        // Filter dropdown - sekarang di bawah tab bar
+        if (hideAppBar)
+          Obx(() {
+            if (controller.isAdmin.value &&
+                controller.currentTabIndex.value == 0) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                height: 48,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _buildKelompokFilterChipAlt(
+                      context,
+                      controller,
+                      'Semua',
+                      null,
+                    ),
+                    for (int i = 1; i <= 5; i++)
+                      _buildKelompokFilterChipAlt(context, controller, '$i', i),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
         Expanded(
           child: TabBarView(
             controller: controller.tabController,
@@ -513,5 +437,113 @@ class LeaderboardView extends GetView<LeaderboardController> {
     if (rank == 2) return const Color(0xFFC0C0C0); // Silver
     if (rank == 3) return const Color(0xFFCD7F32); // Bronze
     return Colors.grey[300]!;
+  }
+
+  Widget _buildKelompokFilterChip(
+    BuildContext context,
+    LeaderboardController controller,
+    String label,
+    int? kelompokId,
+  ) {
+    final isSelected = controller.selectedKelompok.value == kelompokId;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => controller.setKelompokFilter(kelompokId),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.white.withValues(alpha: 0.25)
+                : Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                const Icon(Icons.check, size: 16, color: Colors.white),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKelompokFilterChipAlt(
+    BuildContext context,
+    LeaderboardController controller,
+    String label,
+    int? kelompokId,
+  ) {
+    final isSelected = controller.selectedKelompok.value == kelompokId;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => controller.setKelompokFilter(kelompokId),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (context.isDark
+                      ? const Color(0xFF90CAF9).withValues(alpha: 0.2)
+                      : Colors.amber.shade50)
+                : (context.isDark ? context.cardColor : Colors.white),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? (context.isDark
+                        ? const Color(0xFF90CAF9)
+                        : Colors.amber.shade300)
+                  : (context.isDark ? Colors.grey[600]! : Colors.grey[300]!),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                Icon(
+                  Icons.check,
+                  size: 16,
+                  color: context.isDark
+                      ? const Color(0xFF90CAF9)
+                      : Colors.amber.shade700,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected
+                      ? (context.isDark
+                            ? const Color(0xFF90CAF9)
+                            : Colors.amber.shade700)
+                      : context.textColor,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

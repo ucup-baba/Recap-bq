@@ -11,7 +11,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       appBar: AppBar(
         title: const Text('Pengaturan Notifikasi'),
         backgroundColor: AppColors.primaryBlue,
@@ -46,7 +46,11 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.notifications_off, size: 64, color: Colors.grey[400]),
+                Icon(
+                  Icons.notifications_off,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Belum ada reminder',
@@ -74,36 +78,29 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
               if (controller.isSuperAdmin.value) ...[
                 const Text(
                   'Filter User',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Obx(() => _buildUserFilter()),
+                Obx(() => _buildUserFilter(context)),
                 const SizedBox(height: 24),
               ],
-              
+
               // Reminder Settings Section
               const Text(
                 'Reminder Settings',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              ...controller.reminders.map((reminder) => _buildReminderCard(reminder)),
-              
+              ...controller.reminders.map(
+                (reminder) => _buildReminderCard(reminder),
+              ),
+
               const SizedBox(height: 32),
-              
+
               // Scheduled Notifications Section
               const Text(
                 'Scheduled Notifications',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Obx(() => _buildScheduledNotificationsList()),
@@ -114,13 +111,15 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
     );
   }
 
-  Widget _buildUserFilter() {
+  Widget _buildUserFilter(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(
+          color: context.isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        ),
       ),
       child: DropdownButton<String?>(
         value: controller.selectedUserId.value,
@@ -131,10 +130,12 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
             value: null,
             child: Text('Semua User'),
           ),
-          ...controller.allUsers.map((user) => DropdownMenuItem<String?>(
-            value: user.uid,
-            child: Text('${user.displayName} (${user.email})'),
-          )),
+          ...controller.allUsers.map(
+            (user) => DropdownMenuItem<String?>(
+              value: user.uid,
+              child: Text('${user.displayName} (${user.email})'),
+            ),
+          ),
         ],
         onChanged: (value) => controller.selectUser(value),
       ),
@@ -145,7 +146,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
     final userName = controller.isSuperAdmin.value
         ? controller.getUserDisplayName(reminder.userId) ?? 'Unknown User'
         : null;
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -203,10 +204,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
                       const SizedBox(height: 4),
                       Text(
                         'Waktu: ${_formatTime(reminder.time)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -303,10 +301,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
                 const SizedBox(height: 4),
                 Text(
                   'ID: ${notification.id}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -329,4 +324,3 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
     return '$hour:$minute';
   }
 }
-

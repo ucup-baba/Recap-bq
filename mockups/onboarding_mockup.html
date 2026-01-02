@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialog Motivasi Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        body.light {
+            background: #f5f5f5;
+        }
+
+        body.dark {
+            background: #121212;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        body.light .theme-toggle {
+            background: #333;
+            color: white;
+        }
+
+        body.dark .theme-toggle {
+            background: #fff;
+            color: #333;
+        }
+
+        .phone-frame {
+            max-width: 400px;
+            margin: 40px auto;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        body.light .phone-frame {
+            background: #fff;
+        }
+
+        body.dark .phone-frame {
+            background: #1E1E1E;
+        }
+
+        /* Dialog Card with Illustration */
+        .dialog-card {
+            padding: 24px;
+            border-radius: 24px;
+            margin: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        body.light .dialog-card {
+            background: linear-gradient(135deg, #FFF5EE 0%, #FFE4D6 50%, #FFDAB9 100%);
+        }
+
+        body.dark .dialog-card {
+            background: linear-gradient(135deg, #2D2520 0%, #3D2E24 50%, #4A3728 100%);
+        }
+
+        /* Decorative Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(2px);
+        }
+
+        .orb-1 {
+            width: 60px;
+            height: 60px;
+            top: -20px;
+            right: 100px;
+        }
+
+        body.light .orb-1 {
+            background: rgba(255, 140, 100, 0.4);
+        }
+
+        body.dark .orb-1 {
+            background: rgba(255, 140, 100, 0.2);
+        }
+
+        .orb-2 {
+            width: 80px;
+            height: 80px;
+            bottom: -30px;
+            right: -30px;
+        }
+
+        body.light .orb-2 {
+            background: rgba(255, 180, 150, 0.5);
+        }
+
+        body.dark .orb-2 {
+            background: rgba(255, 180, 150, 0.15);
+        }
+
+        .orb-3 {
+            width: 40px;
+            height: 40px;
+            top: 50%;
+            left: -15px;
+        }
+
+        body.light .orb-3 {
+            background: rgba(255, 200, 180, 0.6);
+        }
+
+        body.dark .orb-3 {
+            background: rgba(255, 200, 180, 0.2);
+        }
+
+        .card-content {
+            display: flex;
+            gap: 16px;
+            position: relative;
+            z-index: 1;
+            align-items: center;
+        }
+
+        .text-section {
+            flex: 1;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1.3;
+            margin-bottom: 10px;
+            transition: color 0.3s ease;
+        }
+
+        body.light .title {
+            color: #D84315;
+        }
+
+        body.dark .title {
+            color: #FF8A65;
+        }
+
+        .description {
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            transition: color 0.3s ease;
+        }
+
+        body.light .description {
+            color: #5D4037;
+        }
+
+        body.dark .description {
+            color: #BCAAA4;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        body.light .cta-button {
+            background: linear-gradient(135deg, #FF7043 0%, #E65100 100%);
+            color: white;
+        }
+
+        body.dark .cta-button {
+            background: linear-gradient(135deg, #FF8A65 0%, #FF7043 100%);
+            color: #1E1E1E;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(230, 81, 0, 0.3);
+        }
+
+        .image-section {
+            width: 100px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .illustration-frame {
+            width: 100px;
+            height: 120px;
+            border-radius: 16px;
+            overflow: hidden;
+            transform: rotate(5deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        body.light .illustration-frame {
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 50%, #C8E6C9 100%);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark .illustration-frame {
+            background: linear-gradient(180deg, #1A237E 0%, #283593 50%, #1B5E20 100%);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .illustration-frame span {
+            font-size: 50px;
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 600;
+            margin: 20px 0 5px 0;
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+
+        body.light .section-label {
+            color: #999;
+        }
+
+        body.dark .section-label {
+            color: #666;
+        }
+    </style>
+</head>
+
+<body class="light">
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark Mode</button>
+
+    <p class="section-label">Dialog: Kenapa Harus Sholat?</p>
+    <div class="phone-frame">
+        <div class="dialog-card">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+
+            <div class="card-content">
+                <div class="text-section">
+                    <h1 class="title">Kenapa Harus Sholat?</h1>
+                    <p class="description">
+                        Karena sholat adalah tiang agama dan koneksi utama kita dengan Allah.
+                    </p>
+                    <a href="#" class="cta-button">Siap! 💪</a>
+                </div>
+                <div class="image-section">
+                    <div class="illustration-frame">
+                        <span>🕌</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="section-label">Dialog: Tahajud</p>
+    <div class="phone-frame">
+        <div class="dialog-card">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+
+            <div class="card-content">
+                <div class="text-section">
+                    <h1 class="title">Tahajud: Sholat Malam</h1>
+                    <p class="description">
+                        Waktu mustajab untuk berdoa. Bangun sepertiga malam untuk bermunajat kepada Allah.
+                    </p>
+                    <a href="#" class="cta-button">Insya Allah! 🌙</a>
+                </div>
+                <div class="image-section">
+                    <div class="illustration-frame">
+                        <span>🌙</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="section-label">Dialog: Dhuha</p>
+    <div class="phone-frame">
+        <div class="dialog-card">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+
+            <div class="card-content">
+                <div class="text-section">
+                    <h1 class="title">Sholat Dhuha</h1>
+                    <p class="description">
+                        Pembuka pintu rezeki. 2 rakaat di pagi hari sebagai sedekah untuk seluruh persendian tubuh.
+                    </p>
+                    <a href="#" class="cta-button">Semangat! ☀️</a>
+                </div>
+                <div class="image-section">
+                    <div class="illustration-frame">
+                        <span>☀️</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="section-label">Dialog: Al-Mulk</p>
+    <div class="phone-frame">
+        <div class="dialog-card">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+
+            <div class="card-content">
+                <div class="text-section">
+                    <h1 class="title">Surah Al-Mulk</h1>
+                    <p class="description">
+                        Pelindung dari siksa kubur. Baca sebelum tidur untuk mendapat syafaat di akhirat.
+                    </p>
+                    <a href="#" class="cta-button">Bismillah! 📖</a>
+                </div>
+                <div class="image-section">
+                    <div class="illustration-frame">
+                        <span>📖</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.querySelector('.theme-toggle');
+
+            if (body.classList.contains('light')) {
+                body.classList.remove('light');
+                body.classList.add('dark');
+                btn.textContent = '☀️ Light Mode';
+            } else {
+                body.classList.remove('dark');
+                body.classList.add('light');
+                btn.textContent = '🌙 Dark Mode';
+            }
+        }
+    </script>
+</body>
+
+</html>

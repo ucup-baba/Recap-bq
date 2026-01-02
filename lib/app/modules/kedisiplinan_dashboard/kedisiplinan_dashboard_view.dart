@@ -15,8 +15,9 @@ import '../manage_violation_rules/manage_violation_rules_view.dart';
 import '../nalya/nalya_feedback_controller.dart';
 import '../record_violation/record_violation_controller.dart';
 import '../record_violation/record_violation_view.dart';
+import '../mentoring/combined_mentoring_view.dart';
+import '../study_time/study_time_monitor_view.dart';
 import '../violation_monitoring/violation_monitoring_controller.dart';
-import '../violation_monitoring/violation_monitoring_view.dart';
 import 'kedisiplinan_dashboard_controller.dart';
 
 class KedisiplinanDashboardView
@@ -42,6 +43,10 @@ class KedisiplinanDashboardView
     if (!Get.isRegistered<NalyaFeedbackController>()) {
       Get.put(NalyaFeedbackController());
     }
+    // Study time monitor controller
+    if (!Get.isRegistered<StudyTimeMonitorController>()) {
+      Get.put(StudyTimeMonitorController());
+    }
 
     return Scaffold(
       backgroundColor: context.backgroundColor,
@@ -61,10 +66,10 @@ class KedisiplinanDashboardView
                 key: ValueKey('tab_1_catat_kasus'),
                 child: RecordViolationView(hideAppBar: true),
               ),
-              // Tab 2: Monitoring
+              // Tab 2: Mentoring (Monitoring + Belajar)
               const KeyedSubtree(
-                key: ValueKey('tab_2_monitoring'),
-                child: ViolationMonitoringView(hideAppBar: true),
+                key: ValueKey('tab_2_mentoring'),
+                child: CombinedMentoringView(),
               ),
               // Tab 3: Kelola Aturan
               const KeyedSubtree(
@@ -118,8 +123,8 @@ class KedisiplinanDashboardView
                 label: 'Catat',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.visibility),
-                label: 'Monitor',
+                icon: Icon(Icons.supervisor_account),
+                label: 'Mentoring',
               ),
               BottomNavigationBarItem(icon: Icon(Icons.rule), label: 'Aturan'),
               BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
@@ -134,30 +139,30 @@ class KedisiplinanDashboardView
     if (context.isDark) {
       switch (index) {
         case 0:
-          return const Color(0xFF90CAF9); // Light Blue
+          return const Color(0xFF90CAF9); // Light Blue (Home)
         case 1:
-          return const Color(0xFFFFCC80); // Light Orange
+          return const Color(0xFFFFCC80); // Light Orange (Catat)
         case 2:
-          return const Color(0xFFA5D6A7); // Light Green
+          return const Color(0xFFEF9A9A); // Light Red (Mentoring)
         case 3:
-          return const Color(0xFFEF9A9A); // Light Red
+          return const Color(0xFFEF9A9A); // Light Red (Aturan)
         case 4:
-          return const Color(0xFFCE93D8); // Light Purple
+          return const Color(0xFFCE93D8); // Light Purple (Akun)
         default:
           return AppColors.darkText;
       }
     } else {
       switch (index) {
         case 0:
-          return AppColors.primaryBlue;
+          return AppColors.primaryBlue; // Home
         case 1:
-          return Colors.amber.shade800;
+          return Colors.amber.shade800; // Catat
         case 2:
-          return Colors.green.shade700;
+          return Colors.red.shade700; // Mentoring
         case 3:
-          return Colors.red.shade700;
+          return Colors.red.shade700; // Aturan
         case 4:
-          return Colors.purple.shade600;
+          return Colors.purple.shade600; // Akun
         default:
           return AppColors.primaryBlue;
       }
@@ -381,84 +386,137 @@ class KedisiplinanDashboardView
     );
   }
 
-  // ============ TAB 4: AKUN ============
+  // ============ TAB 5: AKUN ============
   Widget _buildAccountTab(BuildContext context) {
     return Container(
       color: context.backgroundColor,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
         children: [
-          const SizedBox(height: 16),
-          // Dark Mode Toggle
-          _buildDarkModeSwitch(context),
-          const SizedBox(height: 16),
-          // User Info
+          // Header gradient style
           Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
             decoration: BoxDecoration(
-              color: context.cardColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: context.isDark ? Colors.black26 : Colors.black12,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: context.isDark
+                    ? [const Color(0xFFCE93D8), const Color(0xFFBA68C8)]
+                    : [Colors.purple.shade400, Colors.purple.shade700],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pengaturan',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Akun',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
-            ),
-            child: ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: AppColors.getHeaderGradient(context),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.gavel, color: Colors.white, size: 20),
-              ),
-              title: Text(
-                'Kedisiplinan BQ',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: context.textColor,
-                ),
-              ),
-              subtitle: Text(
-                'Pengelola Kedisiplinan',
-                style: TextStyle(color: context.subtextColor),
-              ),
             ),
           ),
-          const SizedBox(height: 16),
-          // Logout Card
-          Container(
-            decoration: BoxDecoration(
-              color: context.isDark ? context.cardColor : Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: context.isDark ? Colors.black26 : Colors.black12,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+          // Body content
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Dark Mode Toggle
+                _buildDarkModeSwitch(context),
+                const SizedBox(height: 16),
+                // User Info
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.isDark ? Colors.black26 : Colors.black12,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.getHeaderGradient(context),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.gavel,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      'Kedisiplinan BQ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: context.textColor,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Pengelola Kedisiplinan',
+                      style: TextStyle(color: context.subtextColor),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Logout Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.isDark
+                        ? context.cardColor
+                        : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.isDark ? Colors.black26 : Colors.black12,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.red.withValues(alpha: 0.1),
+                      child: const Icon(Icons.logout, color: Colors.red),
+                    ),
+                    title: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Keluar dari aplikasi',
+                      style: TextStyle(color: context.subtextColor),
+                    ),
+                    trailing: const Icon(
+                      Icons.chevron_right,
+                      color: Colors.red,
+                    ),
+                    onTap: controller.logout,
+                  ),
                 ),
               ],
-            ),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.red.withValues(alpha: 0.1),
-                child: const Icon(Icons.logout, color: Colors.red),
-              ),
-              title: const Text(
-                'Logout',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              subtitle: Text(
-                'Keluar dari aplikasi',
-                style: TextStyle(color: context.subtextColor),
-              ),
-              trailing: const Icon(Icons.chevron_right, color: Colors.red),
-              onTap: controller.logout,
             ),
           ),
         ],

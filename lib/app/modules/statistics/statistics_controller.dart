@@ -7,11 +7,13 @@ import '../../data/models/user_model.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/ibadah_tracking_service.dart';
+import '../../data/services/running_service.dart';
 
 class StatisticsController extends GetxController {
   final _firestore = FirestoreService.instance;
   final _authService = AuthService.instance;
   final _ibadahService = IbadahTrackingService.instance;
+  final _runningService = RunningService.instance;
 
   // Filter per kelompok (null = semua kelompok)
   final selectedKelompok = Rxn<int>();
@@ -39,6 +41,10 @@ class StatisticsController extends GetxController {
   final RxInt currentStreak = 0.obs;
   final RxInt bestStreak = 0.obs;
   final RxMap<String, double> sholatStatistics = <String, double>{}.obs;
+
+  // Running stats
+  final RxInt monthlyRunningDays = 0.obs;
+  final RxInt runningStreak = 0.obs;
 
   // User ranking
   final RxInt userRank = 0.obs;
@@ -269,6 +275,8 @@ class StatisticsController extends GetxController {
       _calculateIbadahStatistics(weeklyIbadahData);
       _calculateIbadahStreak(weeklyIbadahData);
       _calculateIbadahSholatStatistics(weeklyIbadahData);
+      // Load running stats
+      await _loadRunningStats();
     } catch (e) {
       Logger.error('Error loading weekly ibadah data', e);
       Get.snackbar('Error', 'Gagal memuat data mingguan: $e');
@@ -503,6 +511,20 @@ class StatisticsController extends GetxController {
       Logger.error('Error loading user ranking', e);
       userRank.value = 0;
       totalUsersInGroup.value = 0;
+    }
+  }
+
+  /// Load running statistics
+  Future<void> _loadRunningStats() async {
+    try {
+      final monthlyTotal = await _runningService.getMonthlyTotal();
+      final streak = await _runningService.getStreak();
+      monthlyRunningDays.value = monthlyTotal;
+      runningStreak.value = streak;
+    } catch (e) {
+      Logger.error('Error loading running stats', e);
+      monthlyRunningDays.value = 0;
+      runningStreak.value = 0;
     }
   }
 }

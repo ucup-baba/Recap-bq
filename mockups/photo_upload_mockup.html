@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foto Bukti Mockup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .mockup-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .mockup-card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            width: 360px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .mockup-title {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 16px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ============ OPTION 1: Grid Layout ============ */
+        .photo-section {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .section-header .material-icons-round {
+            color: #4361ee;
+            font-size: 20px;
+        }
+
+        .section-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .photo-item {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            background: #e9ecef;
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-item .delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .photo-item .delete-btn:hover {
+            background: #ef4444;
+            transform: scale(1.1);
+        }
+
+        .photo-item .delete-btn .material-icons-round {
+            font-size: 14px;
+        }
+
+        .add-photo-btn {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            border: 2px dashed #4361ee;
+            background: rgba(67, 97, 238, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-photo-btn:hover {
+            background: rgba(67, 97, 238, 0.1);
+            border-color: #3730a3;
+        }
+
+        .add-photo-btn .material-icons-round {
+            color: #4361ee;
+            font-size: 28px;
+        }
+
+        .add-photo-btn span {
+            font-size: 10px;
+            color: #4361ee;
+            font-weight: 500;
+        }
+
+        /* ============ OPTION 2: Horizontal Scroll ============ */
+        .photo-section-2 {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .photo-scroll {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: #4361ee #e9ecef;
+        }
+
+        .photo-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .photo-scroll::-webkit-scrollbar-track {
+            background: #e9ecef;
+            border-radius: 3px;
+        }
+
+        .photo-scroll::-webkit-scrollbar-thumb {
+            background: #4361ee;
+            border-radius: 3px;
+        }
+
+        .photo-item-large {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            background: #e9ecef;
+        }
+
+        .photo-item-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-item-large .delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-item-large .delete-btn .material-icons-round {
+            font-size: 14px;
+        }
+
+        .add-photo-btn-large {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+            border-radius: 12px;
+            border: 2px dashed #4361ee;
+            background: rgba(67, 97, 238, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-photo-btn-large:hover {
+            background: rgba(67, 97, 238, 0.1);
+        }
+
+        .add-photo-btn-large .material-icons-round {
+            color: #4361ee;
+            font-size: 32px;
+        }
+
+        .add-photo-btn-large span {
+            font-size: 11px;
+            color: #4361ee;
+            font-weight: 500;
+        }
+
+        .photo-count {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        /* ============ OPTION 3: Card Style with Preview ============ */
+        .photo-section-3 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+        }
+
+        .section-header-3 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-header-3 .left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-header-3 .material-icons-round {
+            font-size: 24px;
+        }
+
+        .section-header-3 h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .section-header-3 .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .photo-preview-grid {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .photo-preview-item {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .photo-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-preview-item .delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-preview-item .delete-btn .material-icons-round {
+            font-size: 12px;
+        }
+
+        .add-photo-btn-3 {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-photo-btn-3:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: white;
+        }
+
+        .add-photo-btn-3 .material-icons-round {
+            font-size: 24px;
+        }
+
+        .add-photo-btn-3 span {
+            font-size: 9px;
+            font-weight: 500;
+        }
+
+        /* ============ Empty State ============ */
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+        }
+
+        .empty-state .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4361ee 0%, #7c3aed 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .empty-state .material-icons-round {
+            font-size: 40px;
+            color: white;
+        }
+
+        .empty-state h4 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 16px;
+        }
+
+        .empty-state .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4361ee 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .empty-state .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        .empty-state .upload-btn .material-icons-round {
+            font-size: 20px;
+        }
+
+        /* Recommendation Badge */
+        .recommended {
+            position: relative;
+        }
+
+        .recommended::before {
+            content: '✨ Recommended';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📸 Foto Bukti Component</h1>
+    <p class="subtitle">Design mockups untuk upload foto dengan multiple photos & preview</p>
+
+    <div class="mockup-container">
+        <!-- Option 1: Grid Layout -->
+        <div class="mockup-card">
+            <div class="mockup-title">Option 1: Grid Layout</div>
+            <div class="photo-section">
+                <div class="section-header">
+                    <span class="material-icons-round">photo_library</span>
+                    <h3>Foto Bukti</h3>
+                </div>
+                <div class="photo-grid">
+                    <div class="photo-item">
+                        <img src="https://images.unsplash.com/photo-1606318801954-d46d46d3360a?w=200&h=200&fit=crop"
+                            alt="Photo 1">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="photo-item">
+                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop"
+                            alt="Photo 2">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="add-photo-btn">
+                        <span class="material-icons-round">add_a_photo</span>
+                        <span>Tambah</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 2: Horizontal Scroll -->
+        <div class="mockup-card recommended">
+            <div class="mockup-title">Option 2: Horizontal Scroll</div>
+            <div class="photo-section-2">
+                <div class="section-header">
+                    <span class="material-icons-round">photo_library</span>
+                    <h3>Foto Bukti</h3>
+                </div>
+                <div class="photo-scroll">
+                    <div class="photo-item-large">
+                        <img src="https://images.unsplash.com/photo-1606318801954-d46d46d3360a?w=200&h=200&fit=crop"
+                            alt="Photo 1">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="photo-item-large">
+                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop"
+                            alt="Photo 2">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="photo-item-large">
+                        <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=200&h=200&fit=crop"
+                            alt="Photo 3">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="add-photo-btn-large">
+                        <span class="material-icons-round">add_a_photo</span>
+                        <span>Tambah</span>
+                    </div>
+                </div>
+                <div class="photo-count">3/5 foto</div>
+            </div>
+        </div>
+
+        <!-- Option 3: Gradient Card -->
+        <div class="mockup-card">
+            <div class="mockup-title">Option 3: Gradient Card</div>
+            <div class="photo-section-3">
+                <div class="section-header-3">
+                    <div class="left">
+                        <span class="material-icons-round">photo_camera</span>
+                        <h3>Foto Bukti</h3>
+                    </div>
+                    <div class="badge">4/5</div>
+                </div>
+                <div class="photo-preview-grid">
+                    <div class="photo-preview-item">
+                        <img src="https://images.unsplash.com/photo-1606318801954-d46d46d3360a?w=200&h=200&fit=crop"
+                            alt="Photo 1">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="photo-preview-item">
+                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop"
+                            alt="Photo 2">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="photo-preview-item">
+                        <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=200&h=200&fit=crop"
+                            alt="Photo 3">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="photo-preview-item">
+                        <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=200&h=200&fit=crop"
+                            alt="Photo 4">
+                        <button class="delete-btn">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="add-photo-btn-3">
+                        <span class="material-icons-round">add</span>
+                        <span>Tambah</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="mockup-card">
+            <div class="mockup-title">Empty State</div>
+            <div class="photo-section">
+                <div class="empty-state">
+                    <div class="icon-wrapper">
+                        <span class="material-icons-round">add_a_photo</span>
+                    </div>
+                    <h4>Belum Ada Foto</h4>
+                    <p>Tambahkan foto bukti untuk melengkapi laporan</p>
+                    <button class="upload-btn">
+                        <span class="material-icons-round">photo_camera</span>
+                        Ambil Foto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

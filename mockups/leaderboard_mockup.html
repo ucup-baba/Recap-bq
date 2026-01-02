@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard Mockup v2 - KKM 70%</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .phone-frame {
+            max-width: 400px;
+            margin: 20px auto;
+            background: #fff;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF7B7B 0%, #FF6B8A 100%);
+            padding: 20px;
+            padding-top: 40px;
+            color: white;
+        }
+
+        .header-back {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .leaderboard-list {
+            padding: 16px;
+            background: #f5f5f5;
+        }
+
+        /* KKM Divider */
+        .kkm-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+            padding: 8px 0;
+        }
+
+        .kkm-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #22c55e, #22c55e, transparent);
+        }
+
+        .kkm-label {
+            background: #22c55e;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .below-kkm-label {
+            background: #ef4444;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            margin: 16px 0 8px 0;
+        }
+
+        .leaderboard-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .leaderboard-card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Top 3 special styling */
+        .rank-1 {
+            border: 2px solid #FFD700;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .rank-2 {
+            border: 2px solid #C0C0C0;
+            box-shadow: 0 4px 16px rgba(192, 192, 192, 0.3);
+        }
+
+        .rank-3 {
+            border: 2px solid #CD7F32;
+            box-shadow: 0 4px 16px rgba(205, 127, 50, 0.3);
+        }
+
+        /* Above KKM - green tint */
+        .above-kkm {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+
+        /* Below KKM - slight red tint */
+        .below-kkm {
+            background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+            opacity: 0.9;
+        }
+
+        .rank-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .rank-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .user-subtitle {
+            font-size: 12px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .badges-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-streak {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+
+        .badge-run {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .badge-pushup {
+            background: #E3F2FD;
+            color: #1565C0;
+        }
+
+        .score {
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .score-pass {
+            color: #22c55e;
+        }
+
+        .score-fail {
+            color: #ef4444;
+        }
+
+        /* KKM check mark */
+        .kkm-status {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="phone-frame">
+        <div class="header">
+            <div class="header-back">← Papan Peringkat</div>
+            <div class="header-title">Leaderboard Amalan</div>
+        </div>
+
+        <div class="leaderboard-list">
+
+            <!-- Rank 1 - Above KKM -->
+            <div class="leaderboard-card rank-1 above-kkm">
+                <div class="rank-icon">🏆</div>
+                <div class="user-info">
+                    <div class="user-name">Ketua Kelompok 5</div>
+                    <div class="user-subtitle">Kelompok 5</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 12</span>
+                        <span class="badge badge-run">🏃 5</span>
+                        <span class="badge badge-pushup">💪 350x</span>
+                    </div>
+                </div>
+                <div class="score score-pass">71.4%</div>
+            </div>
+
+            <!-- Rank 2 -->
+            <div class="leaderboard-card rank-2 below-kkm">
+                <div class="rank-icon">🥈</div>
+                <div class="user-info">
+                    <div class="user-name">Ketua Kelompok 4</div>
+                    <div class="user-subtitle">Kelompok 4</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 8</span>
+                        <span class="badge badge-run">🏃 3</span>
+                        <span class="badge badge-pushup">💪 225x</span>
+                    </div>
+                </div>
+                <div class="score score-fail">69.5%</div>
+            </div>
+
+            <!-- Rank 3 -->
+            <div class="leaderboard-card rank-3 below-kkm">
+                <div class="rank-icon">🥉</div>
+                <div class="user-info">
+                    <div class="user-name">Admin BQ</div>
+                    <div class="user-subtitle">Admin</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 5</span>
+                        <span class="badge badge-run">🏃 4</span>
+                        <span class="badge badge-pushup">💪 180x</span>
+                    </div>
+                </div>
+                <div class="score score-fail">66.7%</div>
+            </div>
+
+            <!-- Rank 4 -->
+            <div class="leaderboard-card below-kkm">
+                <div class="rank-number">4</div>
+                <div class="user-info">
+                    <div class="user-name">Divisi Kedisiplinan</div>
+                    <div class="user-subtitle">Kedisiplinan</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 3</span>
+                        <span class="badge badge-run">🏃 2</span>
+                        <span class="badge badge-pushup">💪 80x</span>
+                    </div>
+                </div>
+                <div class="score score-fail">56.2%</div>
+            </div>
+
+            <!-- Rank 5 -->
+            <div class="leaderboard-card below-kkm">
+                <div class="rank-number">5</div>
+                <div class="user-info">
+                    <div class="user-name">Ketua Kelompok 2</div>
+                    <div class="user-subtitle">Kelompok 2</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 1</span>
+                        <span class="badge badge-run">🏃 0</span>
+                        <span class="badge badge-pushup">💪 140x</span>
+                    </div>
+                </div>
+                <div class="score score-fail">42.9%</div>
+            </div>
+
+            <!-- Rank 6 -->
+            <div class="leaderboard-card below-kkm">
+                <div class="rank-number">6</div>
+                <div class="user-info">
+                    <div class="user-name">Super Admin BQ</div>
+                    <div class="user-subtitle">Super Admin</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 2</span>
+                        <span class="badge badge-run">🏃 1</span>
+                        <span class="badge badge-pushup">💪 25x</span>
+                    </div>
+                </div>
+                <div class="score score-fail">37.1%</div>
+            </div>
+
+            <!-- Rank 7 -->
+            <div class="leaderboard-card below-kkm">
+                <div class="rank-number">7</div>
+                <div class="user-info">
+                    <div class="user-name">Ketua Kelompok 1</div>
+                    <div class="user-subtitle">Kelompok 1</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 4</span>
+                        <span class="badge badge-run">🏃 3</span>
+                        <span class="badge badge-pushup">💪 50x</span>
+                    </div>
+                </div>
+                <div class="score score-fail">32.4%</div>
+            </div>
+
+            <!-- Rank 8 -->
+            <div class="leaderboard-card below-kkm">
+                <div class="rank-number">8</div>
+                <div class="user-info">
+                    <div class="user-name">Ketua Kelompok 3</div>
+                    <div class="user-subtitle">Kelompok 3</div>
+                    <div class="badges-row">
+                        <span class="badge badge-streak">🔥 0</span>
+                        <span class="badge badge-run">🏃 1</span>
+                        <span class="badge badge-pushup">💪 30x</span>
+                    </div>
+                </div>
+                <div class="score score-fail">30.5%</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

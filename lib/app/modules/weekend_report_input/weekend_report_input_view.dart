@@ -26,14 +26,14 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.backgroundColor,
       body: Column(
         children: [
           // Header
-          _buildHeader(),
+          _buildHeader(context),
 
           // Report Type Tabs
-          _buildReportTypeTabs(),
+          _buildReportTypeTabs(context),
 
           // Content
           Expanded(
@@ -44,7 +44,7 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
               return Column(
                 children: [
                   // Status indicator
-                  _buildStatusIndicator(),
+                  _buildStatusIndicator(context),
 
                   // Photo Section
                   _buildPhotoEvidence(context),
@@ -64,17 +64,17 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
           ),
 
           // Bottom Buttons
-          _buildBottomButtons(),
+          _buildBottomButtons(context),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 40, bottom: 20, left: 16, right: 16),
-      decoration: const BoxDecoration(
-        gradient: AppColors.headerGradient,
+      decoration: BoxDecoration(
+        gradient: AppColors.getHeaderGradient(context),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
       child: SafeArea(
@@ -145,7 +145,7 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
     );
   }
 
-  Widget _buildReportTypeTabs() {
+  Widget _buildReportTypeTabs(BuildContext context) {
     return Obx(() {
       if (controller.availableReportTypes.isEmpty) return const SizedBox();
 
@@ -203,7 +203,7 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
     });
   }
 
-  Widget _buildStatusIndicator() {
+  Widget _buildStatusIndicator(BuildContext context) {
     return Obx(() {
       final status = controller.existingReport.value?.status ?? 'draft';
       String statusText;
@@ -236,7 +236,7 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: statusColor.withValues(alpha: 0.2)),
         ),
@@ -247,9 +247,9 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
             Expanded(
               child: Text(
                 statusText,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.text,
+                  color: context.textColor,
                 ),
               ),
             ),
@@ -268,7 +268,7 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
       return Container(
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -401,7 +401,7 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -450,7 +450,7 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: isDone ? AppColors.text : Colors.grey[600],
+                          color: isDone ? context.textColor : Colors.grey[600],
                         ),
                       ),
                       if (task.executors.isNotEmpty)
@@ -530,12 +530,12 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
     });
   }
 
-  Widget _buildBottomButtons() {
+  Widget _buildBottomButtons(BuildContext context) {
     return Obx(
       () => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardColor,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -560,12 +560,12 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
                     ),
                     side: BorderSide(color: Colors.grey[300]!),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Batal',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.text,
+                      color: context.textColor,
                     ),
                   ),
                 ),
