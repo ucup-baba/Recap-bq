@@ -6,17 +6,18 @@ import '../../core/theme/app_colors.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
 import '../../widgets/nalya_feedback_card.dart';
-import '../../widgets/nalya_wisdom_card.dart';
+import '../../widgets/asmaul_husna_card.dart';
 import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../../modules/admin_ibadah/admin_ibadah_controller.dart';
 import '../../modules/leaderboard/leaderboard_view.dart';
-import '../mentoring/combined_mentoring_view.dart';
 import '../nalya/nalya_feedback_controller.dart';
 import '../study_time/study_time_monitor_view.dart';
+import '../violation_monitoring/violation_monitoring_controller.dart';
 import 'super_admin_dashboard_controller.dart';
 import '../super_admin_report/super_admin_report_view.dart';
 import '../super_admin_account/super_admin_account_view.dart';
+import '../memorable/memorable_view.dart';
 
 class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
   const SuperAdminDashboardView({super.key});
@@ -64,15 +65,15 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                       key: ValueKey('tab_1_leaderboard'),
                       child: LeaderboardView(hideAppBar: true),
                     ),
-                    // Tab 2: Combined Mentoring (Disiplin + Belajar)
-                    const KeyedSubtree(
-                      key: ValueKey('tab_2_mentoring'),
-                      child: CombinedMentoringView(),
+                    // Tab 2: Combined Mentoring + Report (with swipe)
+                    KeyedSubtree(
+                      key: const ValueKey('tab_2_mentoring_report'),
+                      child: _buildMentoringReportTab(context),
                     ),
-                    // Tab 3: Report
+                    // Tab 3: Memorable
                     const KeyedSubtree(
-                      key: ValueKey('tab_3_report'),
-                      child: SuperAdminReportView(),
+                      key: ValueKey('tab_3_memorable'),
+                      child: MemorableView(hideHeader: false),
                     ),
                     // Tab 4: Akun
                     const KeyedSubtree(
@@ -131,8 +132,8 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                 label: 'Mentoring',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.assignment),
-                label: 'Report',
+                icon: Icon(Icons.bookmark_added),
+                label: 'Memorable',
               ),
               BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
             ],
@@ -142,34 +143,198 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
     );
   }
 
+  /// Combined Mentoring Tab with 3 sub-views: Tatib, Study, Piket
+  Widget _buildMentoringReportTab(BuildContext context) {
+    return Obx(() {
+      final pageController = controller.mentoringReportPageController;
+      final currentPage = controller.mentoringReportPageIndex.value;
+
+      // Dynamic header config based on current page
+      String headerTitle;
+      List<Color> gradientColors;
+      switch (currentPage) {
+        case 0: // Tatib
+          headerTitle = 'Laporan Kedisiplinan';
+          gradientColors = context.isDark
+              ? [const Color(0xFFEF9A9A), const Color(0xFFE57373)]
+              : [Colors.red.shade600, Colors.red.shade800];
+          break;
+        case 1: // Study
+          headerTitle = 'Jam Wajib Belajar';
+          gradientColors = context.isDark
+              ? [const Color(0xFF90CAF9), const Color(0xFF42A5F5)]
+              : [Colors.blue.shade600, Colors.blue.shade800];
+          break;
+        case 2: // Piket
+        default:
+          headerTitle = 'Laporan Piket';
+          gradientColors = context.isDark
+              ? [const Color(0xFFA5D6A7), const Color(0xFF81C784)]
+              : [Colors.green.shade600, Colors.green.shade800];
+          break;
+      }
+
+      return Column(
+        children: [
+          // Header with gradient - dynamic based on tab
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradientColors,
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Monitoring',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  headerTitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Tab buttons inside header
+                Row(
+                  children: [
+                    // Tab 1: Tatib (Kedisiplinan)
+                    Expanded(
+                      child: _buildHeaderTabButton(
+                        label: 'Tatib',
+                        icon: Icons.gavel,
+                        isSelected: currentPage == 0,
+                        onTap: () => controller.switchMentoringReportPage(0),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Tab 2: Study (Jam Belajar)
+                    Expanded(
+                      child: _buildHeaderTabButton(
+                        label: 'Study',
+                        icon: Icons.schedule,
+                        isSelected: currentPage == 1,
+                        onTap: () => controller.switchMentoringReportPage(1),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Tab 3: Piket (Report)
+                    Expanded(
+                      child: _buildHeaderTabButton(
+                        label: 'Piket',
+                        icon: Icons.assignment,
+                        isSelected: currentPage == 2,
+                        onTap: () => controller.switchMentoringReportPage(2),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // PageView content with 3 pages
+          Expanded(
+            child: PageView(
+              controller: pageController,
+              onPageChanged: controller.onMentoringReportPageChanged,
+              children: [
+                // Page 0: Tatib (Kedisiplinan) - only violation part
+                _TatibTabContent(),
+                // Page 1: Study (Jam Belajar) - only study time part
+                _StudyTabContent(),
+                // Page 2: Piket (Report)
+                SuperAdminReportView(hideHeader: true),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  /// Build a tab button for the header (white style)
+  Widget _buildHeaderTabButton({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.white
+              : Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.blue.shade700 : Colors.white,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.blue.shade700 : Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Color _getBottomNavColor(int index, BuildContext context) {
     if (context.isDark) {
       switch (index) {
         case 0:
-          return const Color(0xFF90CAF9); // Light Blue
+          return const Color(0xFF90CAF9); // Light Blue - Ibadah
         case 1:
-          return const Color(0xFFFFCC80); // Light Orange
+          return const Color(0xFFFFCC80); // Light Orange - Ranking
         case 2:
-          return const Color(0xFFEF9A9A); // Light Red (Mentoring)
+          return const Color(0xFFA5D6A7); // Light Green - Mentoring
         case 3:
-          return const Color(0xFFA5D6A7); // Light Green
+          return const Color(0xFFF48FB1); // Light Pink - Memorable
         case 4:
-          return const Color(0xFFCE93D8); // Light Purple
+          return const Color(0xFFCE93D8); // Light Purple - Akun
         default:
           return AppColors.darkText;
       }
     } else {
       switch (index) {
         case 0:
-          return AppColors.primaryBlue;
+          return AppColors.primaryBlue; // Ibadah
         case 1:
-          return Colors.amber.shade800;
+          return Colors.amber.shade800; // Ranking
         case 2:
-          return Colors.red.shade700; // Mentoring
+          return Colors.green.shade700; // Mentoring
         case 3:
-          return Colors.green.shade700;
+          return Colors.pink.shade600; // Memorable
         case 4:
-          return Colors.purple.shade600;
+          return Colors.purple.shade600; // Akun
         default:
           return AppColors.primaryBlue;
       }
@@ -396,8 +561,8 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                         ibadahController.updateIbadah(updated),
                   ),
                   const SizedBox(height: 16),
-                  // Nalya Daily Wisdom Card
-                  const NalyaWisdomCard(),
+                  // Asmaul Husna & Vocab Card
+                  const AsmaulHusnaCard(),
                 ],
               );
             }),
@@ -405,5 +570,414 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
         ),
       ),
     );
+  }
+}
+
+/// Widget for Tatib (Kedisiplinan/Tata Tertib) tab content
+class _TatibTabContent extends StatelessWidget {
+  const _TatibTabContent();
+
+  @override
+  Widget build(BuildContext context) {
+    // Ensure controller is available
+    if (!Get.isRegistered<ViolationMonitoringController>()) {
+      Get.put<ViolationMonitoringController>(ViolationMonitoringController());
+    }
+
+    final controller = Get.find<ViolationMonitoringController>();
+
+    return Container(
+      color: context.backgroundColor,
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Column(
+          children: [
+            // Kelompok filter
+            Container(
+              height: 48,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildFilterChip(context, controller, 'Semua', null),
+                  for (int i = 1; i <= 5; i++)
+                    _buildFilterChip(context, controller, '$i', i),
+                ],
+              ),
+            ),
+            // Total kasus per kelompok summary
+            _buildKelompokSummary(context, controller),
+            // Content
+            Expanded(child: _buildContent(context, controller)),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    ViolationMonitoringController controller,
+  ) {
+    final violatorsList = controller.filteredViolators;
+    if (violatorsList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 64,
+              color: Colors.green.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              controller.selectedKelompok.value == null
+                  ? 'Tidak ada pelanggar'
+                  : 'Tidak ada pelanggar di Kelompok ${controller.selectedKelompok.value}',
+              style: TextStyle(fontSize: 16, color: context.subtextColor),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: violatorsList.length,
+      itemBuilder: (context, index) {
+        final violator = violatorsList[index];
+        return _buildViolatorCard(context, violator);
+      },
+    );
+  }
+
+  Widget _buildFilterChip(
+    BuildContext context,
+    ViolationMonitoringController controller,
+    String label,
+    int? kelompokId,
+  ) {
+    final isSelected = controller.selectedKelompok.value == kelompokId;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => controller.setKelompokFilter(kelompokId),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (context.isDark
+                      ? const Color(0xFFEF9A9A).withValues(alpha: 0.2)
+                      : Colors.red.shade50)
+                : (context.isDark ? context.cardColor : Colors.white),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? (context.isDark
+                        ? const Color(0xFFEF9A9A)
+                        : Colors.red.shade300)
+                  : (context.isDark ? Colors.grey[600]! : Colors.grey[300]!),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                Icon(
+                  Icons.check,
+                  size: 16,
+                  color: context.isDark
+                      ? const Color(0xFFEF9A9A)
+                      : Colors.red.shade700,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected
+                      ? (context.isDark
+                            ? const Color(0xFFEF9A9A)
+                            : Colors.red.shade700)
+                      : context.textColor,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKelompokSummary(
+    BuildContext context,
+    ViolationMonitoringController controller,
+  ) {
+    // Calculate total cases per kelompok
+    final Map<int, int> kelompokCases = {};
+    int totalAllCases = 0;
+
+    for (final v in controller.violators) {
+      final kelompokId = v['kelompokId'] as int? ?? 0;
+      final cases = v['totalCases'] as int? ?? 0;
+      kelompokCases[kelompokId] = (kelompokCases[kelompokId] ?? 0) + cases;
+      totalAllCases += cases;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.red.withValues(alpha: 0.1),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_rounded,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total Pelanggaran',
+                    style: TextStyle(
+                      color: context.subtextColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$totalAllCases Kasus',
+                    style: TextStyle(
+                      color: context.textColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Gradient Divider
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.red.withValues(alpha: 0.05),
+                  Colors.red.withValues(alpha: 0.2),
+                  Colors.red.withValues(alpha: 0.05),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (int i = 1; i <= 5; i++)
+                _buildKelompokCaseBadge(context, 'K$i', kelompokCases[i] ?? 0),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKelompokCaseBadge(
+    BuildContext context,
+    String label,
+    int count,
+  ) {
+    final hasViolations = count > 0;
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: hasViolations ? Colors.red : const Color(0xFF4CAF50),
+            gradient: hasViolations
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.red.shade400, Colors.red.shade600],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.green.shade400, Colors.green.shade600],
+                  ),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: (hasViolations ? Colors.red : Colors.green).withValues(
+                  alpha: 0.3,
+                ),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: context.subtextColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildViolatorCard(BuildContext context, Map<String, dynamic> data) {
+    final name = data['displayName'] as String? ?? 'Unknown';
+    final kelompokId = data['kelompokId'] as int? ?? 0;
+    final violationCount = data['totalCases'] as int? ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.red.shade100,
+            child: Icon(Icons.person, color: Colors.red.shade700),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getKelompokColor(kelompokId).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Kelompok $kelompokId',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _getKelompokColor(kelompokId),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$violationCount kasus',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getKelompokColor(int kelompokId) {
+    switch (kelompokId) {
+      case 1:
+        return Colors.blue;
+      case 2:
+        return Colors.green;
+      case 3:
+        return Colors.orange;
+      case 4:
+        return Colors.purple;
+      case 5:
+        return Colors.teal;
+      default:
+        return Colors.grey;
+    }
+  }
+}
+
+/// Widget for Study (Jam Belajar) tab content
+class _StudyTabContent extends StatelessWidget {
+  const _StudyTabContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const StudyTimeMonitorView(hideAppBar: true, hideHeader: true);
   }
 }

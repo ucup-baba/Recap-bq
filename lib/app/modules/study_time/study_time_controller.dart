@@ -282,4 +282,31 @@ class StudyTimeController extends GetxController {
 
     return {'hadir': hadir, 'sakit': sakit, 'ijin': ijin};
   }
+
+  // Get detailed history for a member across records
+  List<Map<String, dynamic>> getMemberDetailedHistory(
+    String userId,
+    List<StudyTimeRecord> records,
+  ) {
+    final history = <Map<String, dynamic>>[];
+
+    for (final record in records) {
+      for (final att in record.attendances) {
+        if (att.userId == userId) {
+          history.add({
+            'date': record.date,
+            'status': att.status,
+            'note': att.note,
+          });
+        }
+      }
+    }
+
+    // Sort by date descending (newest first)
+    history.sort(
+      (a, b) => (b['date'] as String).compareTo(a['date'] as String),
+    );
+
+    return history;
+  }
 }

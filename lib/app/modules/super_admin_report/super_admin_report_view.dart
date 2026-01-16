@@ -9,7 +9,9 @@ import '../../data/models/weekend_report_model.dart';
 import 'super_admin_report_controller.dart';
 
 class SuperAdminReportView extends GetView<SuperAdminReportController> {
-  const SuperAdminReportView({super.key});
+  final bool hideHeader;
+
+  const SuperAdminReportView({super.key, this.hideHeader = false});
 
   @override
   Widget build(BuildContext context) {
@@ -17,44 +19,45 @@ class SuperAdminReportView extends GetView<SuperAdminReportController> {
       backgroundColor: context.backgroundColor,
       body: Column(
         children: [
-          // Header gradient style
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: context.isDark
-                    ? [const Color(0xFFA5D6A7), const Color(0xFF81C784)]
-                    : [Colors.green.shade600, Colors.green.shade800],
+          // Header gradient style (only show if hideHeader is false)
+          if (!hideHeader)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: context.isDark
+                      ? [const Color(0xFFA5D6A7), const Color(0xFF81C784)]
+                      : [Colors.green.shade600, Colors.green.shade800],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(24),
+                ),
               ),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Monitoring',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Laporan Piket',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Monitoring',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Laporan Piket',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
           // Filter dropdown untuk hari
           _buildDayFilter(),
           // Weekend shortcuts

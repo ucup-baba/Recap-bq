@@ -635,6 +635,7 @@ class StudyTimeView extends GetView<StudyTimeController> {
     Map<String, dynamic> member,
     Map<String, int> stats,
   ) {
+    final memberId = member['userId'] as String;
     final memberName = member['displayName'] as String;
     final hadir = stats['hadir'] ?? 0;
     final sakit = stats['sakit'] ?? 0;
@@ -642,75 +643,341 @@ class StudyTimeView extends GetView<StudyTimeController> {
     final total = hadir + sakit + ijin;
     final percentage = total > 0 ? (hadir / total * 100) : 0.0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: context.isDark
-                ? Colors.black26
-                : Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: context.isDark
-                ? const Color(0xFF90CAF9).withValues(alpha: 0.2)
-                : AppColors.primaryBlue.withValues(alpha: 0.1),
-            child: Text(
-              memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
-              style: TextStyle(
-                color: context.isDark
-                    ? const Color(0xFF90CAF9)
-                    : AppColors.primaryBlue,
-                fontWeight: FontWeight.bold,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showDetailHistoryDialog(context, memberId, memberName),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: context.isDark
+                  ? Colors.black26
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: context.isDark
+                  ? const Color(0xFF90CAF9).withValues(alpha: 0.2)
+                  : AppColors.primaryBlue.withValues(alpha: 0.1),
+              child: Text(
+                memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
+                style: TextStyle(
+                  color: context.isDark
+                      ? const Color(0xFF90CAF9)
+                      : AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    memberName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: context.textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _buildStatBadge(context, '✅', hadir, Colors.green),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(context, '🤒', sakit, Colors.orange),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(context, '📝', ijin, Colors.blue),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getPercentageColor(percentage).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${percentage.toStringAsFixed(0)}%',
+                style: TextStyle(
+                  color: _getPercentageColor(percentage),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: context.subtextColor, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDetailHistoryDialog(
+    BuildContext context,
+    String memberId,
+    String memberName,
+  ) {
+    // Get records based on current view mode
+    final records = controller.viewMode.value == 'week'
+        ? controller.weeklyRecords
+        : controller.monthlyRecords;
+
+    final history = controller.getMemberDetailedHistory(memberId, records);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: context.isDark
+                        ? const Color(0xFF90CAF9).withValues(alpha: 0.2)
+                        : AppColors.primaryBlue.withValues(alpha: 0.1),
+                    child: Text(
+                      memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
+                      style: TextStyle(
+                        color: context.isDark
+                            ? const Color(0xFF90CAF9)
+                            : AppColors.primaryBlue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          memberName,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: context.textColor,
+                          ),
+                        ),
+                        Text(
+                          'Riwayat Kehadiran ${controller.viewMode.value == 'week' ? 'Pekanan' : 'Bulanan'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.subtextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // History list
+            Expanded(
+              child: history.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.history,
+                            size: 48,
+                            color: context.subtextColor,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Belum ada riwayat',
+                            style: TextStyle(color: context.subtextColor),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: history.length,
+                      itemBuilder: (context, index) {
+                        final item = history[index];
+                        return _buildHistoryItem(context, item);
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(BuildContext context, Map<String, dynamic> item) {
+    final dateStr = item['date'] as String;
+    final status = item['status'] as AttendanceStatus;
+    final note = item['note'] as String?;
+
+    // Parse date string (format: yyyy-MM-dd)
+    final parts = dateStr.split('-');
+    final formattedDate = parts.length == 3
+        ? '${parts[2]}/${parts[1]}/${parts[0]}'
+        : dateStr;
+
+    // Get day name
+    final date = DateTime.tryParse(dateStr);
+    final dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    final dayName = date != null ? dayNames[date.weekday - 1] : '';
+
+    // Status config
+    String statusEmoji;
+    String statusText;
+    Color statusColor;
+    switch (status) {
+      case AttendanceStatus.hadir:
+        statusEmoji = '✅';
+        statusText = 'Hadir';
+        statusColor = Colors.green;
+        break;
+      case AttendanceStatus.sakit:
+        statusEmoji = '🤒';
+        statusText = 'Sakit';
+        statusColor = Colors.orange;
+        break;
+      case AttendanceStatus.ijin:
+        statusEmoji = '📝';
+        statusText = 'Izin';
+        statusColor = Colors.blue;
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.isDark ? Colors.grey[800] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date column
+          Container(
+            width: 60,
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  memberName,
+                  dayName,
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                     color: context.textColor,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    _buildStatBadge(context, '✅', hadir, Colors.green),
-                    const SizedBox(width: 8),
-                    _buildStatBadge(context, '🤒', sakit, Colors.orange),
-                    const SizedBox(width: 8),
-                    _buildStatBadge(context, '📝', ijin, Colors.blue),
-                  ],
+                Text(
+                  formattedDate,
+                  style: TextStyle(fontSize: 10, color: context.subtextColor),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getPercentageColor(percentage).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${percentage.toStringAsFixed(0)}%',
-              style: TextStyle(
-                color: _getPercentageColor(percentage),
-                fontWeight: FontWeight.bold,
-              ),
+          const SizedBox(width: 12),
+          // Status and note
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(statusEmoji, style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 4),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (note != null && note.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.isDark ? Colors.grey[700] : Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.notes,
+                          size: 14,
+                          color: context.subtextColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            note,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: context.textColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

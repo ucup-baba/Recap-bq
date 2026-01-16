@@ -63,6 +63,8 @@ class AdminDashboardController extends GetxController {
   void openWeekendReportValidation() =>
       Get.toNamed(AppRoutes.weekendReportValidation);
 
+  void openReportView() => Get.toNamed(AppRoutes.adminReport);
+
   Future<void> createKedisiplinanUser() async {
     try {
       await _authService.createKedisiplinanUser();

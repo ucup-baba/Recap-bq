@@ -168,21 +168,35 @@ class WeekendReportInputController extends GetxController {
       final slot = slotInfo.value;
       if (slot == null) return;
 
-      // Determine area based on report type
+      // Determine area and day based on report type
       String area;
+      String day;
       if (selectedReportType.value == 'masak') {
         area = 'Masak';
+        day = 'both'; // Masak tasks apply to both days
       } else if (selectedReportType.value == 'piket_sabtu') {
         area = slot.piketAreaSabtu;
+        day = 'sabtu';
       } else {
         area = slot.piketAreaAhad;
+        day = 'ahad';
       }
 
-      // Load task names from Firestore (or use defaults)
-      List<String> taskNames = await _firestore.getWeekendAreaTasks(area);
-      if (taskNames.isEmpty) {
-        taskNames = WeekendAreaTasksModel.getDefaultTasksForArea(area);
+      // Load task data from Firestore filtered by day
+      List<Map<String, dynamic>> taskData = await _firestore
+          .getWeekendAreaTasksForDay(area, day);
+
+      // If no tasks, use defaults filtered by day
+      if (taskData.isEmpty) {
+        final defaults = WeekendAreaTasksModel.getDefaultTasksForArea(area);
+        taskData = defaults
+            .where((t) => t.dayOption == 'both' || t.dayOption == day)
+            .map((t) => t.toJson())
+            .toList();
       }
+
+      // Extract task names
+      final taskNames = taskData.map((t) => t['name'] as String).toList();
 
       // Try to load existing report first
       final reportId = WeekendReportModel.generateId(

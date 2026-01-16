@@ -88,8 +88,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
                       return Container(
                         margin: const EdgeInsets.only(top: 16),
                         height: 48,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildKelompokFilterChip(
                               context,
@@ -179,8 +179,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 height: 48,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _buildKelompokFilterChipAlt(
                       context,

@@ -9,7 +9,7 @@ import '../../data/services/rotation_service.dart';
 import '../../widgets/amalan_harian_card.dart';
 import '../../widgets/fisik_card.dart';
 import '../../widgets/nalya_feedback_card.dart';
-import '../../widgets/nalya_wisdom_card.dart';
+import '../../widgets/asmaul_husna_card.dart';
 import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../leaderboard/leaderboard_view.dart';
@@ -197,10 +197,10 @@ class SantriDashboardView extends GetView<SantriDashboardController> {
 
           const SizedBox(height: 16),
 
-          // Nalya Daily Wisdom Card
+          // Asmaul Husna & Vocab Card
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: NalyaWisdomCard(),
+            child: AsmaulHusnaCard(),
           ),
 
           const SizedBox(height: 24),

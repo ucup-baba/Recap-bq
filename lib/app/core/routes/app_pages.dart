@@ -50,6 +50,10 @@ import '../../modules/weekend_report_validation/weekend_report_validation_bindin
 import '../../modules/weekend_report_validation/weekend_report_validation_view.dart';
 import '../../modules/running_tracker/running_tracker_binding.dart';
 import '../../modules/running_tracker/running_tracker_view.dart';
+import '../../modules/super_admin_report/super_admin_report_binding.dart';
+import '../../modules/super_admin_report/super_admin_report_view.dart';
+import '../../modules/memorable/memorable_binding.dart';
+import '../../modules/memorable/memorable_view.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -77,6 +81,8 @@ class AppRoutes {
   static const String weekendReportInput = '/weekend-report-input';
   static const String weekendReportValidation = '/weekend-report-validation';
   static const String runningTracker = '/running-tracker';
+  static const String adminReport = '/admin-report';
+  static const String memorable = '/memorable';
 }
 
 class AppPages {
@@ -205,6 +211,16 @@ class AppPages {
       name: AppRoutes.runningTracker,
       page: () => const RunningTrackerView(),
       binding: RunningTrackerBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.adminReport,
+      page: () => const SuperAdminReportView(),
+      binding: SuperAdminReportBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.memorable,
+      page: () => const MemorableView(),
+      binding: MemorableBinding(),
     ),
   ];
 }

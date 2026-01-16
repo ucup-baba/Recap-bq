@@ -338,4 +338,86 @@ Abbas ibn Firnas melakukan penerbangan pertama manusia pada tahun 875 M, 1000 ta
     final index = DateTime.now().millisecond % fallbacks.length;
     return fallbacks[index];
   }
+
+  /// Generate daily English-Indonesian vocabulary (5 words)
+  /// Returns JSON string format: [{"english": "word", "pronunciation": "...", "indonesian": "arti"}]
+  Future<String> generateDailyVocabulary() async {
+    try {
+      Logger.info('GeminiService: Generating daily vocabulary');
+
+      final dayOfYear = DateTime.now()
+          .difference(DateTime(DateTime.now().year, 1, 1))
+          .inDays;
+      final themes = [
+        'sekolah dan belajar',
+        'keluarga dan rumah',
+        'makanan dan minuman',
+        'kegiatan sehari-hari',
+        'waktu dan jadwal',
+        'emosi dan perasaan',
+        'alam dan lingkungan',
+        'transportasi dan perjalanan',
+        'tubuh dan kesehatan',
+        'hobi dan olahraga',
+        'cuaca dan musim',
+        'pekerjaan dan profesi',
+        'toko dan belanja',
+        'teknologi dan gadget',
+        'agama dan ibadah',
+      ];
+      final theme = themes[dayOfYear % themes.length];
+
+      final prompt =
+          '''
+Buatkan 5 kosakata bahasa Inggris sehari-hari dengan tema "$theme".
+Pilih kata yang BERBEDA dari hari sebelumnya (hari ke-$dayOfYear dalam tahun).
+
+Format response HARUS tepat seperti ini (JSON array, tanpa markdown):
+[{"english":"word1","pronunciation":"/cara-baca/","indonesian":"arti1"},{"english":"word2","pronunciation":"/cara-baca/","indonesian":"arti2"},{"english":"word3","pronunciation":"/cara-baca/","indonesian":"arti3"},{"english":"word4","pronunciation":"/cara-baca/","indonesian":"arti4"},{"english":"word5","pronunciation":"/cara-baca/","indonesian":"arti5"}]
+
+Kriteria:
+- Kata yang umum digunakan dalam kehidupan sehari-hari
+- Cocok untuk level santri SMP-SMA
+- Arti dalam bahasa Indonesia yang tepat dan umum
+- Jangan gunakan kata yang terlalu mudah (seperti book, pen, water)
+- Jangan gunakan kata yang terlalu sulit
+- Pronunciation menggunakan format fonetik sederhana yang mudah dibaca (contoh: /dil-i-jent/)
+''';
+
+      final response = await model.generateContent([Content.text(prompt)]);
+      final text = response.text;
+
+      if (text != null && text.isNotEmpty) {
+        // Clean up response - remove markdown if present
+        String cleanedText = text.trim();
+        if (cleanedText.startsWith('```')) {
+          cleanedText = cleanedText.replaceAll(RegExp(r'^```\w*\n?'), '');
+          cleanedText = cleanedText.replaceAll(RegExp(r'\n?```$'), '');
+        }
+        cleanedText = cleanedText.trim();
+
+        Logger.info('GeminiService: Daily vocabulary generated successfully');
+        return cleanedText;
+      }
+
+      return _getVocabFallback();
+    } catch (e) {
+      Logger.error('GeminiService: Error generating vocabulary', e);
+      return _getVocabFallback();
+    }
+  }
+
+  String _getVocabFallback() {
+    final dayOfYear = DateTime.now()
+        .difference(DateTime(DateTime.now().year, 1, 1))
+        .inDays;
+    final fallbacks = [
+      '[{"english":"diligent","pronunciation":"/dil-i-jent/","indonesian":"rajin"},{"english":"schedule","pronunciation":"/sked-yool/","indonesian":"jadwal"},{"english":"assignment","pronunciation":"/uh-sahyn-ment/","indonesian":"tugas"},{"english":"concentrate","pronunciation":"/kon-sen-treyt/","indonesian":"berkonsentrasi"},{"english":"achieve","pronunciation":"/uh-cheev/","indonesian":"mencapai"}]',
+      '[{"english":"grateful","pronunciation":"/greyt-ful/","indonesian":"bersyukur"},{"english":"patience","pronunciation":"/pey-shens/","indonesian":"kesabaran"},{"english":"sincerity","pronunciation":"/sin-ser-i-tee/","indonesian":"keikhlasan"},{"english":"discipline","pronunciation":"/dis-uh-plin/","indonesian":"disiplin"},{"english":"responsibility","pronunciation":"/ri-spon-suh-bil-i-tee/","indonesian":"tanggung jawab"}]',
+      '[{"english":"breakfast","pronunciation":"/brek-fuhst/","indonesian":"sarapan"},{"english":"delicious","pronunciation":"/di-lish-uhs/","indonesian":"lezat"},{"english":"appetite","pronunciation":"/ap-i-tahyt/","indonesian":"selera makan"},{"english":"nutritious","pronunciation":"/noo-trish-uhs/","indonesian":"bergizi"},{"english":"beverage","pronunciation":"/bev-er-ij/","indonesian":"minuman"}]',
+      '[{"english":"activity","pronunciation":"/ak-tiv-i-tee/","indonesian":"kegiatan"},{"english":"routine","pronunciation":"/roo-teen/","indonesian":"rutinitas"},{"english":"prepare","pronunciation":"/pri-pair/","indonesian":"mempersiapkan"},{"english":"complete","pronunciation":"/kuhm-pleet/","indonesian":"menyelesaikan"},{"english":"organize","pronunciation":"/awr-guh-nahyz/","indonesian":"mengatur"}]',
+      '[{"english":"environment","pronunciation":"/en-vahy-ruhn-muhnt/","indonesian":"lingkungan"},{"english":"nature","pronunciation":"/ney-cher/","indonesian":"alam"},{"english":"preserve","pronunciation":"/pri-zurv/","indonesian":"melestarikan"},{"english":"recycle","pronunciation":"/ree-sahy-kuhl/","indonesian":"mendaur ulang"},{"english":"sustainable","pronunciation":"/suh-stey-nuh-buhl/","indonesian":"berkelanjutan"}]',
+    ];
+    return fallbacks[dayOfYear % fallbacks.length];
+  }
 }

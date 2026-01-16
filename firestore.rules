@@ -375,6 +375,58 @@ service cloud.firestore {
       // Admin and kedisiplinan can delete records
       allow delete: if isAdmin() || isKedisiplinan();
     }
+    
+    // Global data collection (shared across all users)
+    match /global/{docId} {
+      // Everyone authenticated can read global data
+      allow read: if isAuthenticated();
+      
+      // Only authenticated users can write (for vocab generation)
+      allow create, update: if isAuthenticated();
+      
+      // Only super admin can delete global data
+      allow delete: if isSuperAdmin();
+      
+      // Sub-collections under global (e.g., daily_vocab/history)
+      match /{subcollection}/{document=**} {
+        // Everyone authenticated can read
+        allow read: if isAuthenticated();
+        
+        // Authenticated users can create/update (for vocab caching)
+        allow create, update: if isAuthenticated();
+        
+        // Only super admin can delete (for reset functionality)
+        allow delete: if isSuperAdmin();
+      }
+    }
+    
+    // Memorable places collection (personal place bookmarks)
+    match /memorable_places/{placeId} {
+      // Users can read their own memorable places
+      allow read: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        isAdmin()
+      );
+      
+      // Allow list queries for authenticated users
+      allow list: if isAuthenticated();
+      
+      // Users can create memorable places for themselves
+      allow create: if isAuthenticated() && 
+        request.resource.data.createdBy == request.auth.uid;
+      
+      // Users can update their own memorable places
+      allow update: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        isAdmin()
+      );
+      
+      // Users can delete their own memorable places
+      allow delete: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        isAdmin()
+      );
+    }
   }
 }
 

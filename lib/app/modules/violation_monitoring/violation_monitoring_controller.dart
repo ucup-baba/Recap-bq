@@ -8,6 +8,7 @@ class ViolationMonitoringController extends GetxController {
 
   final violators = <Map<String, dynamic>>[].obs;
   final isLoading = false.obs;
+  final selectedKelompok = Rxn<int>(); // null = Semua
 
   @override
   void onInit() {
@@ -26,5 +27,17 @@ class ViolationMonitoringController extends GetxController {
       isLoading.value = false;
     }
   }
-}
 
+  void setKelompokFilter(int? kelompokId) {
+    selectedKelompok.value = kelompokId;
+  }
+
+  List<Map<String, dynamic>> get filteredViolators {
+    if (selectedKelompok.value == null) {
+      return violators;
+    }
+    return violators
+        .where((v) => v['kelompokId'] == selectedKelompok.value)
+        .toList();
+  }
+}

@@ -144,10 +144,28 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
             ),
           ),
 
+          // Day Filter Chips
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Obx(
+              () => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildFilterChip('semua', 'Semua', context),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('sabtu', 'Sabtu', context),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('ahad', 'Ahad', context),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // Tasks List
           Obx(
             () => Expanded(
-              child: controller.tasks.isEmpty
+              child: controller.filteredTasks.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -161,7 +179,9 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Belum ada task',
+                            controller.dayFilter.value == 'semua'
+                                ? 'Belum ada task'
+                                : 'Tidak ada task untuk ${controller.dayFilter.value}',
                             style: TextStyle(
                               color: context.subtextColor,
                               fontSize: 16,
@@ -182,9 +202,9 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: controller.tasks.length,
+                      itemCount: controller.filteredTasks.length,
                       itemBuilder: (context, index) {
-                        final task = controller.tasks[index];
+                        final task = controller.filteredTasks[index];
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
@@ -227,11 +247,37 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
                               ),
                             ),
                             title: Text(
-                              task,
+                              task.name,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
                                 color: context.textColor,
+                              ),
+                            ),
+                            subtitle: Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _getDayBadgeColor(task.dayOption),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      task.dayLabel,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             trailing: Row(
@@ -247,7 +293,13 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: IconButton(
-                                    onPressed: () => controller.editTask(index),
+                                    onPressed: () {
+                                      // Find actual index in original tasks list
+                                      final actualIndex = controller.tasks
+                                          .indexOf(task);
+                                      if (actualIndex != -1)
+                                        controller.editTask(actualIndex);
+                                    },
                                     icon: Icon(
                                       Icons.edit,
                                       color: context.isDark
@@ -266,8 +318,13 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: IconButton(
-                                    onPressed: () =>
-                                        controller.deleteTask(index),
+                                    onPressed: () {
+                                      // Find actual index in original tasks list
+                                      final actualIndex = controller.tasks
+                                          .indexOf(task);
+                                      if (actualIndex != -1)
+                                        controller.deleteTask(actualIndex);
+                                    },
                                     icon: const Icon(
                                       Icons.delete,
                                       color: AppColors.alertRed,
@@ -366,5 +423,35 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
       default:
         return AppColors.primaryBlue;
     }
+  }
+
+  Color _getDayBadgeColor(String dayOption) {
+    switch (dayOption) {
+      case 'sabtu':
+        return Colors.blue;
+      case 'ahad':
+        return Colors.green;
+      case 'both':
+      default:
+        return Colors.purple;
+    }
+  }
+
+  Widget _buildFilterChip(String value, String label, BuildContext context) {
+    final isSelected = controller.dayFilter.value == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => controller.dayFilter.value = value,
+      selectedColor: value == 'sabtu'
+          ? Colors.blue
+          : value == 'ahad'
+          ? Colors.green
+          : Colors.purple,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : context.textColor,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
   }
 }

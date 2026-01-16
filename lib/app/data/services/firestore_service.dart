@@ -3199,33 +3199,76 @@ class FirestoreService {
   // Weekend Area Tasks Methods
   // ============================================
 
-  /// Get tasks for a weekend area
-  Future<List<String>> getWeekendAreaTasks(String area) async {
+  /// Get tasks for a weekend area (full list)
+  Future<List<Map<String, dynamic>>> getWeekendAreaTasks(String area) async {
     try {
       final doc = await _db.collection('weekend_area_tasks').doc(area).get();
 
       if (!doc.exists) return [];
       final data = doc.data();
-      return List<String>.from(data?['tasks'] ?? []);
+      final rawTasks = data?['tasks'] as List? ?? [];
+
+      // Handle both legacy string format and new object format
+      return rawTasks
+          .map((item) {
+            if (item is String) {
+              return {'name': item, 'dayOption': 'both'};
+            } else if (item is Map) {
+              return Map<String, dynamic>.from(item);
+            }
+            return <String, dynamic>{};
+          })
+          .where((m) => m.isNotEmpty)
+          .toList();
     } catch (e) {
       Logger.error('Error getting weekend area tasks', e);
       return [];
     }
   }
 
-  /// Watch tasks for a weekend area
-  Stream<List<String>> watchWeekendAreaTasks(String area) {
+  /// Get tasks for a weekend area filtered by day (sabtu/ahad)
+  Future<List<Map<String, dynamic>>> getWeekendAreaTasksForDay(
+    String area,
+    String day,
+  ) async {
+    final allTasks = await getWeekendAreaTasks(area);
+    final dayLower = day.toLowerCase();
+    return allTasks.where((task) {
+      final dayOption = task['dayOption'] as String? ?? 'both';
+      return dayOption == 'both' || dayOption == dayLower;
+    }).toList();
+  }
+
+  /// Watch tasks for a weekend area (returns structured data)
+  Stream<List<Map<String, dynamic>>> watchWeekendAreaTasks(String area) {
     return _db.collection('weekend_area_tasks').doc(area).snapshots().map((
       doc,
     ) {
-      if (!doc.exists) return <String>[];
+      if (!doc.exists) return <Map<String, dynamic>>[];
       final data = doc.data();
-      return List<String>.from(data?['tasks'] ?? []);
+      final rawTasks = data?['tasks'] as List? ?? [];
+
+      // Handle both legacy string format and new object format
+      return rawTasks
+          .map((item) {
+            if (item is String) {
+              return {'name': item, 'dayOption': 'both'};
+            } else if (item is Map) {
+              return Map<String, dynamic>.from(item);
+            }
+            return <String, dynamic>{};
+          })
+          .where((m) => m.isNotEmpty)
+          .toList()
+          .cast<Map<String, dynamic>>();
     });
   }
 
-  /// Save/update weekend area tasks
-  Future<void> saveWeekendAreaTasks(String area, List<String> tasks) async {
+  /// Save/update weekend area tasks (with day options)
+  Future<void> saveWeekendAreaTasks(
+    String area,
+    List<Map<String, dynamic>> tasks,
+  ) async {
     try {
       await _db.collection('weekend_area_tasks').doc(area).set({
         'area': area,

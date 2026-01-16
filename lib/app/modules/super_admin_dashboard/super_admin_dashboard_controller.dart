@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_pages.dart';
@@ -9,18 +10,29 @@ import '../leaderboard/leaderboard_controller.dart';
 import '../violation_monitoring/violation_monitoring_controller.dart';
 import '../super_admin_report/super_admin_report_controller.dart';
 import '../super_admin_account/super_admin_account_controller.dart';
+import '../memorable/memorable_controller.dart';
 
 class SuperAdminDashboardController extends GetxController {
   final _authService = AuthService.instance;
 
-  // Current tab index (0-4)
+  // Current tab index (0-4: Ibadah, Ranking, Mentoring, Memorable, Akun)
   final RxInt currentTabIndex = 0.obs;
+
+  // PageController for Mentoring/Report swipe navigation
+  final PageController mentoringReportPageController = PageController();
+  final RxInt mentoringReportPageIndex = 0.obs;
 
   @override
   void onInit() {
     super.onInit();
     // Initialize all controllers needed for tabs
     _initializeTabControllers();
+  }
+
+  @override
+  void onClose() {
+    mentoringReportPageController.dispose();
+    super.onClose();
   }
 
   void _initializeTabControllers() {
@@ -34,7 +46,7 @@ class SuperAdminDashboardController extends GetxController {
       Get.lazyPut<LeaderboardController>(() => LeaderboardController());
     }
 
-    // Initialize ViolationMonitoringController for tab 2
+    // Initialize ViolationMonitoringController for tab 2 (mentoring part)
     if (!Get.isRegistered<ViolationMonitoringController>()) {
       Get.put<ViolationMonitoringController>(
         ViolationMonitoringController(),
@@ -42,7 +54,7 @@ class SuperAdminDashboardController extends GetxController {
       );
     }
 
-    // Initialize SuperAdminReportController for tab 3
+    // Initialize SuperAdminReportController for tab 2 (report part)
     if (!Get.isRegistered<SuperAdminReportController>()) {
       Get.lazyPut<SuperAdminReportController>(
         () => SuperAdminReportController(),
@@ -55,6 +67,11 @@ class SuperAdminDashboardController extends GetxController {
         () => SuperAdminAccountController(),
       );
     }
+
+    // Initialize MemorableController for tab 3
+    if (!Get.isRegistered<MemorableController>()) {
+      Get.lazyPut<MemorableController>(() => MemorableController());
+    }
   }
 
   void changeTab(int index) {
@@ -64,8 +81,10 @@ class SuperAdminDashboardController extends GetxController {
       );
       currentTabIndex.value = index;
 
-      // Refresh to today's date when Report tab is selected
-      if (index == 3 && Get.isRegistered<SuperAdminReportController>()) {
+      // Refresh to today's date when Mentoring tab is selected and on Report page
+      if (index == 2 &&
+          mentoringReportPageIndex.value == 1 &&
+          Get.isRegistered<SuperAdminReportController>()) {
         Get.find<SuperAdminReportController>().refreshToToday();
       }
 
@@ -74,6 +93,25 @@ class SuperAdminDashboardController extends GetxController {
       );
     } else {
       Logger.warning('Super Admin: Invalid tab index: $index');
+    }
+  }
+
+  /// Switch between Mentoring and Report pages using the PageController
+  void switchMentoringReportPage(int pageIndex) {
+    mentoringReportPageController.animateToPage(
+      pageIndex,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  /// Handle page change from swipe gesture
+  void onMentoringReportPageChanged(int pageIndex) {
+    mentoringReportPageIndex.value = pageIndex;
+
+    // Refresh Report data when switching to Report page
+    if (pageIndex == 1 && Get.isRegistered<SuperAdminReportController>()) {
+      Get.find<SuperAdminReportController>().refreshToToday();
     }
   }
 
