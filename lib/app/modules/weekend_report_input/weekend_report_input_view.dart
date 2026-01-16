@@ -314,13 +314,13 @@ class WeekendReportInputView extends GetView<WeekendReportInputController> {
                         child: CachedNetworkImage(
                           imageUrl: controller.photoUrl.value,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
+                          placeholder: (_, x) => Container(
                             color: Colors.grey[200],
                             child: const Center(
                               child: CircularProgressIndicator(),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => Container(
+                          errorWidget: (_, x, y) => Container(
                             color: Colors.grey[200],
                             child: const Icon(Icons.error),
                           ),

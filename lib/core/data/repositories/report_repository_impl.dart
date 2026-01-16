@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../app/data/models/task_model.dart';
 import '../../domain/entities/report.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../datasources/firestore_datasource.dart';
@@ -172,7 +171,7 @@ class ReportRepositoryImpl implements ReportRepository {
   /// Convert Report entity to Firestore map
   Map<String, dynamic> _reportToFirestore(DailyReport report) {
     return {
-      'date': report.date,
+      'date': _formatDate(report.date),
       'kelompok_id': report.kelompokId,
       'slot': report.slot,
       'tasks': report.tasks.map((t) => t.toMap()).toList(),
@@ -197,16 +196,33 @@ class ReportRepositoryImpl implements ReportRepository {
   DailyReport _firestoreToReport(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
+    // Parse date - handle both String and Timestamp
+    DateTime parseDate(dynamic dateValue) {
+      if (dateValue is Timestamp) return dateValue.toDate();
+      if (dateValue is String) return DateTime.parse(dateValue);
+      return DateTime.now();
+    }
+
+    // Parse tasks list safely
+    List<DailyTask> parseTasks(dynamic tasksData) {
+      if (tasksData is! List) return [];
+      return tasksData.map((e) {
+        final taskMap = e as Map<String, dynamic>;
+        return DailyTask(
+          areaName: taskMap['areaName'] ?? taskMap['area_name'] ?? '',
+          executor: taskMap['executor'] ?? '',
+          isValid: taskMap['isValid'] ?? taskMap['is_valid'] ?? false,
+          adminNote: taskMap['adminNote'] ?? taskMap['admin_note'],
+        );
+      }).toList();
+    }
+
     return DailyReport(
       id: doc.id,
-      date: data['date'] as String,
+      date: parseDate(data['date']),
       kelompokId: data['kelompok_id'] as int,
       slot: data['slot'] as String,
-      tasks:
-          (data['tasks'] as List<dynamic>?)
-              ?.map((e) => TaskModel.fromMap(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      tasks: parseTasks(data['tasks']),
       photoUrl: data['photo_url'] as String?,
       status: data['status'] as String,
       createdAt: (data['created_at'] as Timestamp?)?.toDate(),
@@ -214,7 +230,7 @@ class ReportRepositoryImpl implements ReportRepository {
       validatedAt: (data['validated_at'] as Timestamp?)?.toDate(),
       validatedBy: data['validated_by'] as String?,
       rejectionReason: data['rejection_reason'] as String?,
-      finalScore: data['final_score'] as int?,
+      finalScore: (data['final_score'] as int?) ?? 0,
     );
   }
 

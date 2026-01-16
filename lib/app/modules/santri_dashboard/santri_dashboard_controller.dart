@@ -55,6 +55,7 @@ class SantriDashboardController extends GetxController
   final isLoading = false.obs;
   final showPushupMotivation = false.obs;
   final selectedDate = DateTime.now().obs;
+  @override
   final pushupMotivation = ''.obs;
 
   // Weekend
@@ -192,14 +193,15 @@ class SantriDashboardController extends GetxController
           kelompokIdStr.value = userData.kelompokId?.toString() ?? '-';
 
           final hour = DateTime.now().hour;
-          if (hour < 10)
+          if (hour < 10) {
             welcomeMessage.value = 'Selamat Pagi,';
-          else if (hour < 15)
+          } else if (hour < 15) {
             welcomeMessage.value = 'Selamat Siang,';
-          else if (hour < 18)
+          } else if (hour < 18) {
             welcomeMessage.value = 'Selamat Sore,';
-          else
+          } else {
             welcomeMessage.value = 'Selamat Malam,';
+          }
 
           if (userData.kelompokId != null) {
             final kelompokId = userData.kelompokId!;
@@ -315,13 +317,14 @@ class SantriDashboardController extends GetxController
   }
 
   void _updatePushupMotivation(int count) {
-    if (count == 0)
+    if (count == 0) {
       pushupMotivation.value = 'Omong kosong... Target 25x!';
-    else if (count == 25)
+    } else if (count == 25) {
       pushupMotivation.value = 'Ehem, baru sama dengan anak-anak...';
-    else if (count > 25 && count < 40)
+    } else if (count > 25 && count < 40) {
       pushupMotivation.value = 'Lumayan, otot mulai terbentuk.';
-    else if (count >= 40)
+    } else if (count >= 40) {
       pushupMotivation.value = 'Bagus! Jaga konsistensinya.';
+    }
   }
 }

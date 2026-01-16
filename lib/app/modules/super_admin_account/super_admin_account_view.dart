@@ -203,7 +203,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: roleColor.withOpacity(0.2),
+          backgroundColor: roleColor.withValues(alpha: 0.2),
           child: Icon(roleIcon, color: roleColor),
         ),
         title: Text(
@@ -226,7 +226,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: roleColor.withOpacity(0.1),
+                    color: roleColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -355,7 +355,7 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
           ),
           value: themeController.isDarkMode,
           onChanged: (value) => themeController.toggleTheme(),
-          activeColor: Colors.purple.shade300,
+          activeThumbColor: Colors.purple.shade300,
         ),
       ),
     );

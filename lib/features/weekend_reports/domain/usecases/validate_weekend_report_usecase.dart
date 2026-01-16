@@ -1,4 +1,3 @@
-import '../entities/weekend_report.dart';
 import '../repositories/weekend_report_repository.dart';
 
 /// Use Case: Validate Weekend Report

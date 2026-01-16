@@ -163,7 +163,7 @@ class SantriAccountView extends StatelessWidget {
                   trailing: Switch(
                     value: themeController.isDarkMode,
                     onChanged: (_) => themeController.toggleTheme(),
-                    activeColor: AppColors.primaryBlue,
+                    activeThumbColor: AppColors.primaryBlue,
                   ),
                 ),
               ),

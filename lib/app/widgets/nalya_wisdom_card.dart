@@ -55,6 +55,7 @@ class NalyaWisdomController extends GetxController {
     showCard.value = false;
   }
 
+  @override
   void refresh() {
     _cachedDate = null;
     _cachedWisdom = null;

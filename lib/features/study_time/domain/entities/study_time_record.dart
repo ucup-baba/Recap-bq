@@ -1,6 +1,6 @@
 /// Study Time Domain Entity
 /// Pure Dart class with no external dependencies
-
+///
 /// Attendance status for study time
 enum AttendanceStatus {
   hadir, // Present

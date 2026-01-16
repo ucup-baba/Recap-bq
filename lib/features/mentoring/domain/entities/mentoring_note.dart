@@ -1,6 +1,6 @@
 /// Mentoring Domain Entity
 /// Pure Dart class with no external dependencies
-
+///
 /// Mentoring note for a santri
 class MentoringNote {
   final String id;

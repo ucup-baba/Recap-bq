@@ -22,9 +22,15 @@ abstract class Report {
 
 /// Daily Report Entity
 class DailyReport extends Report {
+  final String slot; // 'pagi' or 'malam'
   final String? photoUrl;
   final List<DailyTask> tasks;
   final String? adminNote;
+  final DateTime? createdAt;
+  final DateTime? submittedAt;
+  final DateTime? validatedAt;
+  final String? validatedBy;
+  final String? rejectionReason;
 
   const DailyReport({
     required super.id,
@@ -32,9 +38,15 @@ class DailyReport extends Report {
     required super.date,
     required super.status,
     super.finalScore,
+    required this.slot,
     this.photoUrl,
     required this.tasks,
     this.adminNote,
+    this.createdAt,
+    this.submittedAt,
+    this.validatedAt,
+    this.validatedBy,
+    this.rejectionReason,
   });
 
   DailyReport copyWith({
@@ -43,9 +55,15 @@ class DailyReport extends Report {
     DateTime? date,
     String? status,
     int? finalScore,
+    String? slot,
     String? photoUrl,
     List<DailyTask>? tasks,
     String? adminNote,
+    DateTime? createdAt,
+    DateTime? submittedAt,
+    DateTime? validatedAt,
+    String? validatedBy,
+    String? rejectionReason,
   }) {
     return DailyReport(
       id: id ?? this.id,
@@ -53,9 +71,15 @@ class DailyReport extends Report {
       date: date ?? this.date,
       status: status ?? this.status,
       finalScore: finalScore ?? this.finalScore,
+      slot: slot ?? this.slot,
       photoUrl: photoUrl ?? this.photoUrl,
       tasks: tasks ?? this.tasks,
       adminNote: adminNote ?? this.adminNote,
+      createdAt: createdAt ?? this.createdAt,
+      submittedAt: submittedAt ?? this.submittedAt,
+      validatedAt: validatedAt ?? this.validatedAt,
+      validatedBy: validatedBy ?? this.validatedBy,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
     );
   }
 }
@@ -86,5 +110,14 @@ class DailyTask {
       isValid: isValid ?? this.isValid,
       adminNote: adminNote ?? this.adminNote,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'areaName': areaName,
+      'executor': executor,
+      'isValid': isValid,
+      if (adminNote != null) 'adminNote': adminNote,
+    };
   }
 }

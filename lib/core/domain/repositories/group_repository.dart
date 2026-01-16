@@ -10,7 +10,7 @@ abstract class GroupRepository {
   Future<List<Group>> getAllGroups();
 
   /// Watch group leaderboard (ordered by total weekly score)
-  Stream<List<Group>> watchGroupLeaderboard();
+  Stream<List<Group>> watchLeaderboard();
 
   /// Update group score
   Future<void> updateGroupScore(int groupId, int scoreIncrement);

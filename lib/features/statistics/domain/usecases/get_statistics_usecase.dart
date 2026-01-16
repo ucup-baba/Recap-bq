@@ -1,20 +1,15 @@
-import '../../../core/domain/repositories/group_repository.dart';
-import '../../../core/domain/repositories/report_repository.dart';
-import '../../../core/domain/repositories/user_repository.dart';
-import '../../violations/domain/repositories/violation_repository.dart';
+import '../../../../core/domain/repositories/group_repository.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 
 /// Use Case: Get Statistics
+/// Simplified without ViolationRepository dependency
 class GetStatisticsUseCase {
   final UserRepository userRepository;
   final GroupRepository groupRepository;
-  final ReportRepository reportRepository;
-  final ViolationRepository violationRepository;
 
   GetStatisticsUseCase({
     required this.userRepository,
     required this.groupRepository,
-    required this.reportRepository,
-    required this.violationRepository,
   });
 
   /// Get comprehensive statistics

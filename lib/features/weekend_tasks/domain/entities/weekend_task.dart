@@ -1,6 +1,6 @@
 /// Weekend Task Domain Entity
 /// Pure Dart class with no external dependencies
-
+///
 /// Day option for weekend tasks
 enum DayOption {
   sabtu, // Saturday only

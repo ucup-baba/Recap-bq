@@ -1,6 +1,5 @@
-import '../../../../app/data/models/task_model.dart';
-import '../../../core/domain/entities/report.dart';
-import '../../../core/domain/repositories/report_repository.dart';
+import '../../../../core/domain/entities/report.dart';
+import '../../../../core/domain/repositories/report_repository.dart';
 
 /// Use Case: Submit Daily Report
 class SubmitDailyReportUseCase {
@@ -10,10 +9,10 @@ class SubmitDailyReportUseCase {
 
   /// Submit a daily report with validation
   Future<void> call({
-    required String date,
+    required DateTime date,
     required int kelompokId,
     required String slot,
-    required List<TaskModel> tasks,
+    required List<DailyTask> tasks,
     String? photoUrl,
   }) async {
     // Validation
@@ -36,7 +35,9 @@ class SubmitDailyReportUseCase {
     }
 
     // Generate report ID
-    final id = '${date}_${kelompokId}_$slot';
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final id = '${dateStr}_${kelompokId}_$slot';
 
     // Create report
     final report = DailyReport(

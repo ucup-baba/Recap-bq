@@ -1,6 +1,6 @@
 /// Violation Domain Entity
 /// Pure Dart class with no external dependencies
-
+///
 /// Violation case representing a recorded rule violation
 class ViolationCase {
   final String id;

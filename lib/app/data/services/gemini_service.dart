@@ -17,12 +17,12 @@ class GeminiService {
 
   /// Generate daily feedback for user
   ///
-  /// [context] should contain:
+  /// `context` should contain:
   /// - displayName: String
   /// - role: String (koordinator/admin/super_admin/kedisiplinan)
   /// - currentMood: String
   /// - weeklyTarget: String
-  /// - focusAmalan: List<String>
+  /// - focusAmalan: List of String
   /// - challenges: String
   /// - ibadahData: Map (with percentages for each sholat)
   /// - readingData: Map (currentBook, pagesReadThisWeek, readingTarget)
@@ -227,7 +227,7 @@ Contoh: "MasyaAllah, senang banget kamu lagi semangat! 🌟 Targetmu untuk fokus
     final book = responses['book'] ?? 'bukumu';
 
     if (mood == 'semangat') {
-      return 'MasyaAllah, senang banget kamu lagi semangat! 🌟 Targetmu minggu ini keren, semoga Allah mudahkan. Jangan lupa istirahat yang cukup ya. Baca \"$book\" pelan-pelan aja, yang penting konsisten! Bismillah, pasti bisa! 💪';
+      return 'MasyaAllah, senang banget kamu lagi semangat! 🌟 Targetmu minggu ini keren, semoga Allah mudahkan. Jangan lupa istirahat yang cukup ya. Baca "$book" pelan-pelan aja, yang penting konsisten! Bismillah, pasti bisa! 💪';
     } else if (mood == 'kurang_fit') {
       return 'Semangat ya! 💙 Kalau lagi kurang fit, prioritaskan istirahat dulu. Amalan yang ringan-ringan aja dulu. InsyaAllah minggu depan bisa lebih baik. Kamu hebat sudah mau cerita! 🤗';
     } else {

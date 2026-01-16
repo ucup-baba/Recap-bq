@@ -480,4 +480,27 @@ class MemorableController extends GetxController {
       );
     }
   }
+
+  /// Focus map on specific location
+  void focusOnLocation(double lat, double lng) {
+    final position = LatLng(lat, lng);
+
+    // Update marker and state
+    latitude.value = lat;
+    longitude.value = lng;
+
+    marker.value = Marker(
+      markerId: const MarkerId('selected_location'),
+      position: position,
+      draggable: true,
+      onDragEnd: _onMarkerDragEnd,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      infoWindow: const InfoWindow(title: 'Lokasi Terpilih'),
+    );
+
+    // Animate camera
+    mapController?.animateCamera(
+      CameraUpdate.newLatLngZoom(position, defaultZoomLevel),
+    );
+  }
 }

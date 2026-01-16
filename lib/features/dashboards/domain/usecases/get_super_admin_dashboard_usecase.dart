@@ -1,5 +1,5 @@
-import '../../../core/domain/repositories/group_repository.dart';
-import '../../../core/domain/repositories/user_repository.dart';
+import '../../../../core/domain/repositories/group_repository.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 
 /// Use Case: Get Super Admin Dashboard Data
 class GetSuperAdminDashboardUseCase {

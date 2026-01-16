@@ -1,5 +1,5 @@
-import '../../../core/domain/entities/user.dart';
-import '../../../core/domain/repositories/user_repository.dart';
+import '../../../../core/domain/entities/user.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 
 /// Use Case: Manage Account Settings
 class ManageAccountUseCase {

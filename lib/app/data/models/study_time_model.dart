@@ -1,6 +1,5 @@
-/// Study Time Model - for mandatory study hour attendance tracking
-/// Schedule: Monday-Friday, 20:00-21:00 at Aula Asrama
-
+// Study Time Model - for mandatory study hour attendance tracking
+// Schedule: Monday-Friday, 20:00-21:00 at Aula Asrama
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Attendance status enum

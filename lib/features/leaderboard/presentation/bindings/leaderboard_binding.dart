@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 
-import '../../../core/data/repositories/group_repository_impl.dart';
-import '../../../core/data/repositories/user_repository_impl.dart';
-import '../../../core/domain/repositories/group_repository.dart';
-import '../../../core/domain/repositories/user_repository.dart';
+import '../../../../core/data/repositories/group_repository_impl.dart';
+import '../../../../core/data/repositories/user_repository_impl.dart';
+import '../../../../core/domain/repositories/group_repository.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 import '../../domain/usecases/get_leaderboard_usecase.dart';
 
 /// Dependency Injection Binding for Leaderboard Feature

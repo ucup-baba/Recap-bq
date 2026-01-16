@@ -3,48 +3,35 @@ import '../entities/report.dart';
 /// Abstract Report Repository Interface
 /// Defines contract for report data operations
 abstract class ReportRepository {
+  /// Save a report (daily report)
+  Future<void> saveReport(DailyReport report);
+
   /// Get report by ID
   Future<DailyReport?> getReportById(String reportId);
-
-  /// Save a daily report
-  Future<void> saveDailyReport(DailyReport report);
-
-  /// Get pending reports stream
-  Stream<List<DailyReport>> getPendingReports();
-
-  /// Get verified reports
-  Future<List<DailyReport>> getVerifiedReports();
 
   /// Get reports by date
   Future<List<DailyReport>> getReportsByDate(DateTime date);
 
-  /// Get reports by group and date
-  Stream<List<DailyReport>> getReportsByGroupAndDate(
-    int kelompokId,
-    DateTime date,
-  );
+  /// Get reports by kelompok
+  Future<List<DailyReport>> getReportsByKelompok(int kelompokId);
+
+  /// Watch pending reports (real-time stream)
+  Stream<List<DailyReport>> watchPendingReports();
 
   /// Update report status
-  Future<void> updateReportStatus(String reportId, String status);
-
-  /// Update task validation within a report
-  Future<void> updateTaskValidation(
-    String reportId,
-    int taskIndex, {
-    bool? isValid,
-    String? adminNote,
+  Future<void> updateReportStatus({
+    required String reportId,
+    required String status,
+    String? validatedBy,
+    String? rejectionReason,
   });
 
-  /// Delete multiple reports
-  Future<void> deleteReports(List<String> reportIds);
-
-  /// Batch update scores (final_score, group_score, personal_points, streak)
+  /// Batch update scores (report + group + users)
   Future<void> batchUpdateScores({
     required String reportId,
     required int kelompokId,
     required int finalScore,
     required Map<String, int> executorTaskCount,
-    bool hasAllTeamTask = false,
     required bool incrementStreak,
   });
 }

@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import '../../../core/data/datasources/firestore_datasource.dart';
+import '../../../../core/data/datasources/firestore_datasource.dart';
 import '../../data/repositories/running_tracker_repository_impl.dart';
 import '../../domain/usecases/save_running_log_usecase.dart';
 

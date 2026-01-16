@@ -230,6 +230,7 @@ class RecordViolationView extends GetView<RecordViolationController> {
           ],
         ),
         child: DropdownButtonFormField<ViolationRuleModel>(
+          // ignore: deprecated_member_use - value is correct for DropdownButtonFormField
           value: controller.selectedRule.value,
           isExpanded: true,
           menuMaxHeight: 400,
@@ -315,6 +316,7 @@ class RecordViolationView extends GetView<RecordViolationController> {
           ],
         ),
         child: DropdownButtonFormField<String>(
+          // ignore: deprecated_member_use - value is correct for DropdownButtonFormField
           value: controller.selectedTimeDetail.value,
           dropdownColor: context.cardColor,
           style: TextStyle(color: context.textColor),

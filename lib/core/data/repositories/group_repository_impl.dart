@@ -93,7 +93,8 @@ class GroupRepositoryImpl implements GroupRepository {
     return Group(
       groupId: int.tryParse(doc.id) ?? 0,
       totalWeeklyScore: data['totalWeeklyScore'] as int? ?? 0,
-      lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate(),
+      lastUpdated:
+          (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }

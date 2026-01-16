@@ -1,6 +1,5 @@
 /// Nalya Check-in Entity
 /// Pure Dart class for Nalya location check-in
-
 class NalyaCheckIn {
   final String id;
   final String userId;

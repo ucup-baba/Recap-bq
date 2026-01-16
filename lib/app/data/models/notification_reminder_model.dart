@@ -82,7 +82,7 @@ class NotificationReminderModel {
   // Create from Map (from Firestore)
   factory NotificationReminderModel.fromMap(Map<String, dynamic> map) {
     // Helper function to convert timestamp to DateTime
-    DateTime _parseDateTime(dynamic value) {
+    DateTime parseDateTime(dynamic value) {
       if (value == null) {
         return DateTime.now();
       }
@@ -108,8 +108,8 @@ class NotificationReminderModel {
       ),
       userId: map['user_id'] as String,
       kelompokId: map['kelompok_id'] as int?,
-      createdAt: _parseDateTime(map['created_at']),
-      updatedAt: _parseDateTime(map['updated_at']),
+      createdAt: parseDateTime(map['created_at']),
+      updatedAt: parseDateTime(map['updated_at']),
     );
   }
 
@@ -136,4 +136,3 @@ class NotificationReminderModel {
     );
   }
 }
-

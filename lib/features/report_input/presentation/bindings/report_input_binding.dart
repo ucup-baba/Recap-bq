@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
-import '../../../core/data/repositories/report_repository_impl.dart';
-import '../../../core/domain/repositories/report_repository.dart';
+import '../../../../core/data/repositories/report_repository_impl.dart';
+import '../../../../core/domain/repositories/report_repository.dart';
 import '../../domain/usecases/submit_daily_report_usecase.dart';
 
 /// Dependency Injection Binding for Report Input Feature

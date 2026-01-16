@@ -558,7 +558,7 @@ class KedisiplinanDashboardView
           ),
           value: themeController.isDarkMode,
           onChanged: (value) => themeController.toggleTheme(),
-          activeColor: Colors.purple.shade300,
+          activeThumbColor: Colors.purple.shade300,
         ),
       ),
     );

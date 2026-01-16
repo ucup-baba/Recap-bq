@@ -1,6 +1,6 @@
-import '../../../core/domain/repositories/group_repository.dart';
-import '../../../core/domain/repositories/report_repository.dart';
-import '../../../core/domain/repositories/user_repository.dart';
+import '../../../../core/domain/repositories/group_repository.dart';
+import '../../../../core/domain/repositories/report_repository.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 
 /// Use Case: Get Santri Dashboard Data
 class GetSantriDashboardUseCase {

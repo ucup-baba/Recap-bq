@@ -161,7 +161,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -180,7 +180,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withOpacity(0.1),
+                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -212,7 +212,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
                 Switch(
                   value: reminder.enabled,
                   onChanged: (value) => controller.toggleReminder(reminder),
-                  activeColor: AppColors.primaryBlue,
+                  activeThumbColor: AppColors.primaryBlue,
                 ),
               ],
             ),
@@ -283,7 +283,7 @@ class NotificationSettingsView extends GetView<NotificationSettingsController> {
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+              backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
               child: Icon(
                 Icons.notifications,
                 color: AppColors.primaryBlue,

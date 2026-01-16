@@ -1,11 +1,11 @@
 import 'package:get/get.dart';
 
-import '../../../core/data/repositories/group_repository_impl.dart';
-import '../../../core/data/repositories/report_repository_impl.dart';
-import '../../../core/data/repositories/user_repository_impl.dart';
-import '../../../core/domain/repositories/group_repository.dart';
-import '../../../core/domain/repositories/report_repository.dart';
-import '../../../core/domain/repositories/user_repository.dart';
+import '../../../../core/data/repositories/group_repository_impl.dart';
+import '../../../../core/data/repositories/report_repository_impl.dart';
+import '../../../../core/data/repositories/user_repository_impl.dart';
+import '../../../../core/domain/repositories/group_repository.dart';
+import '../../../../core/domain/repositories/report_repository.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 import '../../domain/usecases/get_admin_dashboard_usecase.dart';
 import '../../domain/usecases/get_santri_dashboard_usecase.dart';
 import '../../domain/usecases/get_super_admin_dashboard_usecase.dart';

@@ -297,8 +297,9 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
                                       // Find actual index in original tasks list
                                       final actualIndex = controller.tasks
                                           .indexOf(task);
-                                      if (actualIndex != -1)
+                                      if (actualIndex != -1) {
                                         controller.editTask(actualIndex);
+                                      }
                                     },
                                     icon: Icon(
                                       Icons.edit,
@@ -322,8 +323,9 @@ class ManageWeekendTasksView extends GetView<ManageWeekendTasksController> {
                                       // Find actual index in original tasks list
                                       final actualIndex = controller.tasks
                                           .indexOf(task);
-                                      if (actualIndex != -1)
+                                      if (actualIndex != -1) {
                                         controller.deleteTask(actualIndex);
+                                      }
                                     },
                                     icon: const Icon(
                                       Icons.delete,

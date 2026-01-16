@@ -2140,8 +2140,15 @@ class FirestoreService {
             Logger.warning('Admin $displayName: weeklyData is empty!');
           }
 
+          // Get streak from user data
+          final stats = userData['stats'] as Map<String, dynamic>?;
+          final streak = stats?['current_streak'] as int? ?? 0;
+
+          // Get monthly running logs
+          final runningDays = await _getRunningMonthlyTotal(userId);
+
           Logger.info(
-            'Admin $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+            'Admin $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, streak=$streak, runningDays=$runningDays, daysWithData=$daysWithData/7',
           );
 
           leaderboard.add({
@@ -2150,6 +2157,8 @@ class FirestoreService {
             'kelompokId': 0, // Admin tidak punya kelompok, set ke 0
             'avgLevel': avgLevel,
             'totalPushups': totalPushups,
+            'streak': streak,
+            'runningDays': runningDays,
             'isAdmin': true,
           });
 
@@ -2196,8 +2205,15 @@ class FirestoreService {
             avgLevel = (userTotalLevel / weeklyData.length) * 100;
           }
 
+          // Get streak from user data
+          final stats = userData['stats'] as Map<String, dynamic>?;
+          final streak = stats?['current_streak'] as int? ?? 0;
+
+          // Get monthly running logs
+          final runningDays = await _getRunningMonthlyTotal(userId);
+
           Logger.info(
-            'Kedisiplinan $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+            'Kedisiplinan $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, streak=$streak, runningDays=$runningDays, daysWithData=$daysWithData/7',
           );
 
           leaderboard.add({
@@ -2206,6 +2222,8 @@ class FirestoreService {
             'kelompokId': 0, // Kedisiplinan tidak punya kelompok, set ke 0
             'avgLevel': avgLevel,
             'totalPushups': totalPushups,
+            'streak': streak,
+            'runningDays': runningDays,
             'isKedisiplinan': true,
           });
 
@@ -2254,8 +2272,15 @@ class FirestoreService {
             Logger.warning('Super Admin $displayName: weeklyData is empty!');
           }
 
+          // Get streak from user data
+          final stats = userData['stats'] as Map<String, dynamic>?;
+          final streak = stats?['current_streak'] as int? ?? 0;
+
+          // Get monthly running logs
+          final runningDays = await _getRunningMonthlyTotal(userId);
+
           Logger.info(
-            'Super Admin $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+            'Super Admin $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, streak=$streak, runningDays=$runningDays, daysWithData=$daysWithData/7',
           );
 
           leaderboard.add({
@@ -2264,6 +2289,8 @@ class FirestoreService {
             'kelompokId': 0, // Super Admin tidak punya kelompok, set ke 0
             'avgLevel': avgLevel,
             'totalPushups': totalPushups,
+            'streak': streak,
+            'runningDays': runningDays,
             'isSuperAdmin': true,
           });
 
@@ -2364,8 +2391,15 @@ class FirestoreService {
           avgLevel = (userTotalLevel / weeklyData.length) * 100;
         }
 
+        // Get streak from user data
+        final stats = userData['stats'] as Map<String, dynamic>?;
+        final streak = stats?['current_streak'] as int? ?? 0;
+
+        // Get monthly running logs
+        final runningDays = await _getRunningMonthlyTotal(userId);
+
         Logger.info(
-          'Ketua Kelompok $kelompokId $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, daysWithData=$daysWithData/7',
+          'Ketua Kelompok $kelompokId $displayName: avgLevel=${avgLevel.toStringAsFixed(2)}%, totalPushups=$totalPushups, streak=$streak, runningDays=$runningDays, daysWithData=$daysWithData/7',
         );
 
         leaderboard.add({
@@ -2374,6 +2408,8 @@ class FirestoreService {
           'kelompokId': kelompokId,
           'avgLevel': avgLevel,
           'totalPushups': totalPushups,
+          'streak': streak,
+          'runningDays': runningDays,
           'isAdmin': false,
         });
       }
@@ -3695,6 +3731,39 @@ class FirestoreService {
     } catch (e) {
       Logger.error('Error resetting study time records', e);
       rethrow;
+    }
+  }
+
+  /// Get total lari bulan ini untuk user tertentu
+  Future<int> _getRunningMonthlyTotal(String userId) async {
+    try {
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+
+      // Gunakan query langsung tanpa index composite yang rumit
+      // Kita query by userId dulu, baru filter date check di client side jika perlu
+      // Tapi untuk performa, kita coba filter tanggal di query
+      // Pastikan index odooId + date dibuat di console jika belum ada
+
+      final snapshot = await _db
+          .collection('running_logs')
+          .where('odooId', isEqualTo: userId)
+          .where(
+            'date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
+          )
+          .get();
+
+      // Filter local untuk memastikan isCompleted = true (jika tidak ada index composite)
+      final completedLogs = snapshot.docs.where((doc) {
+        final data = doc.data();
+        return (data['isCompleted'] as bool? ?? false) == true;
+      }).toList();
+
+      return completedLogs.length;
+    } catch (e) {
+      Logger.error('Error getting running data for user $userId', e);
+      return 0;
     }
   }
 }

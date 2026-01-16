@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import '../../../core/data/datasources/firestore_datasource.dart';
+import '../../../../core/data/datasources/firestore_datasource.dart';
 import '../../../violations/data/repositories/violation_repository_impl.dart';
 import '../../../violations/domain/usecases/record_violation_usecase.dart';
 

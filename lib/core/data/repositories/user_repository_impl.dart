@@ -112,7 +112,7 @@ class UserRepositoryImpl implements UserRepository {
       stats: UserStats(
         totalPoin: model.totalPoin,
         currentStreak: model.currentStreak,
-        personalPoints: model.stats?['personal_points'] ?? 0,
+        personalPoints: 0, // Will be calculated from other sources
       ),
     );
   }
@@ -127,11 +127,6 @@ class UserRepositoryImpl implements UserRepository {
       kelompokId: user.kelompokId,
       totalPoin: user.stats.totalPoin,
       currentStreak: user.stats.currentStreak,
-      stats: {
-        'total_poin': user.stats.totalPoin,
-        'current_streak': user.stats.currentStreak,
-        'personal_points': user.stats.personalPoints,
-      },
     );
   }
 }

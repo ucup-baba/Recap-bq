@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
-import '../../../core/data/repositories/user_repository_impl.dart';
-import '../../../core/domain/repositories/user_repository.dart';
+import '../../../../core/data/repositories/user_repository_impl.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 import '../../domain/usecases/manage_account_usecase.dart';
 
 /// Dependency Injection Binding for Account Feature

@@ -119,7 +119,7 @@ class AuthController extends GetxController {
   Future<void> logout() async {
     try {
       await signOutUseCase();
-      Get.offAllNamed(AppRoutes.login);
+      Get.offAllNamed(AppRoutes.auth);
     } catch (e) {
       Logger.error('Logout error', e);
       SnackbarHelper.showError('Gagal logout');
