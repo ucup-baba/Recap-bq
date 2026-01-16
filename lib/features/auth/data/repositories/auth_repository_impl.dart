@@ -2,8 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_core/firebase_core.dart';
 
 import '../../../../app/core/utils/logger.dart';
-import '../../../../app/data/models/user_model.dart';
 import '../../../../core/domain/entities/user.dart';
+import '../../../../core/domain/repositories/user_repository.dart';
 import '../../../../firebase_options.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -16,14 +16,11 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     firebase_auth.FirebaseAuth? firebaseAuth,
     required UserRepository userRepository,
-  })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
-        _userRepository = userRepository;
+  }) : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
+       _userRepository = userRepository;
 
   @override
-  Future<User> signInWithEmailAndPassword(
-    String email,
-    String password,
-  ) async {
+  Future<User> signInWithEmailAndPassword(String email, String password) async {
     // Ensure Firebase is initialized
     await _ensureFirebaseInitialized();
 
@@ -153,7 +150,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> _ensureFirebaseInitialized() async {
     try {
       if (Firebase.apps.isEmpty) {
-        Logger.info('Firebase not initialized, attempting re-initialization...');
+        Logger.info(
+          'Firebase not initialized, attempting re-initialization...',
+        );
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
@@ -197,6 +196,3 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 }
-
-// Import UserRepository from core
-import '../../../../core/domain/repositories/user_repository.dart';
