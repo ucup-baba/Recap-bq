@@ -81,9 +81,9 @@ class SuperAdminDashboardController extends GetxController {
       );
       currentTabIndex.value = index;
 
-      // Refresh to today's date when Mentoring tab is selected and on Report page
-      if (index == 2 &&
-          mentoringReportPageIndex.value == 1 &&
+      // Refresh to today's date when Monitoring tab is selected and on Report page
+      if (index == 1 &&
+          mentoringReportPageIndex.value == 2 &&
           Get.isRegistered<SuperAdminReportController>()) {
         Get.find<SuperAdminReportController>().refreshToToday();
       }

@@ -54,6 +54,7 @@ class AsmaulHusnaController extends GetxController {
   final vocabList = <VocabItem>[].obs;
   final isLoadingVocab = true.obs;
   final showCard = true.obs;
+  final speakingWord = RxnString(); // Track which word is being spoken
 
   // Cache for today
   String? _cachedDate;
@@ -72,11 +73,33 @@ class AsmaulHusnaController extends GetxController {
     await _flutterTts.setSpeechRate(0.4);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+
+    // Enable await speak completion for proper completion tracking
+    await _flutterTts.awaitSpeakCompletion(true);
+
+    // Handler when TTS completes speaking
+    _flutterTts.setCompletionHandler(() {
+      speakingWord.value = null;
+    });
+
+    // Handler when TTS is cancelled
+    _flutterTts.setCancelHandler(() {
+      speakingWord.value = null;
+    });
+
+    // Handler when TTS errors
+    _flutterTts.setErrorHandler((msg) {
+      speakingWord.value = null;
+    });
   }
 
   /// Speak the English word using TTS
   Future<void> speakWord(String word) async {
+    // Set speaking word before starting TTS
+    speakingWord.value = word;
     await _flutterTts.speak(word);
+    // Reset state after speak completes (fallback if handler doesn't fire)
+    speakingWord.value = null;
   }
 
   void loadTodayAsma() {
@@ -370,14 +393,6 @@ class _AsmaulHusnaCardState extends State<AsmaulHusnaCard>
               ],
             ),
           ),
-          IconButton(
-            onPressed: controller.dismissCard,
-            icon: Icon(
-              Icons.close,
-              size: 18,
-              color: isDark ? Colors.white38 : Colors.grey,
-            ),
-          ),
         ],
       ),
     );
@@ -629,26 +644,39 @@ class _AsmaulHusnaCardState extends State<AsmaulHusnaCard>
                     final controller = Get.find<AsmaulHusnaController>();
                     controller.speakWord(vocab.english);
                   },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.volume_up,
-                        size: 16,
-                        color: isDark ? Colors.blue[300] : Colors.blue[600],
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          vocab.english,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : Colors.black87,
+                  child: Obx(() {
+                    final controller = Get.find<AsmaulHusnaController>();
+                    final isSpeaking =
+                        controller.speakingWord.value == vocab.english;
+                    return Row(
+                      children: [
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            isSpeaking ? Icons.volume_off : Icons.volume_up,
+                            key: ValueKey(isSpeaking),
+                            size: 16,
+                            color: isSpeaking
+                                ? (isDark ? Colors.orange[300] : Colors.orange)
+                                : (isDark
+                                      ? Colors.blue[300]
+                                      : Colors.blue[600]),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            vocab.english,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
                 ),
                 if (vocab.pronunciation.isNotEmpty)
                   Text(

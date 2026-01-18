@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/utils/logger.dart';
 import '../../../firebase_options.dart';
@@ -52,7 +55,16 @@ class AuthService {
     return credential.user;
   }
 
-  Future<void> signOut() => auth.signOut();
+  Future<void> signOut() async {
+    // Clear cached profile first
+    await clearCachedProfile();
+    // Sign out from Firebase Auth
+    await auth.signOut();
+    // Delete all GetX controllers to reset app state
+    // This prevents stale listeners and state from previous session
+    Get.deleteAll(force: true);
+    Logger.info('Signed out and cleaned up all controllers');
+  }
 
   User? get currentUser {
     try {
@@ -65,7 +77,77 @@ class AuthService {
 
   Stream<User?> authStateChanges() => auth.authStateChanges();
 
-  Future<UserModel?> loadUserProfile(String uid) => _firestore.fetchUser(uid);
+  // Cached user profile for offline support
+  UserModel? _cachedUserProfile;
+  UserModel? get userProfile => _cachedUserProfile;
+
+  static const String _profileCacheKey = 'cached_user_profile';
+
+  Future<UserModel?> loadUserProfile(String uid) async {
+    try {
+      final profile = await _firestore.fetchUser(uid);
+      if (profile != null) {
+        _cachedUserProfile = profile;
+        // Save to persistent storage for offline restart
+        await _saveProfileToStorage(profile);
+      }
+      return profile ?? _cachedUserProfile ?? await loadCachedProfile();
+    } catch (e) {
+      Logger.error('Error loading profile, trying cache', e);
+      return _cachedUserProfile ?? await loadCachedProfile();
+    }
+  }
+
+  /// Load cached profile from SharedPreferences (public for offline access)
+  Future<UserModel?> loadCachedProfile() async {
+    // If memory cache exists, return it
+    if (_cachedUserProfile != null) {
+      return _cachedUserProfile;
+    }
+
+    // Try to load from persistent storage
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString(_profileCacheKey);
+      if (json != null) {
+        final map = jsonDecode(json) as Map<String, dynamic>;
+        final profile = UserModel.fromMap(map, map['uid'] ?? '');
+        _cachedUserProfile = profile;
+        Logger.info(
+          'Loaded cached profile from storage: ${profile.displayName}',
+        );
+        return profile;
+      }
+    } catch (e) {
+      Logger.error('Error loading profile from storage', e);
+    }
+    return null;
+  }
+
+  /// Save profile to SharedPreferences for offline access
+  Future<void> _saveProfileToStorage(UserModel profile) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final map = profile.toMap();
+      map['uid'] = profile.uid; // Include uid for reconstruction
+      await prefs.setString(_profileCacheKey, jsonEncode(map));
+      Logger.info('Saved profile to storage for offline access');
+    } catch (e) {
+      Logger.error('Error saving profile to storage', e);
+    }
+  }
+
+  /// Clear cached profile on logout
+  Future<void> clearCachedProfile() async {
+    _cachedUserProfile = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_profileCacheKey);
+      Logger.info('Cleared cached profile from storage');
+    } catch (e) {
+      Logger.error('Error clearing profile from storage', e);
+    }
+  }
 
   /// Ensure kedisiplinan user exists in Firestore with the given UID
   /// This is called during login to create the Firestore document if it doesn't exist

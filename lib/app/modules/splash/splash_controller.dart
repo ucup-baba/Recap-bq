@@ -29,56 +29,99 @@ class SplashController extends GetxController {
   }
 
   void _initializeSplash() {
+    Logger.info('Splash: _initializeSplash START');
+
     // Pilih hadits random
     final hadits = HaditsConstants.getRandomHadits();
     currentHadits.value = hadits;
-    Logger.info('Splash screen initialized with hadits: $hadits');
+    Logger.info('Splash: Hadits loaded');
 
     // Auto-create kedisiplinan user (if not exists) - don't block startup
     _authService.createKedisiplinanUser().catchError((e) {
       Logger.error('Error auto-creating kedisiplinan user', e);
-      // Don't block app startup if user creation fails
     });
 
     // Auto-create super admin user (if not exists) - don't block startup
     _authService.createSuperAdminUser().catchError((e) {
       Logger.error('Error auto-creating super admin user', e);
-      // Don't block app startup if user creation fails
     });
 
+    Logger.info('Splash: Starting 3 second timer');
     // Start timer untuk 3 detik
     _timer = Timer(const Duration(seconds: 3), () {
+      Logger.info('Splash: Timer fired, calling _navigateToNext');
       _navigateToNext();
     });
   }
 
   Future<void> _navigateToNext() async {
     isLoading.value = true;
+    Logger.info('Splash: Starting navigation check');
 
-    // Cek apakah user sudah login
+    // Cek apakah user sudah login (Firebase Auth uses local cache)
     final user = _authService.currentUser;
     if (user != null) {
-      // User sudah login, load profile dan redirect ke dashboard
+      Logger.info('Splash: User found - ${user.uid}');
+
+      // OFFLINE-FIRST: Try cached profile FIRST before network
       try {
-        final profile = await _authService.loadUserProfile(user.uid);
-        if (profile != null) {
-          if (profile.role == AppConstants.userRoleSuperAdmin) {
-            Get.offAllNamed(AppRoutes.superAdminDashboard);
-          } else if (profile.role == AppConstants.userRoleAdmin) {
-            Get.offAllNamed(AppRoutes.adminDashboard);
-          } else if (profile.role == AppConstants.userRoleKedisplinan) {
-            Get.offAllNamed(AppRoutes.kedisiplinanDashboard);
-          } else {
-            Get.offAllNamed(AppRoutes.santriDashboard);
-          }
+        final cachedProfile = await _authService.loadCachedProfile();
+        if (cachedProfile != null) {
+          Logger.info('Splash: Found cached profile - ${cachedProfile.role}');
+          _navigateBasedOnRole(cachedProfile.role);
+
+          // Background refresh (don't await)
+          _authService.loadUserProfile(user.uid).catchError((e) {
+            Logger.error('Background profile refresh failed', e);
+            return null;
+          });
           return;
         }
       } catch (e) {
-        Logger.error('Error loading profile in splash', e);
+        Logger.error('Splash: Error loading cached profile', e);
       }
+
+      // No cached profile - try network with short timeout
+      Logger.info('Splash: No cache, trying network with timeout');
+      try {
+        final profile = await _authService
+            .loadUserProfile(user.uid)
+            .timeout(
+              const Duration(seconds: 3),
+              onTimeout: () {
+                Logger.warning('Splash: Network timeout');
+                return null;
+              },
+            );
+
+        if (profile != null) {
+          Logger.info('Splash: Profile from network - ${profile.role}');
+          _navigateBasedOnRole(profile.role);
+          return;
+        }
+      } catch (e) {
+        Logger.error('Splash: Network profile load failed', e);
+      }
+
+      // All attempts failed - redirect to auth
+      Logger.warning('Splash: All attempts failed, redirecting to auth');
+    } else {
+      Logger.info('Splash: No user logged in');
     }
 
-    // User belum login atau profile tidak ditemukan, redirect ke auth wrapper
+    // User belum login atau profile tidak ditemukan
     Get.offAllNamed(AppRoutes.auth);
+  }
+
+  void _navigateBasedOnRole(String role) {
+    if (role == AppConstants.userRoleSuperAdmin) {
+      Get.offAllNamed(AppRoutes.superAdminDashboard);
+    } else if (role == AppConstants.userRoleAdmin) {
+      Get.offAllNamed(AppRoutes.adminDashboard);
+    } else if (role == AppConstants.userRoleKedisplinan) {
+      Get.offAllNamed(AppRoutes.kedisiplinanDashboard);
+    } else {
+      Get.offAllNamed(AppRoutes.santriDashboard);
+    }
   }
 }

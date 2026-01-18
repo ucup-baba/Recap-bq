@@ -11,6 +11,7 @@ import '../../widgets/reading_tracker_widget.dart';
 import '../../widgets/sholat_wajib_card.dart';
 import '../../modules/admin_ibadah/admin_ibadah_controller.dart';
 import '../../modules/leaderboard/leaderboard_view.dart';
+import '../../modules/leaderboard/leaderboard_controller.dart';
 import '../nalya/nalya_feedback_controller.dart';
 import '../study_time/study_time_monitor_view.dart';
 import '../violation_monitoring/violation_monitoring_controller.dart';
@@ -60,20 +61,24 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                       key: const ValueKey('tab_0_ibadah_tracker'),
                       child: _buildIbadahTrackerTab(context),
                     ),
-                    // Tab 1: Leaderboard - hide header for embedded use
-                    const KeyedSubtree(
-                      key: ValueKey('tab_1_leaderboard'),
-                      child: LeaderboardView(hideAppBar: true),
-                    ),
-                    // Tab 2: Combined Mentoring + Report (with swipe)
+                    // Tab 1: Combined Monitoring + Report (with swipe)
                     KeyedSubtree(
-                      key: const ValueKey('tab_2_mentoring_report'),
+                      key: const ValueKey('tab_1_monitoring_report'),
                       child: _buildMentoringReportTab(context),
                     ),
-                    // Tab 3: Memorable
+                    // Tab 2: Memorable
                     const KeyedSubtree(
-                      key: ValueKey('tab_3_memorable'),
+                      key: ValueKey('tab_2_memorable'),
                       child: MemorableView(hideHeader: false),
+                    ),
+                    // Tab 3: Financial (Coming Soon)
+                    KeyedSubtree(
+                      key: const ValueKey('tab_3_financial'),
+                      child: _buildComingSoonTab(
+                        context,
+                        'Financial',
+                        Icons.account_balance_wallet,
+                      ),
                     ),
                     // Tab 4: Akun
                     const KeyedSubtree(
@@ -124,16 +129,16 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                 label: 'Ibadah',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.emoji_events),
-                label: 'Ranking',
-              ),
-              BottomNavigationBarItem(
                 icon: Icon(Icons.supervisor_account),
-                label: 'Mentoring',
+                label: 'Monitoring',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.bookmark_added),
                 label: 'Memorable',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet),
+                label: 'Financial',
               ),
               BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Akun'),
             ],
@@ -193,21 +198,53 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Monitoring',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  headerTitle,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Monitoring',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          headerTitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Ranking icon button - navigate to leaderboard
+                    GestureDetector(
+                      onTap: () {
+                        // Ensure controller is registered
+                        if (!Get.isRegistered<LeaderboardController>()) {
+                          Get.put(LeaderboardController());
+                        }
+                        Get.to(() => const LeaderboardView());
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.emoji_events,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 // Tab buttons inside header
@@ -313,11 +350,11 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
         case 0:
           return const Color(0xFF90CAF9); // Light Blue - Ibadah
         case 1:
-          return const Color(0xFFFFCC80); // Light Orange - Ranking
+          return const Color(0xFFA5D6A7); // Light Green - Monitoring
         case 2:
-          return const Color(0xFFA5D6A7); // Light Green - Mentoring
-        case 3:
           return const Color(0xFFF48FB1); // Light Pink - Memorable
+        case 3:
+          return const Color(0xFF81C784); // Light Green - Financial
         case 4:
           return const Color(0xFFCE93D8); // Light Purple - Akun
         default:
@@ -328,11 +365,11 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
         case 0:
           return AppColors.primaryBlue; // Ibadah
         case 1:
-          return Colors.amber.shade800; // Ranking
+          return Colors.green.shade700; // Monitoring
         case 2:
-          return Colors.green.shade700; // Mentoring
-        case 3:
           return Colors.pink.shade600; // Memorable
+        case 3:
+          return Colors.teal.shade600; // Financial
         case 4:
           return Colors.purple.shade600; // Akun
         default:
@@ -566,6 +603,130 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                 ],
               );
             }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build Coming Soon placeholder tab with animation
+  Widget _buildComingSoonTab(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
+    return Container(
+      color: context.backgroundColor,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Animated icon container
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.8, end: 1.0),
+              duration: const Duration(milliseconds: 1500),
+              curve: Curves.easeInOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: context.isDark
+                            ? [const Color(0xFF4CAF50), const Color(0xFF2E7D32)]
+                            : [Colors.green.shade400, Colors.green.shade700],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withValues(alpha: 0.3),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Icon(icon, size: 64, color: Colors.white),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+            // Title
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: context.textColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Coming Soon badge with pulse animation
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.9, end: 1.05),
+              duration: const Duration(milliseconds: 1000),
+              curve: Curves.easeInOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.isDark
+                          ? Colors.amber.shade800
+                          : Colors.amber.shade600,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber.withValues(alpha: 0.4),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.access_time_filled,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Coming Soon',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            // Description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48),
+              child: Text(
+                'Fitur ini sedang dalam pengembangan.\nNantikan update selanjutnya!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: context.subtextColor,
+                  height: 1.5,
+                ),
+              ),
+            ),
           ],
         ),
       ),

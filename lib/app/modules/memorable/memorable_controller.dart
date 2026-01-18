@@ -250,18 +250,17 @@ class MemorableController extends GetxController {
         duration: const Duration(seconds: 3),
       );
     } else if (result.error != null) {
-      final errorMessage = _locationService.getErrorMessage(result.error!);
-      Get.snackbar(
-        'Gagal Mendapatkan Lokasi',
-        errorMessage,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade600,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
-      );
-
       // Offer to open settings if permission denied forever
       if (result.error == LocationError.permissionDeniedForever) {
+        final errorMessage = _locationService.getErrorMessage(result.error!);
+        Get.snackbar(
+          'Izin Lokasi Ditolak',
+          errorMessage,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade600,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
         Get.dialog(
           AlertDialog(
             title: const Text('Izin Lokasi Diperlukan'),
@@ -283,10 +282,146 @@ class MemorableController extends GetxController {
             ],
           ),
         );
+      } else {
+        // For other errors, offer manual coordinate entry as fallback (without error snackbar)
+        _showManualLocationDialog();
       }
     }
 
     isLoadingLocation.value = false;
+  }
+
+  /// Show dialog for manual coordinate entry when GPS fails
+  void _showManualLocationDialog() {
+    final latController = TextEditingController(text: '-7.6772');
+    final lngController = TextEditingController(text: '110.3234');
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.location_searching, color: Colors.orange),
+            SizedBox(width: 12),
+            Text('Lokasi Manual'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'GPS tidak bisa diakses. Masukkan koordinat secara manual:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: latController,
+              decoration: InputDecoration(
+                labelText: 'Latitude',
+                hintText: 'Contoh: -7.6772',
+                prefixIcon: const Icon(Icons.north),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: lngController,
+              decoration: InputDecoration(
+                labelText: 'Longitude',
+                hintText: 'Contoh: 110.3234',
+                prefixIcon: const Icon(Icons.east),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Quick location buttons
+            Wrap(
+              spacing: 8,
+              children: [
+                ActionChip(
+                  label: const Text('Yogyakarta'),
+                  avatar: const Icon(Icons.location_city, size: 16),
+                  onPressed: () {
+                    latController.text = '-7.7956';
+                    lngController.text = '110.3695';
+                  },
+                ),
+                ActionChip(
+                  label: const Text('Jakarta'),
+                  avatar: const Icon(Icons.location_city, size: 16),
+                  onPressed: () {
+                    latController.text = '-6.2088';
+                    lngController.text = '106.8456';
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Batal', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              final lat = double.tryParse(latController.text);
+              final lng = double.tryParse(lngController.text);
+
+              if (lat != null && lng != null) {
+                latitude.value = lat;
+                longitude.value = lng;
+                accuracy.value = 0; // Manual entry has no accuracy
+
+                final newPosition = LatLng(lat, lng);
+                updateMarker(newPosition);
+                mapController?.animateCamera(
+                  CameraUpdate.newLatLngZoom(newPosition, defaultZoomLevel),
+                );
+
+                Get.back();
+                Get.snackbar(
+                  'Lokasi Diatur',
+                  'Koordinat: ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green.shade600,
+                  colorText: Colors.white,
+                );
+              } else {
+                Get.snackbar(
+                  'Format Salah',
+                  'Masukkan koordinat yang valid',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.orange,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('Terapkan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Load places from Firestore
@@ -441,6 +576,74 @@ class MemorableController extends GetxController {
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,
       );
+    }
+  }
+
+  /// Update an existing place
+  Future<void> updatePlace(
+    MemorableModel updatedPlace, {
+    String? newImagePath,
+  }) async {
+    try {
+      String? photoUrl = updatedPlace.photoUrl;
+
+      // Upload new photo if provided
+      if (newImagePath != null) {
+        debugPrint('📍 updatePlace: Uploading new photo...');
+
+        // Delete old photo if exists
+        if (updatedPlace.photoUrl != null) {
+          try {
+            await _storage.refFromURL(updatedPlace.photoUrl!).delete();
+          } catch (e) {
+            debugPrint('Error deleting old photo: $e');
+          }
+        }
+
+        // Upload new photo
+        final fileName =
+            'memorable_${currentUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final ref = _storage.ref().child('memorable_photos/$fileName');
+
+        if (kIsWeb) {
+          // For web, read file as bytes
+          final file = await XFile(newImagePath).readAsBytes();
+          final uploadTask = await ref.putData(
+            file,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
+          photoUrl = await uploadTask.ref.getDownloadURL();
+        } else {
+          final file = File(newImagePath);
+          final uploadTask = await ref.putFile(file);
+          photoUrl = await uploadTask.ref.getDownloadURL();
+        }
+
+        debugPrint('📍 updatePlace: New photo uploaded: $photoUrl');
+      }
+
+      // Update in Firestore
+      await _firestore
+          .collection('memorable_places')
+          .doc(updatedPlace.id)
+          .update({
+            'name': updatedPlace.name,
+            'description': updatedPlace.description,
+            'category': updatedPlace.category.name,
+            'photoUrl': photoUrl,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      // Update local list
+      final index = places.indexWhere((p) => p.id == updatedPlace.id);
+      if (index != -1) {
+        places[index] = updatedPlace.copyWith(photoUrl: photoUrl);
+      }
+
+      debugPrint('📍 updatePlace: Place updated successfully');
+    } catch (e) {
+      debugPrint('Error updating place: $e');
+      rethrow;
     }
   }
 

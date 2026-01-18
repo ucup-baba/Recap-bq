@@ -39,7 +39,10 @@ class ManageTasksController extends GetxController {
         .watchAreaTasks(area)
         .listen(
           (AreaTasksModel? data) {
-            tasks.assignAll(data?.tasks ?? []);
+            // Use Future.microtask to avoid setState during build
+            Future.microtask(() {
+              tasks.assignAll(data?.tasks ?? []);
+            });
           },
           onError: (error) {
             Logger.error('Error loading area tasks', error);

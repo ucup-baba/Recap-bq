@@ -403,11 +403,11 @@ class MemorableView extends StatelessWidget {
             }),
             const SizedBox(height: 20),
 
-            // Google Maps Widget - SIMBAQ Style
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: SizedBox(
-                height: 250,
+            // Google Maps Widget
+            SizedBox(
+              height: 250,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
                 child: Stack(
                   children: [
                     // Map
@@ -415,16 +415,16 @@ class MemorableView extends StatelessWidget {
                       () => GoogleMap(
                         initialCameraPosition: controller.initialCameraPosition,
                         onMapCreated: controller.setMapController,
-                        onTap: controller.updateFromMap, // Tap untuk web
-                        onLongPress:
-                            controller.updateFromMap, // Long press untuk mobile
+                        onTap: controller.updateFromMap,
+                        onLongPress: controller.updateFromMap,
                         markers: controller.marker.value != null
                             ? {controller.marker.value!}
                             : {},
-                        myLocationEnabled: true,
+                        myLocationEnabled: false,
                         myLocationButtonEnabled: false,
                         zoomControlsEnabled: false,
                         mapToolbarEnabled: false,
+                        mapType: MapType.normal,
                       ),
                     ),
 

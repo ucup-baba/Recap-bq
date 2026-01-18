@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../app/core/utils/date_utils.dart';
+import '../../../../app/core/routes/app_pages.dart';
+import '../../../../app/core/utils/url_launcher.dart';
 import '../../../../app/data/models/memorable_model.dart';
 import '../../../../app/data/services/geocoding_service.dart';
 import '../memorable_controller.dart';
@@ -11,13 +12,29 @@ class MemorableHistoryView extends GetView<MemorableController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text(
           'Riwayat Tempat',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.white,
+          ),
         ),
         elevation: 0,
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF9C27B0), Color(0xFF5C6BC0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: Obx(() {
         if (controller.isLoadingPlaces.value) {
@@ -29,11 +46,31 @@ class MemorableHistoryView extends GetView<MemorableController> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.location_off, size: 64, color: Colors.grey.shade400),
-                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.location_off_outlined,
+                    size: 48,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Text(
                   'Belum ada tempat tersimpan',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Simpan tempat favorit Anda dari peta',
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 ),
               ],
             ),
@@ -47,11 +84,9 @@ class MemorableHistoryView extends GetView<MemorableController> {
             final place = controller.places[index];
             return _PlaceCard(
               place: place,
-              onDelete: () => _confirmDelete(context, place),
-              onTap: () {
-                Get.back();
-                controller.focusOnLocation(place.latitude, place.longitude);
-              },
+              onTap: () =>
+                  Get.toNamed(AppRoutes.memorableDetail, arguments: place),
+              onDirections: () => _openDirections(place),
             );
           },
         );
@@ -59,36 +94,22 @@ class MemorableHistoryView extends GetView<MemorableController> {
     );
   }
 
-  void _confirmDelete(BuildContext context, MemorableModel place) {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Hapus Tempat'),
-        content: Text('Yakin ingin menghapus "${place.name}"?'),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              Get.find<MemorableController>().deletePlace(place);
-            },
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+  void _openDirections(MemorableModel place) {
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}';
+    openUrlInNewTab(url);
   }
 }
 
-/// Separate StatefulWidget to handle async address loading
 class _PlaceCard extends StatefulWidget {
   final MemorableModel place;
-  final VoidCallback onDelete;
   final VoidCallback onTap;
+  final VoidCallback onDirections;
 
   const _PlaceCard({
     required this.place,
-    required this.onDelete,
     required this.onTap,
+    required this.onDirections,
   });
 
   @override
@@ -98,7 +119,6 @@ class _PlaceCard extends StatefulWidget {
 class _PlaceCardState extends State<_PlaceCard> {
   final GeocodingService _geocodingService = GeocodingService();
   String? _address;
-  bool _isLoadingAddress = true;
 
   @override
   void initState() {
@@ -110,124 +130,170 @@ class _PlaceCardState extends State<_PlaceCard> {
     final address = await _geocodingService.getAddressFromCoordinates(
       widget.place.latitude,
       widget.place.longitude,
-      shortFormat: false, // Show full address: desa, kecamatan, kabupaten
+      shortFormat: false,
     );
     if (mounted) {
-      setState(() {
-        _address = address;
-        _isLoadingAddress = false;
-      });
+      setState(() => _address = address);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final place = widget.place;
+    final accentColor = place.category.color;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: place.photoUrl != null
-              ? Image.network(
-                  place.photoUrl!,
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                  errorBuilder: (ctx, err, stack) => Container(
-                    width: 50,
-                    height: 50,
-                    color: Colors.grey.shade100,
-                    child: const Icon(Icons.broken_image, color: Colors.grey),
-                  ),
-                )
-              : Container(
-                  width: 50,
-                  height: 50,
-                  color: place.category.color.withValues(alpha: 0.2),
-                  child: Icon(place.category.icon, color: place.category.color),
-                ),
-        ),
-        title: Row(
-          children: [
-            Icon(place.category.icon, size: 14, color: place.category.color),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                place.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            // Address display with loading state
-            Row(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.location_on, size: 12, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
+                // Thumbnail
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    image: place.photoUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(place.photoUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: place.photoUrl == null
+                      ? Icon(place.category.icon, color: accentColor, size: 32)
+                      : null,
+                ),
+                const SizedBox(width: 14),
+
+                // Content
                 Expanded(
-                  child: _isLoadingAddress
-                      ? Row(
-                          children: [
-                            SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: Colors.grey.shade400,
-                              ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title
+                      Text(
+                        place.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2D3142),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Description
+                      if (place.description != null &&
+                          place.description!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            place.description!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Memuat alamat...',
+                          ),
+                        ),
+
+                      // Address
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _address ?? 'Memuat alamat...',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade500,
-                                fontStyle: FontStyle.italic,
                               ),
                             ),
-                          ],
-                        )
-                      : Text(
-                          _address ?? place.formattedCoordinates,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // Right side: Category + Direction button
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Category Icon
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        place.category.icon,
+                        size: 18,
+                        color: accentColor,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Direction Button
+                    Material(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        onTap: widget.onDirections,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.directions,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              AppDateUtils.formatDateTime(place.createdAt),
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-            ),
-          ],
+          ),
         ),
-        trailing: IconButton(
-          icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
-          onPressed: widget.onDelete,
-        ),
-        onTap: widget.onTap,
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -11,7 +12,9 @@ import 'app/core/constants/app_constants.dart';
 import 'app/core/routes/app_pages.dart';
 import 'app/core/theme/app_theme.dart';
 import 'app/data/services/auth_service.dart';
+import 'app/data/services/connectivity_service.dart';
 import 'app/data/services/notification_service.dart';
+import 'app/widgets/connection_indicator.dart';
 import 'firebase_options.dart';
 
 /// Background message handler (must be top-level function)
@@ -93,13 +96,29 @@ Future<void> main() async {
       firebaseInitialized = true;
       debugPrint('Firebase initialization SUCCESS on attempt $attempt');
 
+      // Enable Firestore offline persistence
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+      debugPrint('Firestore offline persistence enabled');
+
       // Register background message handler (MUST be after Firebase init)
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
 
-      // Initialize notification services
-      await NotificationService.instance.initialize();
+      // Initialize notification services with timeout (don't block on offline)
+      try {
+        await NotificationService.instance.initialize().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            debugPrint('NotificationService init timeout - skipping');
+          },
+        );
+      } catch (e) {
+        debugPrint('NotificationService init failed - $e');
+      }
       break; // Success, exit loop
     } catch (e, stackTrace) {
       debugPrint('Firebase initialization attempt $attempt failed: $e');
@@ -127,6 +146,9 @@ Future<void> main() async {
   // Initialize Theme Controller
   Get.put(ThemeController(), permanent: true);
 
+  // Initialize Connectivity Service
+  Get.put(ConnectivityService(), permanent: true);
+
   runApp(const PiketAsramaProApp());
 }
 
@@ -145,6 +167,10 @@ class PiketAsramaProApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeController.themeMode,
+          builder: (context, child) {
+            // Wrap with ConnectionIndicator for offline banner
+            return ConnectionIndicator(child: child ?? const SizedBox());
+          },
         );
       },
     );

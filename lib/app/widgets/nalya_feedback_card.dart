@@ -168,15 +168,6 @@ class _NalyaFeedbackCardState extends State<NalyaFeedbackCard>
                     ),
                     // Animated refresh button
                     _buildAnimatedRefreshButton(controller),
-                    const SizedBox(width: 8),
-                    // Close button
-                    IconButton(
-                      onPressed: controller.dismissFeedback,
-                      icon: const Icon(Icons.close, size: 20),
-                      color: Colors.grey,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 12),

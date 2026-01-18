@@ -55,6 +55,8 @@ import '../../modules/super_admin_report/super_admin_report_view.dart';
 import '../../modules/memorable/memorable_binding.dart';
 import '../../modules/memorable/memorable_view.dart';
 import '../../modules/memorable/views/memorable_history_view.dart';
+import '../../modules/memorable/views/memorable_detail_view.dart';
+import '../../modules/memorable/views/memorable_edit_view.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -85,6 +87,8 @@ class AppRoutes {
   static const String adminReport = '/admin-report';
   static const String memorable = '/memorable';
   static const String memorableHistory = '/memorable-history';
+  static const String memorableDetail = '/memorable-detail';
+  static const String memorableEdit = '/memorable-edit';
 }
 
 class AppPages {
@@ -227,6 +231,16 @@ class AppPages {
     GetPage(
       name: AppRoutes.memorableHistory,
       page: () => const MemorableHistoryView(),
+      binding: MemorableBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.memorableDetail,
+      page: () => const MemorableDetailView(),
+      binding: MemorableBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.memorableEdit,
+      page: () => const MemorableEditView(),
       binding: MemorableBinding(),
     ),
   ];

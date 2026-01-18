@@ -74,22 +74,29 @@ class ManageWeekendTasksController extends GetxController {
         .watchWeekendAreaTasks(area)
         .listen(
           (List<Map<String, dynamic>> data) {
-            if (data.isEmpty) {
-              // Use defaults if no custom tasks
-              tasks.assignAll(
-                WeekendAreaTasksModel.getDefaultTasksForArea(area),
-              );
-            } else {
-              tasks.assignAll(
-                data.map((m) => WeekendTaskItem.fromJson(m)).toList(),
-              );
-            }
+            // Use Future.microtask to avoid setState during build
+            Future.microtask(() {
+              if (data.isEmpty) {
+                // Use defaults if no custom tasks
+                tasks.assignAll(
+                  WeekendAreaTasksModel.getDefaultTasksForArea(area),
+                );
+              } else {
+                tasks.assignAll(
+                  data.map((m) => WeekendTaskItem.fromJson(m)).toList(),
+                );
+              }
+            });
           },
           onError: (error) {
             Logger.error('Error loading weekend area tasks', error);
             SnackbarHelper.showError(ErrorHandler.getErrorMessage(error));
             // Fallback to defaults
-            tasks.assignAll(WeekendAreaTasksModel.getDefaultTasksForArea(area));
+            Future.microtask(() {
+              tasks.assignAll(
+                WeekendAreaTasksModel.getDefaultTasksForArea(area),
+              );
+            });
           },
         );
   }
