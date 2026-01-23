@@ -1,0 +1,53 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "recap-bq",
+                    "appId": "1:733581949032:android:b7f14f9b9c5e1b356123dd",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "recap-bq",
+                    "configurations": {
+                        "android": "1:733581949032:android:b7f14f9b9c5e1b356123dd",
+                        "ios": "1:733581949032:ios:843a358514d5aed86123dd",
+                        "web": "1:733581949032:web:dfe3bf0a8cbdab236123dd"
+                    }
+                }
+            }
+        }
+    },
+    "firestore": {
+        "rules": "firestore.rules",
+        "indexes": "firestore.indexes.json"
+    },
+    "hosting": {
+        "site": "siqowwam",
+        "public": "build/web",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "headers": [
+            {
+                "source": "**/*.js",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-cache, no-store, must-revalidate"
+                    }
+                ]
+            }
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    }
+}
