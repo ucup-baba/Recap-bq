@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/services/reset_service.dart';
+import '../../data/services/google_sheets_service.dart';
 import '../dashboard/dashboard_controller.dart';
 import '../category_management/category_management_view.dart';
 
@@ -160,11 +162,10 @@ class AccountView extends GetView<DashboardController> {
               ),
             ),
           ),
-          const Divider(height: 1),
 
-          // Role Management (Super Admin only)
+          // Role Management (Admin and Super Admin)
           Obx(() {
-            if (!controller.isSuperAdmin) return const SizedBox.shrink();
+            if (!controller.isAdmin) return const SizedBox.shrink();
             return Column(
               children: [
                 ListTile(
@@ -177,14 +178,13 @@ class AccountView extends GetView<DashboardController> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Get.toNamed('/roles'),
                 ),
-                const Divider(height: 1),
               ],
             );
           }),
 
-          // User Management (Super Admin only)
+          // User Management (Admin and Super Admin)
           Obx(() {
-            if (!controller.isSuperAdmin) return const SizedBox.shrink();
+            if (!controller.isAdmin) return const SizedBox.shrink();
             return Column(
               children: [
                 ListTile(
@@ -194,7 +194,6 @@ class AccountView extends GetView<DashboardController> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Get.toNamed('/users'),
                 ),
-                const Divider(height: 1),
               ],
             );
           }),
@@ -211,18 +210,34 @@ class AccountView extends GetView<DashboardController> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _showResetConfirmation(context),
                 ),
-                const Divider(height: 1),
               ],
             );
           }),
 
-          // Categories
-          ListTile(
-            leading: const Icon(Icons.category, color: Colors.orange),
-            title: const Text('Kelola Kategori'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Get.to(() => const CategoryManagementView()),
-          ),
+          // Categories (Admin and Super Admin only - not for Viewer)
+          Obx(() {
+            if (!controller.isAdmin) return const SizedBox.shrink();
+            return ListTile(
+              leading: const Icon(Icons.category, color: Colors.orange),
+              title: const Text('Kelola Kategori'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Get.to(() => const CategoryManagementView()),
+            );
+          }),
+
+          // Google Sheets Integration (Super Admin only)
+          Obx(() {
+            if (!controller.isSuperAdmin) return const SizedBox.shrink();
+            final isConnected =
+                GoogleSheetsService.instance.isConfiguredRx.value;
+            return ListTile(
+              leading: const Icon(Icons.table_chart, color: Colors.green),
+              title: const Text('Google Sheets Sync'),
+              subtitle: Text(isConnected ? 'Terhubung' : 'Belum dikonfigurasi'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showGoogleSheetsSettings(context),
+            );
+          }),
         ],
       ),
     );
@@ -268,6 +283,92 @@ class AccountView extends GetView<DashboardController> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Show Google Sheets settings dialog
+  void _showGoogleSheetsSettings(BuildContext context) {
+    final urlController = TextEditingController();
+
+    // Load saved URL from SharedPreferences
+    SharedPreferences.getInstance().then((prefs) {
+      final savedUrl = prefs.getString('google_sheets_url') ?? '';
+      urlController.text = savedUrl;
+      if (savedUrl.isNotEmpty) {
+        GoogleSheetsService.instance.initialize(savedUrl);
+      }
+    });
+
+    Get.dialog(
+      AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.table_chart, color: Colors.green),
+            const SizedBox(width: 8),
+            const Text('Google Sheets Sync'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Cara Setup:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('1. Buka Google Drive'),
+              const Text('2. Buat Spreadsheet baru "Siqowwam Data"'),
+              const Text('3. Buka Extensions > Apps Script'),
+              const Text('4. Paste kode dari file google_apps_script.js'),
+              const Text('5. Deploy > New Deployment'),
+              const Text('6. Pilih Web App, Everyone can access'),
+              const Text('7. Copy URL dan paste di bawah'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  labelText: 'Apps Script Web App URL',
+                  hintText: 'https://script.google.com/macros/s/...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final url = urlController.text.trim();
+              if (url.isNotEmpty) {
+                // Save to SharedPreferences
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('google_sheets_url', url);
+
+                // Initialize service
+                GoogleSheetsService.instance.initialize(url);
+
+                Get.back();
+                Get.snackbar(
+                  'Berhasil',
+                  'Google Sheets URL tersimpan. Data akan sync otomatis.',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            icon: const Icon(Icons.save),
+            label: const Text('Simpan'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          ),
+        ],
       ),
     );
   }

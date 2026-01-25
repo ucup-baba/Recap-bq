@@ -35,6 +35,9 @@ class DashboardController extends GetxController {
   final monthlyIncome = 0.0.obs;
   final monthlyExpense = 0.0.obs;
 
+  // Display balance (for Admin shows Super Admin's balance)
+  final displayBalance = 0.0.obs;
+
   // Theme mode
   final isDarkMode = false.obs;
 
@@ -52,17 +55,39 @@ class DashboardController extends GetxController {
       final user = await _authService.getCurrentUserModel();
       currentUser.value = user;
 
-      // If super admin, load pending fund requests and all users
-      if (user?.isSuperAdmin == true) {
+      debugPrint('=== DashboardController: User loaded ===');
+      debugPrint('User role: ${user?.role}');
+      debugPrint('isAdmin: ${user?.isAdmin}');
+      debugPrint('isSuperAdmin: ${user?.isSuperAdmin}');
+      debugPrint('isViewer: ${user?.isViewer}');
+
+      // If admin, super admin, or viewer - load org data
+      // Viewer can only VIEW, not modify (enforced in UI)
+      if (user?.isSuperAdmin == true ||
+          user?.isAdmin == true ||
+          user?.isViewer == true) {
+        debugPrint('Loading ALL transactions for Admin/SuperAdmin/Viewer');
         _loadPendingFundRequests();
         _loadAllUsers();
+        // Admin, Super Admin, and Viewer see ALL organization transactions
+        _loadAllTransactions();
+
+        // Display total Super Admin balance
+        _loadTotalSuperAdminBalance();
+      } else if (user != null) {
+        debugPrint('Loading user-specific transactions for: ${user.uid}');
+        // Regular users see only their own transactions
+        _loadTransactions(user.uid);
       }
 
-      // Load user transactions and listen for balance updates
+      // Listen to user document for real-time balance updates
       if (user != null) {
-        _loadTransactions(user.uid);
+        // For Admin/Super Admin/Viewer, displayBalance is set by _loadTotalSuperAdminBalance
+        // For regular users, displayBalance follows their own balance
+        if (!user.isAdmin && !user.isViewer) {
+          displayBalance.value = user.balance;
+        }
 
-        // Listen to user document for real-time balance updates
         _firestore
             .collection(AppConstants.usersCollection)
             .doc(user.uid)
@@ -70,7 +95,12 @@ class DashboardController extends GetxController {
             .listen(
               (doc) {
                 if (doc.exists) {
-                  currentUser.value = UserModel.fromFirestore(doc);
+                  final updatedUser = UserModel.fromFirestore(doc);
+                  currentUser.value = updatedUser;
+                  // Only update displayBalance for non-Admin/non-Viewer users
+                  if (!updatedUser.isAdmin && !updatedUser.isViewer) {
+                    displayBalance.value = updatedUser.balance;
+                  }
                 }
               },
               onError: (e) {
@@ -83,6 +113,34 @@ class DashboardController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Load Super Admin balance for Admin users to display
+  /// Sum all Super Admin balances so Admin sees total organization balance
+  void _loadTotalSuperAdminBalance() {
+    _firestore
+        .collection(AppConstants.usersCollection)
+        .where('role', isEqualTo: 'super_admin')
+        .snapshots()
+        .listen(
+          (snapshot) {
+            if (snapshot.docs.isNotEmpty) {
+              // Sum all super admin balances
+              double totalBalance = 0;
+              for (final doc in snapshot.docs) {
+                final user = UserModel.fromFirestore(doc);
+                totalBalance += user.balance;
+              }
+              displayBalance.value = totalBalance;
+              debugPrint(
+                'Admin displaying total Super Admin balance: $totalBalance',
+              );
+            }
+          },
+          onError: (e) {
+            debugPrint('Error loading Super Admin balance: $e');
+          },
+        );
   }
 
   /// Load all users for super admin
@@ -133,6 +191,23 @@ class DashboardController extends GetxController {
             monthlyExpense.value = 0;
           },
         );
+  }
+
+  /// Load Super Admin transactions for Admin/Super Admin dashboard
+  /// Only shows transactions owned by Super Admins (not income from fund request recipients)
+  void _loadAllTransactions() {
+    _transactionService.getSuperAdminTransactionsStream().listen(
+      (txList) {
+        transactions.value = txList;
+        _calculateMonthlyTotals(txList);
+      },
+      onError: (e) {
+        debugPrint('Error loading all transactions: $e');
+        transactions.value = [];
+        monthlyIncome.value = 0;
+        monthlyExpense.value = 0;
+      },
+    );
   }
 
   /// Calculate monthly income and expense totals
@@ -190,6 +265,12 @@ class DashboardController extends GetxController {
 
   /// Check if current user is super admin
   bool get isSuperAdmin => currentUser.value?.isSuperAdmin ?? false;
+
+  /// Check if current user is admin (includes super admin)
+  bool get isAdmin => currentUser.value?.isAdmin ?? false;
+
+  /// Check if current user is viewer
+  bool get isViewer => currentUser.value?.isViewer ?? false;
 
   /// Get transaction count
   int get transactionCount => transactions.length;

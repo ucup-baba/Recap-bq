@@ -42,6 +42,11 @@ dependencies:
   intl: ^0.20.2
   flutter_svg: ^2.2.3
   google_sign_in: ^6.2.0
+  pdf: ^3.11.0
+  universal_html: ^2.2.4
+  googleapis: ^15.0.0
+  googleapis_auth: ^2.0.0
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

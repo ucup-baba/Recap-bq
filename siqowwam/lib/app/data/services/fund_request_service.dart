@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/fund_request_model.dart';
 import '../models/user_model.dart';
 import '../../core/constants/app_constants.dart';
+import 'google_sheets_service.dart';
 
 /// Fund Request Service for SIQowwam
 /// Handles fund request operations between users and super admin
@@ -76,6 +77,10 @@ class FundRequestService {
     );
 
     await docRef.set(request.toFirestore());
+
+    // Sync to Google Sheets
+    GoogleSheetsService.instance.syncFundRequest(request);
+
     return request;
   }
 
@@ -92,20 +97,33 @@ class FundRequestService {
     final request = FundRequestModel.fromFirestore(requestDoc);
     if (!request.isPending) throw Exception('Request already processed');
 
-    // Check reviewer (Super Admin) balance
-    final reviewerDoc = await _usersRef.doc(reviewerId).get();
-    if (!reviewerDoc.exists) throw Exception('Reviewer not found');
+    // Get organization account (Super Admin) to check balance
+    final superAdmins = await _usersRef
+        .where('role', isEqualTo: 'super_admin')
+        .limit(1)
+        .get();
 
-    final reviewerData = reviewerDoc.data() as Map<String, dynamic>;
-    final reviewerBalance = (reviewerData['balance'] ?? 0).toDouble();
-    final reviewerName = reviewerData['username'] ?? 'Super Admin';
+    if (superAdmins.docs.isEmpty) {
+      throw Exception('Tidak ada akun organisasi (Super Admin)');
+    }
 
-    if (reviewerBalance < request.amount) {
+    final orgAccountDoc = superAdmins.docs.first;
+    final orgAccountId = orgAccountDoc.id;
+    final orgData = orgAccountDoc.data();
+    final orgBalance = (orgData['balance'] ?? 0).toDouble();
+
+    if (orgBalance < request.amount) {
       final formatter = NumberFormat('#,###', 'id_ID');
       throw Exception(
-        'Saldo tidak mencukupi. Saldo Anda: Rp ${formatter.format(reviewerBalance.toInt())}, Pengajuan: Rp ${formatter.format(request.amount.toInt())}',
+        'Saldo organisasi tidak mencukupi. Saldo: Rp ${formatter.format(orgBalance.toInt())}, Pengajuan: Rp ${formatter.format(request.amount.toInt())}',
       );
     }
+
+    // Get reviewer name for transaction record
+    final reviewerDoc = await _usersRef.doc(reviewerId).get();
+    final reviewerName = reviewerDoc.exists
+        ? (reviewerDoc.data() as Map<String, dynamic>)['username'] ?? 'Admin'
+        : 'Admin';
 
     // Start batch write for atomic operation
     final batch = _firestore.batch();
@@ -119,8 +137,8 @@ class FundRequestService {
       'reviewNote': reviewNote,
     });
 
-    // Deduct balance from Super Admin (reviewer)
-    batch.update(_usersRef.doc(reviewerId), {
+    // Deduct balance from Organization Account (Super Admin)
+    batch.update(_usersRef.doc(orgAccountId), {
       'balance': FieldValue.increment(-request.amount),
     });
 
@@ -160,6 +178,7 @@ class FundRequestService {
       'date': Timestamp.fromDate(now),
       'createdAt': Timestamp.fromDate(now),
       'fundRequestId': requestId,
+      'approvedUserId': request.userId,
       'approvedUserName': request.userName,
       'approvedUserRole': requesterRole,
     });
@@ -182,6 +201,12 @@ class FundRequestService {
     });
 
     await batch.commit();
+
+    // Sync updated fund request to Google Sheets
+    final updatedRequest = await getRequestById(requestId);
+    if (updatedRequest != null) {
+      GoogleSheetsService.instance.syncFundRequest(updatedRequest);
+    }
   }
 
   /// Reject fund request
@@ -196,6 +221,12 @@ class FundRequestService {
       'reviewedBy': reviewerId,
       'reviewNote': reviewNote,
     });
+
+    // Sync updated fund request to Google Sheets
+    final updatedRequest = await getRequestById(requestId);
+    if (updatedRequest != null) {
+      GoogleSheetsService.instance.syncFundRequest(updatedRequest);
+    }
   }
 
   /// Get request by ID

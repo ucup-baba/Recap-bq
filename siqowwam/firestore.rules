@@ -14,57 +14,53 @@ service cloud.firestore {
              request.auth.token.email in ['ucupbaba0704@gmail.com', 'superbq@bqmail.com'];
     }
     
-    // Helper function to get user document
-    function getUserData() {
-      return get(/databases/$(database)/documents/siqowwam_users/$(request.auth.uid)).data;
-    }
-    
     // Users collection
     match /siqowwam_users/{userId} {
-      // Users can read their own document
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      // Super admin can read/write all users
-      allow read, write: if isSuperAdmin();
+      // Anyone authenticated can read users
+      allow read: if isAuthenticated();
+      // Anyone authenticated can update users (for balance updates)
+      allow update: if isAuthenticated();
+      // Super admin can do everything
+      allow write: if isSuperAdmin();
       // Users can create their own document during registration
       allow create: if isAuthenticated() && request.auth.uid == userId;
-      // Users can update their own document (limited fields)
-      allow update: if isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Roles collection - only super admin can manage
+    // Roles collection - Admin and Super Admin can manage
     match /siqowwam_roles/{roleId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isSuperAdmin();
+      allow create, update, delete: if isAuthenticated();
     }
     
     // Fund requests collection
     match /siqowwam_fund_requests/{requestId} {
-      // Authenticated users can read their own requests
-      allow read: if isAuthenticated() && 
-                    (resource.data.userId == request.auth.uid || isSuperAdmin());
-      // Authenticated users can create requests  
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      // Only super admin can update (approve/reject) or delete
-      allow update, delete: if isSuperAdmin();
-    }
-    
-    // Transactions collection
-    match /siqowwam_transactions/{transactionId} {
-      allow read: if isAuthenticated() && 
-                    (resource.data.userId == request.auth.uid || isSuperAdmin());
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update, delete: if isSuperAdmin();
+      allow update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
     }
     
-    // General collection for backward compatibility
+    // Transactions collection - SIMPLIFIED: all authenticated can write
+    match /siqowwam_transactions/{transactionId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Legacy transactions collection
     match /transactions/{transactionId} {
       allow read, write: if isAuthenticated();
     }
     
-    // Categories collection - for managing subcategories
+    // Categories collection
+    match /siqowwam_categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Old categories collection
     match /categories/{categoryId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isSuperAdmin();
+      allow create, update, delete: if isAuthenticated();
     }
   }
 }

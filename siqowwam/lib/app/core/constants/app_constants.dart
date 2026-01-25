@@ -50,6 +50,7 @@ class AppConstants {
     'Transportasi': 0xe1d5, // directions_car
     'Fasilitas': 0xe065, // business
     'Rumah Tangga': 0xe88a, // home
+    'SDM': 0xe7ef, // people
     'Lainnya': 0xe8ef, // more_horiz
     // Income categories
     'Uang Masuk': 0xe263, // attach_money
@@ -59,10 +60,11 @@ class AppConstants {
 
   // Category Colors (hex values)
   static const Map<String, int> categoryColors = {
+    'SDM': 0xFFE91E63, // Pink/Magenta
+    'Fasilitas': 0xFF37474F, // Dark Grey/Purple
     'Pendidikan': 0xFF2196F3, // Blue
-    'Transportasi': 0xFFFF9800, // Orange
-    'Fasilitas': 0xFF9C27B0, // Purple
     'Rumah Tangga': 0xFF4CAF50, // Green
+    'Transportasi': 0xFFFF9800, // Orange
     'Lainnya': 0xFF607D8B, // Grey
     // Income categories
     'Uang Masuk': 0xFF4CAF50, // Green

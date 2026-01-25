@@ -11,6 +11,10 @@ class UserModel {
   final String? photoUrl;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  // User approval fields
+  final String status; // 'pending', 'approved', 'blocked'
+  final String? approvedBy; // UID of admin who approved
+  final DateTime? approvedAt;
 
   UserModel({
     required this.uid,
@@ -22,6 +26,9 @@ class UserModel {
     this.photoUrl,
     required this.createdAt,
     this.lastLoginAt,
+    this.status = 'approved', // Default approved for existing users
+    this.approvedBy,
+    this.approvedAt,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -36,6 +43,10 @@ class UserModel {
       photoUrl: data['photoUrl'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
+      // Default to 'approved' for existing users without status field
+      status: data['status'] ?? 'approved',
+      approvedBy: data['approvedBy'],
+      approvedAt: (data['approvedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -51,6 +62,9 @@ class UserModel {
       'lastLoginAt': lastLoginAt != null
           ? Timestamp.fromDate(lastLoginAt!)
           : null,
+      'status': status,
+      'approvedBy': approvedBy,
+      'approvedAt': approvedAt != null ? Timestamp.fromDate(approvedAt!) : null,
     };
   }
 
@@ -64,6 +78,9 @@ class UserModel {
     String? photoUrl,
     DateTime? createdAt,
     DateTime? lastLoginAt,
+    String? status,
+    String? approvedBy,
+    DateTime? approvedAt,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -75,11 +92,27 @@ class UserModel {
       photoUrl: photoUrl ?? this.photoUrl,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      status: status ?? this.status,
+      approvedBy: approvedBy ?? this.approvedBy,
+      approvedAt: approvedAt ?? this.approvedAt,
     );
   }
 
+  // Role checks
   bool get isSuperAdmin => role == 'super_admin';
   bool get isAdmin => role == 'admin' || isSuperAdmin;
   bool get isBendahara => role == 'bendahara' || isAdmin;
+  bool get isViewer => role == 'viewer';
   bool get hasCustomRole => roleId != null && roleId!.isNotEmpty;
+
+  // Status checks
+  bool get isPending => status == 'pending';
+  bool get isApproved => status == 'approved';
+  bool get isBlocked => status == 'blocked';
+
+  // Can this user manage other users?
+  bool get canManageUsers => isAdmin;
+
+  // Can this user assign admin role?
+  bool get canAssignAdmin => isSuperAdmin;
 }

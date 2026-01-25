@@ -1,16 +1,24 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/role_model.dart';
 import '../../data/services/role_service.dart';
+import '../../data/services/category_service.dart';
+import '../../core/constants/app_constants.dart';
 
 /// Role Controller for managing roles (Super Admin)
 class RoleController extends GetxController {
   final RoleService _roleService = RoleService();
+  final CategoryService _categoryService = CategoryService();
 
   // Observable state
   final roles = <RoleModel>[].obs;
   final isLoading = false.obs;
   final selectedRole = Rxn<RoleModel>();
+
+  // Dynamic subcategories from Firestore
+  final firestoreCategories = <String, List<String>>{}.obs;
+  final Map<String, StreamSubscription> _categorySubscriptions = {};
 
   // Form state for add/edit
   final nameController = ''.obs;
@@ -22,6 +30,15 @@ class RoleController extends GetxController {
   void onInit() {
     super.onInit();
     _loadRoles();
+    _loadCategoriesFromFirestore();
+  }
+
+  @override
+  void onClose() {
+    for (final sub in _categorySubscriptions.values) {
+      sub.cancel();
+    }
+    super.onClose();
   }
 
   /// Load all roles from Firestore
@@ -29,6 +46,30 @@ class RoleController extends GetxController {
     _roleService.getRolesStream().listen((rolesList) {
       roles.value = rolesList;
     });
+  }
+
+  /// Load categories with subcategories from Firestore
+  void _loadCategoriesFromFirestore() {
+    final categories = AppConstants.expenseCategories.keys.toList();
+
+    for (final cat in categories) {
+      _categorySubscriptions[cat] = _categoryService
+          .getSubcategoriesStream(cat)
+          .listen((subcategories) {
+            final updated = Map<String, List<String>>.from(firestoreCategories);
+            updated[cat] = subcategories;
+            firestoreCategories.value = updated;
+          });
+    }
+  }
+
+  /// Get subcategories for a category (from Firestore or fallback to AppConstants)
+  List<String> getSubcategories(String category) {
+    if (firestoreCategories.containsKey(category) &&
+        firestoreCategories[category]!.isNotEmpty) {
+      return firestoreCategories[category]!;
+    }
+    return AppConstants.expenseCategories[category] ?? [];
   }
 
   /// Select a role for editing

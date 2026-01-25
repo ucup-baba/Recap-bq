@@ -86,13 +86,45 @@ class UserDashboardView extends GetView<UserDashboardController> {
             Obx(() => _buildBalanceCard(context, currencyFormat)),
             const SizedBox(height: 24),
 
-            // Fund Request Form
-            Text(
-              'Pengajuan Dana',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            _buildFundRequestForm(context),
+            // Fund Request Form (hidden for viewers)
+            Obx(() {
+              final isViewer = controller.currentUser.value?.isViewer ?? false;
+              if (isViewer) {
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.visibility, color: Colors.blue),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Mode Viewer - Anda hanya dapat melihat data tanpa melakukan perubahan.',
+                          style: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pengajuan Dana',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFundRequestForm(context),
+                ],
+              );
+            }),
             const SizedBox(height: 24),
 
             // Recent Fund Requests
@@ -483,9 +515,47 @@ class UserDashboardView extends GetView<UserDashboardController> {
     );
   }
 
-  /// Tab 2: Expense Input
+  /// Tab 2: Expense Input (or viewer message)
   Widget _buildExpenseTab(BuildContext context) {
-    return _ExpenseInputView(controller: controller);
+    return Obx(() {
+      final isViewer = controller.currentUser.value?.isViewer ?? false;
+      if (isViewer) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Pengeluaran')),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.visibility,
+                    size: 64,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Mode Viewer',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Anda hanya dapat melihat data\ntanpa membuat transaksi.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return _ExpenseInputView(controller: controller);
+    });
   }
 
   /// Tab 3: Transaction History with Category Summary

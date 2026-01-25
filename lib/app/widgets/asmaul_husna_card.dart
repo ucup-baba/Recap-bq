@@ -46,6 +46,7 @@ class AsmaulHusnaController extends GetxController {
 
   // Text-to-Speech
   final FlutterTts _flutterTts = FlutterTts();
+  final isTtsAvailable = false.obs; // Track TTS availability
 
   // Asmaul Husna
   final todayAsma = Rxn<AsmaulHusna>();
@@ -69,37 +70,109 @@ class AsmaulHusnaController extends GetxController {
   }
 
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage('en-US');
-    await _flutterTts.setSpeechRate(0.4);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
+    try {
+      // Check if TTS engine is available
+      final engines = await _flutterTts.getEngines;
+      if (engines == null || (engines as List).isEmpty) {
+        Logger.warning('TTS: No speech engine available on this device');
+        isTtsAvailable.value = false;
+        return;
+      }
 
-    // Enable await speak completion for proper completion tracking
-    await _flutterTts.awaitSpeakCompletion(true);
+      // Check available languages
+      final languages = await _flutterTts.getLanguages;
+      final langList = languages as List? ?? [];
 
-    // Handler when TTS completes speaking
-    _flutterTts.setCompletionHandler(() {
-      speakingWord.value = null;
-    });
+      // Try to set English language with fallbacks
+      bool languageSet = false;
+      // Prioritize en-GB for Xiaomi/MIUI devices that often only have UK English
+      for (final lang in ['en-GB', 'en-US', 'en-AU', 'en']) {
+        if (langList.any(
+          (l) => l.toString().toLowerCase().contains(lang.toLowerCase()),
+        )) {
+          await _flutterTts.setLanguage(lang);
+          languageSet = true;
+          Logger.info('TTS: Language set to $lang');
+          break;
+        }
+      }
 
-    // Handler when TTS is cancelled
-    _flutterTts.setCancelHandler(() {
-      speakingWord.value = null;
-    });
+      if (!languageSet && langList.isNotEmpty) {
+        // Use first available language as fallback
+        await _flutterTts.setLanguage(langList.first.toString());
+        Logger.warning('TTS: English not available, using ${langList.first}');
+      }
 
-    // Handler when TTS errors
-    _flutterTts.setErrorHandler((msg) {
-      speakingWord.value = null;
-    });
+      await _flutterTts.setSpeechRate(0.4);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+
+      // Enable await speak completion for proper completion tracking
+      await _flutterTts.awaitSpeakCompletion(true);
+
+      // Handler when TTS completes speaking
+      _flutterTts.setCompletionHandler(() {
+        speakingWord.value = null;
+      });
+
+      // Handler when TTS is cancelled
+      _flutterTts.setCancelHandler(() {
+        speakingWord.value = null;
+      });
+
+      // Handler when TTS errors
+      _flutterTts.setErrorHandler((msg) {
+        Logger.error('TTS Error: $msg');
+        speakingWord.value = null;
+      });
+
+      isTtsAvailable.value = true;
+      Logger.info('TTS: Initialized successfully');
+    } catch (e) {
+      Logger.error('TTS: Failed to initialize', e);
+      isTtsAvailable.value = false;
+    }
   }
 
   /// Speak the English word using TTS
   Future<void> speakWord(String word) async {
-    // Set speaking word before starting TTS
-    speakingWord.value = word;
-    await _flutterTts.speak(word);
-    // Reset state after speak completes (fallback if handler doesn't fire)
-    speakingWord.value = null;
+    if (!isTtsAvailable.value) {
+      // Show snackbar if TTS not available
+      Get.snackbar(
+        'Suara Tidak Tersedia',
+        'Perangkat ini tidak memiliki Text-to-Speech engine. Silakan install Google TTS dari Play Store.',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+        margin: const EdgeInsets.all(12),
+        backgroundColor: Colors.orange.withValues(alpha: 0.9),
+        colorText: Colors.white,
+        icon: const Icon(Icons.volume_off, color: Colors.white),
+      );
+      return;
+    }
+
+    try {
+      // Set speaking word before starting TTS
+      speakingWord.value = word;
+      final result = await _flutterTts.speak(word);
+      if (result != 1) {
+        Logger.warning('TTS speak returned: $result for word: $word');
+      }
+    } catch (e) {
+      Logger.error('TTS speak error', e);
+      Get.snackbar(
+        'Error',
+        'Gagal memutar suara: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.all(12),
+        backgroundColor: Colors.red.withValues(alpha: 0.9),
+        colorText: Colors.white,
+      );
+    } finally {
+      // Reset state after speak completes (fallback if handler doesn't fire)
+      speakingWord.value = null;
+    }
   }
 
   void loadTodayAsma() {

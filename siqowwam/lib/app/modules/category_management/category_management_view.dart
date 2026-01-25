@@ -188,10 +188,43 @@ class _CategoryManagementViewState extends State<CategoryManagementView> {
     );
   }
 
+  Future<void> _syncRoles() async {
+    setState(() => _isLoading = true);
+    try {
+      final count = await _categoryService.syncRoleSubcategories();
+      if (count > 0) {
+        Get.snackbar(
+          'Sukses',
+          '$count role berhasil disinkronkan',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      } else {
+        Get.snackbar(
+          'Info',
+          'Tidak ada role yang perlu disinkronkan',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal sinkronisasi: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kelola Kategori')),
+      appBar: AppBar(
+        title: const Text('Kelola Kategori'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Sinkronkan sub-kategori ke semua Role',
+            onPressed: _isLoading ? null : _syncRoles,
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(

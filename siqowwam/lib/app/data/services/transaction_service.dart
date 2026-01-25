@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/transaction_model.dart';
 import '../models/user_model.dart';
 import '../../core/constants/app_constants.dart';
+import 'google_sheets_service.dart';
 
 /// Transaction Service for SIQowwam
 /// Handles income and expense transactions
@@ -19,7 +20,21 @@ class TransactionService {
   CollectionReference<Map<String, dynamic>> get _usersRef =>
       _firestore.collection(AppConstants.usersCollection);
 
-  /// Create income transaction and update user balance
+  /// Get organization account (first Super Admin)
+  Future<String> _getOrganizationAccountId() async {
+    final superAdmins = await _usersRef
+        .where('role', isEqualTo: 'super_admin')
+        .limit(1)
+        .get();
+
+    if (superAdmins.docs.isEmpty) {
+      throw Exception('Tidak ada akun organisasi (Super Admin)');
+    }
+
+    return superAdmins.docs.first.id;
+  }
+
+  /// Create income transaction and update organization balance
   Future<TransactionModel> createIncomeTransaction({
     required UserModel user,
     required double amount,
@@ -42,22 +57,39 @@ class TransactionService {
       createdAt: DateTime.now(),
     );
 
+    // Get organization account to update balance
+    final orgAccountId = await _getOrganizationAccountId();
+
+    // Get current balance before transaction
+    final orgDoc = await _usersRef.doc(orgAccountId).get();
+    final orgData = orgDoc.data() as Map<String, dynamic>;
+    final balanceBefore = (orgData['balance'] ?? 0).toDouble();
+    final balanceAfter = balanceBefore + amount;
+
     // Batch write for atomic operation
     final batch = _firestore.batch();
 
     // Save transaction
     batch.set(docRef, transaction.toFirestore());
 
-    // Update user balance (add income)
-    batch.update(_usersRef.doc(user.uid), {
+    // Update organization balance (add income to Super Admin)
+    batch.update(_usersRef.doc(orgAccountId), {
       'balance': FieldValue.increment(amount),
     });
 
     await batch.commit();
+
+    // Sync to Google Sheets with balance info
+    GoogleSheetsService.instance.syncTransaction(
+      transaction,
+      balanceBefore: balanceBefore,
+      balanceAfter: balanceAfter,
+    );
+
     return transaction;
   }
 
-  /// Create expense transaction and update user balance
+  /// Create expense transaction and update organization balance
   Future<TransactionModel> createExpenseTransaction({
     required UserModel user,
     required double amount,
@@ -67,10 +99,13 @@ class TransactionService {
     String? subject,
     required DateTime date,
   }) async {
-    // Check if user has sufficient balance
-    final userDoc = await _usersRef.doc(user.uid).get();
-    final userData = userDoc.data() as Map<String, dynamic>;
-    final currentBalance = (userData['balance'] ?? 0).toDouble();
+    // Get organization account
+    final orgAccountId = await _getOrganizationAccountId();
+
+    // Check if organization has sufficient balance
+    final orgDoc = await _usersRef.doc(orgAccountId).get();
+    final orgData = orgDoc.data() as Map<String, dynamic>;
+    final currentBalance = (orgData['balance'] ?? 0).toDouble();
 
     if (currentBalance < amount) {
       final formatter = NumberFormat('#,###', 'id_ID');
@@ -94,18 +129,29 @@ class TransactionService {
       createdAt: DateTime.now(),
     );
 
+    // Calculate balance after
+    final balanceAfter = currentBalance - amount;
+
     // Batch write for atomic operation
     final batch = _firestore.batch();
 
     // Save transaction
     batch.set(docRef, transaction.toFirestore());
 
-    // Update user balance (deduct expense)
-    batch.update(_usersRef.doc(user.uid), {
+    // Update organization balance (deduct expense from Super Admin)
+    batch.update(_usersRef.doc(orgAccountId), {
       'balance': FieldValue.increment(-amount),
     });
 
     await batch.commit();
+
+    // Sync to Google Sheets with balance info
+    GoogleSheetsService.instance.syncTransaction(
+      transaction,
+      balanceBefore: currentBalance,
+      balanceAfter: balanceAfter,
+    );
+
     return transaction;
   }
 
@@ -132,5 +178,31 @@ class TransactionService {
               .map((doc) => TransactionModel.fromFirestore(doc))
               .toList(),
         );
+  }
+
+  /// Get organization transactions stream for Admin/Super Admin dashboard
+  /// Only shows transactions created by Admin or Super Admin, not regular users
+  Stream<List<TransactionModel>> getSuperAdminTransactionsStream() {
+    // First get all admin and super admin user IDs
+    return _usersRef
+        .where('role', whereIn: ['super_admin', 'admin'])
+        .snapshots()
+        .asyncMap((userSnapshot) async {
+          final adminIds = userSnapshot.docs.map((doc) => doc.id).toList();
+
+          if (adminIds.isEmpty) {
+            return <TransactionModel>[];
+          }
+
+          // Get transactions for admin/super admin users only
+          final txSnapshot = await _transactionsRef
+              .where('userId', whereIn: adminIds)
+              .orderBy('createdAt', descending: true)
+              .get();
+
+          return txSnapshot.docs
+              .map((doc) => TransactionModel.fromFirestore(doc))
+              .toList();
+        });
   }
 }

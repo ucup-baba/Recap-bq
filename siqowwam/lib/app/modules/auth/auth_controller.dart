@@ -54,9 +54,31 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Navigate based on user role
+  /// Navigate based on user role and status
   void _navigateToAppropriatedashboard(UserModel user) {
-    if (user.isSuperAdmin) {
+    // Check if user is blocked
+    if (user.isBlocked) {
+      Get.snackbar(
+        'Akun Diblokir',
+        'Akun Anda telah diblokir. Hubungi admin untuk informasi lebih lanjut.',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red.withValues(alpha: 0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+      );
+      _authService.signOut();
+      return;
+    }
+
+    // Check if user is pending approval
+    if (user.isPending) {
+      Get.offAllNamed(AppRoutes.pendingApproval);
+      return;
+    }
+
+    // User is approved - navigate to appropriate dashboard
+    // Viewer also sees Admin dashboard (read-only)
+    if (user.isSuperAdmin || user.isAdmin || user.isViewer) {
       Get.offAllNamed(AppRoutes.dashboard);
     } else {
       Get.offAllNamed(AppRoutes.userDashboard);

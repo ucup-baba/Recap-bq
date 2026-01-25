@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../modules/auth/auth_view.dart';
 import '../../modules/auth/auth_binding.dart';
+import '../../modules/auth/pending_approval_view.dart';
 import '../../modules/dashboard/dashboard_view.dart';
 import '../../modules/dashboard/dashboard_binding.dart';
 import '../../modules/role_management/role_list_view.dart';
@@ -18,6 +19,7 @@ abstract class AppRoutes {
   static const roles = '/roles';
   static const users = '/users';
   static const userDashboard = '/user-dashboard';
+  static const pendingApproval = '/pending-approval';
 }
 
 /// App Pages Configuration
@@ -51,6 +53,11 @@ class AppPages {
       name: AppRoutes.userDashboard,
       page: () => const UserDashboardView(),
       binding: UserDashboardBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: AppRoutes.pendingApproval,
+      page: () => const PendingApprovalView(),
       transition: Transition.fadeIn,
     ),
   ];

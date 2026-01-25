@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/services/transaction_service.dart';
@@ -27,6 +28,9 @@ class OutputTransactionController extends GetxController {
   // Categories with subcategories (loaded from Firestore + SDM)
   final allCategories = <String, List<String>>{}.obs;
 
+  // Stream subscriptions
+  final Map<String, StreamSubscription> _categorySubscriptions = {};
+
   // Observables
   final selectedCategory = 'SDM'.obs;
   final selectedSubcategory = 'Honor Guru'.obs;
@@ -46,6 +50,10 @@ class OutputTransactionController extends GetxController {
     amountController.dispose();
     descriptionController.dispose();
     subjectController.dispose();
+    // Cancel all stream subscriptions
+    for (final sub in _categorySubscriptions.values) {
+      sub.cancel();
+    }
     super.onClose();
   }
 
@@ -53,28 +61,36 @@ class OutputTransactionController extends GetxController {
     currentUser.value = await _authService.getCurrentUserModel();
   }
 
-  Future<void> _loadCategories() async {
-    // Load from Firestore
-    final firestoreCategories = await _categoryService
-        .getAllCategoriesWithSubcategories();
+  void _loadCategories() {
+    // Initialize with SDM first
+    allCategories.value = {'SDM': sdmSubcategories};
 
-    // Build ordered map with SDM first
-    final ordered = <String, List<String>>{'SDM': sdmSubcategories};
-
-    // Add other categories in order
-    for (final cat in [
+    // Subscribe to each category's subcategories stream
+    final categories = [
       'Fasilitas',
       'Pendidikan',
       'Rumah Tangga',
       'Transportasi',
       'Lainnya',
-    ]) {
-      if (firestoreCategories.containsKey(cat)) {
-        ordered[cat] = firestoreCategories[cat]!;
-      }
-    }
+    ];
 
-    allCategories.value = ordered;
+    for (final cat in categories) {
+      _categorySubscriptions[cat] = _categoryService
+          .getSubcategoriesStream(cat)
+          .listen((subcategories) {
+            final updated = Map<String, List<String>>.from(allCategories);
+            updated[cat] = subcategories;
+
+            // Reorder to keep SDM first
+            final ordered = <String, List<String>>{'SDM': sdmSubcategories};
+            for (final c in categories) {
+              if (updated.containsKey(c)) {
+                ordered[c] = updated[c]!;
+              }
+            }
+            allCategories.value = ordered;
+          });
+    }
   }
 
   void setDate(DateTime date) {

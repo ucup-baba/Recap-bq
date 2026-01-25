@@ -51,6 +51,8 @@ class AuthService {
       if (credential.user != null) {
         // Determine role based on email
         final role = _getRoleForEmail(email);
+        // Super admin is auto-approved, others are pending
+        final isSuperAdmin = role == AppConstants.roleSuperAdmin;
 
         // Create user document
         final userModel = UserModel(
@@ -60,6 +62,7 @@ class AuthService {
           role: role,
           createdAt: DateTime.now(),
           lastLoginAt: DateTime.now(),
+          status: isSuperAdmin ? 'approved' : 'pending',
         );
 
         await _firestore
@@ -127,6 +130,9 @@ class AuthService {
     } else {
       // Create new user document
       final role = _getRoleForEmail(user.email ?? '');
+      // Super admin is auto-approved, others are pending
+      final isSuperAdmin = role == AppConstants.roleSuperAdmin;
+
       final userModel = UserModel(
         uid: user.uid,
         email: user.email ?? '',
@@ -135,6 +141,7 @@ class AuthService {
         photoUrl: user.photoURL,
         createdAt: DateTime.now(),
         lastLoginAt: DateTime.now(),
+        status: isSuperAdmin ? 'approved' : 'pending',
       );
 
       await docRef.set(userModel.toFirestore());

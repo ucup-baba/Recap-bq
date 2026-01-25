@@ -15,6 +15,7 @@ class TransactionModel {
   final DateTime createdAt;
   // Fund request related fields
   final String? fundRequestId;
+  final String? approvedUserId;
   final String? approvedUserName;
   final String? approvedUserRole;
 
@@ -31,6 +32,7 @@ class TransactionModel {
     required this.date,
     required this.createdAt,
     this.fundRequestId,
+    this.approvedUserId,
     this.approvedUserName,
     this.approvedUserRole,
   });
@@ -50,6 +52,7 @@ class TransactionModel {
       date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fundRequestId: data['fundRequestId'],
+      approvedUserId: data['approvedUserId'],
       approvedUserName: data['approvedUserName'],
       approvedUserRole: data['approvedUserRole'],
     );
@@ -68,6 +71,7 @@ class TransactionModel {
       'date': Timestamp.fromDate(date),
       'createdAt': Timestamp.fromDate(createdAt),
       'fundRequestId': fundRequestId,
+      'approvedUserId': approvedUserId,
       'approvedUserName': approvedUserName,
       'approvedUserRole': approvedUserRole,
     };

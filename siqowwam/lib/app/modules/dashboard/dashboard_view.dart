@@ -25,9 +25,42 @@ class DashboardView extends GetView<DashboardController> {
 
   /// Mobile layout with bottom navigation
   Widget _buildMobileLayout(BuildContext context) {
-    return Scaffold(
-      body: Obx(
-        () => IndexedStack(
+    return Obx(() {
+      final isViewer = controller.isViewer;
+
+      if (isViewer) {
+        // Viewer only sees Financial and Akun tabs
+        return Scaffold(
+          body: IndexedStack(
+            index: controller.currentTabIndex.value > 1
+                ? 1
+                : controller.currentTabIndex.value,
+            children: const [FinancialTab(), AccountView()],
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: controller.currentTabIndex.value > 1
+                ? 1
+                : controller.currentTabIndex.value,
+            onTap: (index) => controller.currentTabIndex.value = index,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard_outlined),
+                activeIcon: Icon(Icons.dashboard),
+                label: 'Financial',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Akun',
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Admin/SuperAdmin sees all 4 tabs
+      return Scaffold(
+        body: IndexedStack(
           index: controller.currentTabIndex.value,
           children: const [
             FinancialTab(),
@@ -36,9 +69,7 @@ class DashboardView extends GetView<DashboardController> {
             AccountView(),
           ],
         ),
-      ),
-      bottomNavigationBar: Obx(
-        () => BottomNavigationBar(
+        bottomNavigationBar: BottomNavigationBar(
           currentIndex: controller.currentTabIndex.value,
           onTap: controller.changeTab,
           items: const [
@@ -64,50 +95,63 @@ class DashboardView extends GetView<DashboardController> {
             ),
           ],
         ),
-      ),
-    );
+      );
+    });
   }
 
   /// Web layout with side navigation
   Widget _buildWebLayout(BuildContext context) {
-    return Row(
-      children: [
-        // Side Navigation Rail
-        Obx(
-          () => NavigationRail(
+    return Obx(() {
+      final isViewer = controller.isViewer;
+
+      if (isViewer) {
+        // Viewer only sees Financial and Akun navigation
+        return Row(
+          children: [
+            NavigationRail(
+              selectedIndex: controller.currentTabIndex.value > 1
+                  ? 1
+                  : controller.currentTabIndex.value,
+              onDestinationSelected: (index) =>
+                  controller.currentTabIndex.value = index,
+              labelType: NavigationRailLabelType.all,
+              backgroundColor: Theme.of(context).cardColor,
+              leading: _buildNavRailLeading(),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard),
+                  label: Text('Financial'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: Text('Akun'),
+                ),
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(
+              child: IndexedStack(
+                index: controller.currentTabIndex.value > 1
+                    ? 1
+                    : controller.currentTabIndex.value,
+                children: const [FinancialTab(), AccountView()],
+              ),
+            ),
+          ],
+        );
+      }
+
+      // Admin/SuperAdmin sees all 4 navigation items
+      return Row(
+        children: [
+          NavigationRail(
             selectedIndex: controller.currentTabIndex.value,
             onDestinationSelected: controller.changeTab,
             labelType: NavigationRailLabelType.all,
             backgroundColor: Theme.of(context).cardColor,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primaryLight,
-                          AppColors.primaryLight.withValues(alpha: 0.7),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'SIQowwam',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
+            leading: _buildNavRailLeading(),
             destinations: const [
               NavigationRailDestination(
                 icon: Icon(Icons.dashboard_outlined),
@@ -131,12 +175,9 @@ class DashboardView extends GetView<DashboardController> {
               ),
             ],
           ),
-        ),
-        const VerticalDivider(width: 1),
-        // Main Content
-        Expanded(
-          child: Obx(
-            () => IndexedStack(
+          const VerticalDivider(width: 1),
+          Expanded(
+            child: IndexedStack(
               index: controller.currentTabIndex.value,
               children: const [
                 FinancialTab(),
@@ -146,8 +187,40 @@ class DashboardView extends GetView<DashboardController> {
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      );
+    });
+  }
+
+  Widget _buildNavRailLeading() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryLight,
+                  AppColors.primaryLight.withValues(alpha: 0.7),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'SIQowwam',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }

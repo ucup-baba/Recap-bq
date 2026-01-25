@@ -81,17 +81,17 @@ class CategoryService {
     }
   }
 
-  /// Rename a subcategory
+  /// Rename a subcategory and update all roles that use it
   Future<bool> renameSubcategory(
     String category,
     String oldName,
     String newName,
   ) async {
     try {
-      // Remove old and add new in a batch
       final batch = _firestore.batch();
-      final docRef = _firestore.collection(_collection).doc(category);
 
+      // 1. Update the category document
+      final docRef = _firestore.collection(_collection).doc(category);
       batch.update(docRef, {
         'subcategories': FieldValue.arrayRemove([oldName]),
       });
@@ -99,6 +99,35 @@ class CategoryService {
         'subcategories': FieldValue.arrayUnion([newName]),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // 2. Find and update all roles that have this subcategory
+      final rolesSnapshot = await _firestore
+          .collection(AppConstants.rolesCollection)
+          .get();
+
+      for (final roleDoc in rolesSnapshot.docs) {
+        final data = roleDoc.data();
+        final allowedCategories =
+            data['allowedCategories'] as Map<String, dynamic>?;
+
+        if (allowedCategories != null &&
+            allowedCategories.containsKey(category)) {
+          final subcategories = List<String>.from(
+            allowedCategories[category] ?? [],
+          );
+
+          if (subcategories.contains(oldName)) {
+            // Replace old name with new name
+            subcategories.remove(oldName);
+            subcategories.add(newName);
+
+            // Update the role document
+            batch.update(roleDoc.reference, {
+              'allowedCategories.$category': subcategories,
+            });
+          }
+        }
+      }
 
       await batch.commit();
       return true;
@@ -128,6 +157,70 @@ class CategoryService {
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
+    }
+  }
+
+  /// Sync all roles' subcategories with the master categories collection
+  /// This removes any subcategories from roles that no longer exist
+  Future<int> syncRoleSubcategories() async {
+    int updatedCount = 0;
+    try {
+      // Get current valid subcategories from categories collection
+      final validSubcategories = await getAllCategoriesWithSubcategories();
+
+      // Get all roles
+      final rolesSnapshot = await _firestore
+          .collection(AppConstants.rolesCollection)
+          .get();
+
+      final batch = _firestore.batch();
+
+      for (final roleDoc in rolesSnapshot.docs) {
+        final data = roleDoc.data();
+        final allowedCategories =
+            data['allowedCategories'] as Map<String, dynamic>?;
+
+        if (allowedCategories == null) continue;
+
+        bool needsUpdate = false;
+        final cleanedCategories = <String, List<String>>{};
+
+        for (final entry in allowedCategories.entries) {
+          final category = entry.key;
+          final roleSubcategories = List<String>.from(entry.value ?? []);
+          final validSubs = validSubcategories[category] ?? [];
+
+          // Only keep subcategories that exist in the valid list
+          final cleanedSubs = roleSubcategories
+              .where((sub) => validSubs.contains(sub))
+              .toList();
+
+          if (cleanedSubs.length != roleSubcategories.length) {
+            needsUpdate = true;
+          }
+
+          if (cleanedSubs.isNotEmpty) {
+            cleanedCategories[category] = cleanedSubs;
+          }
+        }
+
+        if (needsUpdate) {
+          batch.update(roleDoc.reference, {
+            'allowedCategories': cleanedCategories,
+          });
+          updatedCount++;
+        }
+      }
+
+      if (updatedCount > 0) {
+        await batch.commit();
+      }
+
+      debugPrint('Synced $updatedCount roles with updated subcategories');
+      return updatedCount;
+    } catch (e) {
+      debugPrint('Error syncing role subcategories: $e');
+      return 0;
     }
   }
 }

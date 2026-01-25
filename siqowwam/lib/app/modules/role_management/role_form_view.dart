@@ -224,9 +224,9 @@ class RoleFormView extends GetView<RoleController> {
       ),
       child: Obx(
         () => Column(
-          children: AppConstants.expenseCategories.entries.map((entry) {
-            final category = entry.key;
-            final subcategories = entry.value;
+          children: AppConstants.expenseCategories.keys.map((category) {
+            // Get subcategories from Firestore via controller
+            final subcategories = controller.getSubcategories(category);
             final isCategorySelected = controller.isCategorySelected(category);
 
             // Get category color

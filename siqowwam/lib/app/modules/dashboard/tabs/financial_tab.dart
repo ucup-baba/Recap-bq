@@ -1,16 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/fund_request_model.dart';
 import '../../../data/services/fund_request_service.dart';
+import '../../../data/services/report_service.dart';
 import '../../user_management/user_management_view.dart';
 import '../dashboard_controller.dart';
 import '../user_stats_page.dart';
 import '../category_stats_page.dart';
 import '../transaction_stats_page.dart';
 
-/// Financial Tab - Dashboard Overview
+// Conditional import for web
+import 'package:universal_html/html.dart' as html;
+
 class FinancialTab extends GetView<DashboardController> {
   const FinancialTab({super.key});
 
@@ -20,6 +24,15 @@ class FinancialTab extends GetView<DashboardController> {
       appBar: AppBar(
         title: const Text('Dashboard Keuangan'),
         actions: [
+          // Print Report Button (Admin and Super Admin only)
+          Obx(() {
+            if (!controller.isAdmin) return const SizedBox.shrink();
+            return IconButton(
+              icon: const Icon(Icons.print),
+              tooltip: 'Cetak Laporan',
+              onPressed: () => _showPrintDialog(context),
+            );
+          }),
           IconButton(
             icon: Obx(
               () => Icon(
@@ -53,9 +66,9 @@ class FinancialTab extends GetView<DashboardController> {
               _buildQuickStats(context),
               const SizedBox(height: 20),
 
-              // Pending Fund Requests (Super Admin Only) - Below Quick Stats
+              // Pending Fund Requests (Admin and Super Admin)
               Obx(() {
-                if (controller.isSuperAdmin &&
+                if (controller.isAdmin &&
                     controller.pendingFundRequests.isNotEmpty) {
                   return Column(
                     children: [
@@ -513,7 +526,7 @@ class FinancialTab extends GetView<DashboardController> {
           const SizedBox(height: 4),
           Obx(
             () => Text(
-              currencyFormat.format(controller.currentUser.value?.balance ?? 0),
+              currencyFormat.format(controller.displayBalance.value),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 32,
@@ -675,7 +688,7 @@ class FinancialTab extends GetView<DashboardController> {
                 child: _buildStatCard(
                   context,
                   icon: Icons.category,
-                  value: '5',
+                  value: '6',
                   label: 'Kategori',
                   color: Colors.orange,
                   onTap: () =>
@@ -763,42 +776,435 @@ class FinancialTab extends GetView<DashboardController> {
             ),
             TextButton(
               onPressed: () {
-                // TODO: Navigate to all transactions
+                Get.to(() => TransactionStatsPage(controller: controller));
               },
               child: const Text('Lihat Semua'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
+        Obx(() {
+          final transactions = controller.transactions;
+
+          if (transactions.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.receipt_long_outlined,
+                      size: 48,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Belum ada transaksi',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tambahkan transaksi pertama Anda',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // Show last 5 transactions
+          final recentTransactions = transactions.take(5).toList();
+          final currencyFormat = NumberFormat.currency(
+            locale: 'id_ID',
+            symbol: 'Rp ',
+            decimalDigits: 0,
+          );
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: recentTransactions.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (context, index) {
+                final tx = recentTransactions[index];
+                final isIncome = tx.type == 'income';
+                final categoryLower = tx.category.toLowerCase();
+
+                // Check if Transfer Dana - show user avatar
+                final isTransferDana =
+                    categoryLower == 'transfer' ||
+                    categoryLower == 'transfer dana';
+
+                Widget leadingWidget;
+
+                if (isTransferDana) {
+                  // Show user avatar for Transfer Dana
+                  final userId = tx.approvedUserId ?? tx.userId;
+                  final user = controller.allUsers.firstWhereOrNull(
+                    (u) => u.uid == userId,
+                  );
+                  final userName = user?.username ?? 'User';
+                  final initial = userName.isNotEmpty
+                      ? userName[0].toUpperCase()
+                      : 'U';
+                  final photoUrl = user?.photoUrl;
+
+                  // Generate color from user ID
+                  final colors = [
+                    Colors.purple,
+                    Colors.blue,
+                    Colors.green,
+                    Colors.orange,
+                    Colors.pink,
+                    Colors.teal,
+                  ];
+                  final colorIndex = userId.hashCode.abs() % colors.length;
+
+                  leadingWidget = CircleAvatar(
+                    backgroundColor: colors[colorIndex],
+                    backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                        ? NetworkImage(photoUrl)
+                        : null,
+                    child: photoUrl == null || photoUrl.isEmpty
+                        ? Text(
+                            initial,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  );
+                } else {
+                  // Category icons for Cash, Pondok, and Expenses
+                  IconData iconData;
+                  Color iconColor;
+                  Color bgColor;
+
+                  if (isIncome) {
+                    switch (categoryLower) {
+                      case 'cash':
+                        iconData = Icons.payments_outlined;
+                        iconColor = Colors.green;
+                        bgColor = Colors.green.withValues(alpha: 0.15);
+                        break;
+                      case 'pondok':
+                        iconData = Icons.home_work_outlined;
+                        iconColor = Colors.orange;
+                        bgColor = Colors.orange.withValues(alpha: 0.15);
+                        break;
+                      default:
+                        iconData = Icons.arrow_downward;
+                        iconColor = Colors.green;
+                        bgColor = Colors.green.withValues(alpha: 0.15);
+                    }
+                  } else {
+                    // Expense - use icons and colors based on category
+                    final categoryName = tx.category;
+
+                    // Get icon based on category
+                    switch (categoryName) {
+                      case 'Pendidikan':
+                        iconData = Icons.school;
+                        iconColor = const Color(0xFF2196F3);
+                        bgColor = const Color(
+                          0xFF2196F3,
+                        ).withValues(alpha: 0.15);
+                        break;
+                      case 'Transportasi':
+                        iconData = Icons.directions_car;
+                        iconColor = const Color(0xFFFF9800);
+                        bgColor = const Color(
+                          0xFFFF9800,
+                        ).withValues(alpha: 0.15);
+                        break;
+                      case 'Fasilitas':
+                        iconData = Icons.business;
+                        iconColor = const Color(0xFF9C27B0);
+                        bgColor = const Color(
+                          0xFF9C27B0,
+                        ).withValues(alpha: 0.15);
+                        break;
+                      case 'Rumah Tangga':
+                        iconData = Icons.home;
+                        iconColor = const Color(0xFF4CAF50);
+                        bgColor = const Color(
+                          0xFF4CAF50,
+                        ).withValues(alpha: 0.15);
+                        break;
+                      case 'Lainnya':
+                        iconData = Icons.more_horiz;
+                        iconColor = const Color(0xFF607D8B);
+                        bgColor = const Color(
+                          0xFF607D8B,
+                        ).withValues(alpha: 0.15);
+                        break;
+                      case 'SDM':
+                        iconData = Icons.people;
+                        iconColor = const Color(0xFFE91E63);
+                        bgColor = const Color(
+                          0xFFE91E63,
+                        ).withValues(alpha: 0.15);
+                        break;
+                      default:
+                        iconData = Icons.arrow_upward;
+                        iconColor = Colors.red;
+                        bgColor = Colors.red.withValues(alpha: 0.15);
+                    }
+                  }
+
+                  leadingWidget = Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(iconData, color: iconColor, size: 22),
+                  );
+                }
+
+                return ListTile(
+                  leading: leadingWidget,
+                  title: Text(
+                    tx.category,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(
+                    tx.description.isNotEmpty
+                        ? tx.description
+                        : DateFormat('dd MMM yyyy', 'id_ID').format(tx.date),
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Text(
+                    '${isIncome ? '+' : '-'}${currencyFormat.format(tx.amount)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isIncome ? Colors.green : Colors.red,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  /// Show print dialog with month/year picker
+  void _showPrintDialog(BuildContext context) {
+    final now = DateTime.now();
+    int selectedMonth = now.month;
+    int selectedYear = now.year;
+
+    final monthNames = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.print, color: AppColors.primaryLight),
+              const SizedBox(width: 10),
+              const Text('Cetak Laporan'),
+            ],
           ),
-          child: Center(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Pilih periode laporan:'),
+              const SizedBox(height: 16),
+
+              // Month Dropdown
+              DropdownButtonFormField<int>(
+                value: selectedMonth,
+                decoration: const InputDecoration(
+                  labelText: 'Bulan',
+                  border: OutlineInputBorder(),
+                ),
+                items: List.generate(
+                  12,
+                  (index) => DropdownMenuItem(
+                    value: index + 1,
+                    child: Text(monthNames[index]),
+                  ),
+                ),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => selectedMonth = value);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Year Dropdown
+              DropdownButtonFormField<int>(
+                value: selectedYear,
+                decoration: const InputDecoration(
+                  labelText: 'Tahun',
+                  border: OutlineInputBorder(),
+                ),
+                items: List.generate(5, (index) {
+                  final year = now.year - 2 + index;
+                  return DropdownMenuItem(
+                    value: year,
+                    child: Text(year.toString()),
+                  );
+                }),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => selectedYear = value);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.print),
+              label: const Text('Cetak'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryLight,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _generateAndPrintReport(context, selectedMonth, selectedYear);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Generate and print the report
+  void _generateAndPrintReport(
+    BuildContext context,
+    int month,
+    int year,
+  ) async {
+    // Show loading
+    Get.dialog(
+      const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.receipt_long_outlined,
-                  size: 48,
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Belum ada transaksi',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tambahkan transaksi pertama Anda',
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                ),
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Membuat laporan...'),
               ],
             ),
           ),
         ),
-      ],
+      ),
+      barrierDismissible: false,
     );
+
+    try {
+      final reportService = ReportService();
+      final pdfBytes = await reportService.generateMonthlyReport(
+        transactions: controller.transactions,
+        month: month,
+        year: year,
+        totalBalance: controller.displayBalance.value,
+      );
+
+      // Close loading dialog
+      Get.back();
+
+      final monthNames = [
+        'Januari',
+        'Februari',
+        'Maret',
+        'April',
+        'Mei',
+        'Juni',
+        'Juli',
+        'Agustus',
+        'September',
+        'Oktober',
+        'November',
+        'Desember',
+      ];
+
+      final fileName = 'Laporan_Keuangan_${monthNames[month - 1]}_$year.pdf';
+
+      // For web: use universal_html to trigger download
+      if (kIsWeb) {
+        final blob = html.Blob([pdfBytes], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement()
+          ..href = url
+          ..style.display = 'none'
+          ..download = fileName;
+        html.document.body?.children.add(anchor);
+        anchor.click();
+        html.document.body?.children.remove(anchor);
+        html.Url.revokeObjectUrl(url);
+
+        Get.snackbar(
+          'Berhasil',
+          'Laporan berhasil didownload: $fileName',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green.shade400,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      Get.snackbar(
+        'Error',
+        'Gagal membuat laporan: $e',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red.shade400,
+        colorText: Colors.white,
+      );
+    }
   }
 }
