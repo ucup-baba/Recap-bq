@@ -150,6 +150,13 @@ class _TransactionStatsPageState extends State<TransactionStatsPage> {
       if (_selectedMonth != null && tx.createdAt.month != _selectedMonth) {
         return false;
       }
+      // Exclude income transactions from fund transfers
+      // Those are personal income for users, not organization income
+      if (tx.isIncome &&
+          tx.fundRequestId != null &&
+          tx.fundRequestId!.isNotEmpty) {
+        return false;
+      }
       return true;
     }).toList();
 

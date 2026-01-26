@@ -152,6 +152,30 @@ class _UserStatsPageState extends State<UserStatsPage> {
         .fold(0.0, (sum, tx) => sum + tx.amount);
   }
 
+  // For Super Admin: monthly income
+  double get _monthlyIncome {
+    final now = DateTime.now();
+    return _transactions
+        .where(
+          (tx) =>
+              tx.isIncome &&
+              tx.date.month == now.month &&
+              tx.date.year == now.year,
+        )
+        .fold(0.0, (sum, tx) => sum + tx.amount);
+  }
+
+  // For Super Admin: yearly income
+  double get _yearlyIncome {
+    final now = DateTime.now();
+    return _transactions
+        .where((tx) => tx.isIncome && tx.date.year == now.year)
+        .fold(0.0, (sum, tx) => sum + tx.amount);
+  }
+
+  // Check if selected user is super admin (superbq@bqmail.com)
+  bool get _isSuperAdmin => _selectedUser?.isSuperAdmin ?? false;
+
   Map<String, double> _getSubcategoryExpenses(String category) {
     final result = <String, double>{};
     for (final tx in _transactions.where(
@@ -357,30 +381,136 @@ class _UserStatsPageState extends State<UserStatsPage> {
                         color: _selectedUser!.balance < 0
                             ? Colors.red
                             : AppColors.incomeColor,
+                        label: 'Saldo',
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildStatBox(
                         icon: Icons.calendar_month,
-                        value: currencyFormat.format(_monthlyExpenses),
-                        color: AppColors.expenseColor,
+                        value: currencyFormat.format(
+                          _isSuperAdmin ? _monthlyIncome : _monthlyExpenses,
+                        ),
+                        color: _isSuperAdmin
+                            ? AppColors.incomeColor
+                            : AppColors.expenseColor,
+                        label: _isSuperAdmin
+                            ? 'Masuk (Bulan)'
+                            : 'Keluar (Bulan)',
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildStatBox(
                         icon: Icons.calendar_today,
-                        value: currencyFormat.format(_yearlyExpenses),
-                        color: Colors.orange,
+                        value: currencyFormat.format(
+                          _isSuperAdmin ? _yearlyIncome : _yearlyExpenses,
+                        ),
+                        color: _isSuperAdmin
+                            ? AppColors.incomeColor
+                            : Colors.orange,
+                        label: _isSuperAdmin
+                            ? 'Masuk (Tahun)'
+                            : 'Keluar (Tahun)',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // Category boxes
-                if (_allowedCategories.isNotEmpty) ...[
+                // For Super Admin: Show transaction list instead of categories
+                if (_isSuperAdmin) ...[
+                  Text(
+                    'Transaksi Terbaru',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_transactions.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Belum ada transaksi',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _transactions.length > 10
+                            ? 10
+                            : _transactions.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final tx = _transactions[index];
+                          final isIncome = tx.type == 'income';
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: isIncome
+                                  ? AppColors.incomeColor.withValues(
+                                      alpha: 0.15,
+                                    )
+                                  : AppColors.expenseColor.withValues(
+                                      alpha: 0.15,
+                                    ),
+                              child: Icon(
+                                isIncome
+                                    ? Icons.arrow_downward
+                                    : Icons.arrow_upward,
+                                color: isIncome
+                                    ? AppColors.incomeColor
+                                    : AppColors.expenseColor,
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(
+                              tx.category,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              tx.description.isNotEmpty
+                                  ? tx.description
+                                  : DateFormat(
+                                      'dd MMM yyyy',
+                                      'id_ID',
+                                    ).format(tx.date),
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: Text(
+                              '${isIncome ? '+' : '-'}${currencyFormat.format(tx.amount)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isIncome
+                                    ? AppColors.incomeColor
+                                    : AppColors.expenseColor,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ] else if (_allowedCategories.isNotEmpty) ...[
+                  // Category boxes for non-super-admin users
                   Text(
                     'Kategori',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -481,6 +611,7 @@ class _UserStatsPageState extends State<UserStatsPage> {
     required IconData icon,
     required String value,
     required Color color,
+    String? label,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -510,6 +641,13 @@ class _UserStatsPageState extends State<UserStatsPage> {
               ),
             ),
           ),
+          if (label != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+            ),
+          ],
         ],
       ),
     );

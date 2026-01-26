@@ -79,5 +79,8 @@ class TransactionModel {
 
   bool get isIncome => type == 'income';
   bool get isExpense => type == 'expense';
-  bool get isFundTransfer => fundRequestId != null && fundRequestId!.isNotEmpty;
+  // Only expense transactions from fund requests are considered fund transfers
+  // Income transactions (going to requester) should not be displayed as fund transfers
+  bool get isFundTransfer =>
+      fundRequestId != null && fundRequestId!.isNotEmpty && type == 'expense';
 }

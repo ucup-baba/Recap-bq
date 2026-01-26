@@ -115,30 +115,41 @@ class DashboardController extends GetxController {
     }
   }
 
-  /// Load Super Admin balance for Admin users to display
-  /// Sum all Super Admin balances so Admin sees total organization balance
+  /// Load organization balance (yusuf Syaifulloh - main Super Admin) for display
   void _loadTotalSuperAdminBalance() {
+    // First try to get designated organization account
     _firestore
         .collection(AppConstants.usersCollection)
-        .where('role', isEqualTo: 'super_admin')
+        .where('email', isEqualTo: 'ucupbaba0704@gmail.com')
+        .limit(1)
         .snapshots()
         .listen(
           (snapshot) {
             if (snapshot.docs.isNotEmpty) {
-              // Sum all super admin balances
-              double totalBalance = 0;
-              for (final doc in snapshot.docs) {
-                final user = UserModel.fromFirestore(doc);
-                totalBalance += user.balance;
-              }
-              displayBalance.value = totalBalance;
+              final user = UserModel.fromFirestore(snapshot.docs.first);
+              displayBalance.value = user.balance;
               debugPrint(
-                'Admin displaying total Super Admin balance: $totalBalance',
+                'Displaying organization balance (yusuf): ${user.balance}',
               );
+            } else {
+              // Fallback: get first super_admin
+              _firestore
+                  .collection(AppConstants.usersCollection)
+                  .where('role', isEqualTo: 'super_admin')
+                  .limit(1)
+                  .get()
+                  .then((fallbackSnapshot) {
+                    if (fallbackSnapshot.docs.isNotEmpty) {
+                      final user = UserModel.fromFirestore(
+                        fallbackSnapshot.docs.first,
+                      );
+                      displayBalance.value = user.balance;
+                    }
+                  });
             }
           },
           onError: (e) {
-            debugPrint('Error loading Super Admin balance: $e');
+            debugPrint('Error loading organization balance: $e');
           },
         );
   }

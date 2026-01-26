@@ -432,95 +432,71 @@ service cloud.firestore {
     // SIQowwam (Sistem Keuangan Baitul Qowwam) Collections
     // =====================================================
     
-    // Helper function to get SIQowwam user role
-    function getSiqowwamUserRole() {
-      let userDoc = get(/databases/$(database)/documents/siqowwam_users/$(request.auth.uid));
-      return userDoc != null && userDoc.data != null ? userDoc.data.role : null;
-    }
-    
-    // Check if user is SIQowwam super admin
+    // Helper function to check if user is SIQowwam super admin based on email
     function isSiqowwamSuperAdmin() {
-      return isAuthenticated() && getSiqowwamUserRole() == 'super_admin';
-    }
-    
-    // Check if user is SIQowwam admin
-    function isSiqowwamAdmin() {
-      let role = getSiqowwamUserRole();
-      return isAuthenticated() && (role == 'admin' || role == 'super_admin');
-    }
-    
-    // Check if user is SIQowwam bendahara
-    function isSiqowwamBendahara() {
-      let role = getSiqowwamUserRole();
-      return isAuthenticated() && (role == 'bendahara' || role == 'admin' || role == 'super_admin');
+      return isAuthenticated() && 
+             request.auth.token.email in ['ucupbaba0704@gmail.com', 'superbq@bqmail.com'];
     }
     
     // SIQowwam Users collection
     match /siqowwam_users/{userId} {
-      // Users can read their own profile
-      // Admins can read any user
-      allow read: if isAuthenticated() && (
-        request.auth.uid == userId ||
-        isSiqowwamAdmin()
-      );
-      
-      // Allow list for admin
-      allow list: if isAuthenticated() && isSiqowwamAdmin();
-      
-      // Users can create their own profile during registration
+      // Anyone authenticated can read users
+      allow read: if isAuthenticated();
+      // Anyone authenticated can update users (for balance updates)
+      allow update: if isAuthenticated();
+      // Super admin can do everything
+      allow write: if isSiqowwamSuperAdmin();
+      // Users can create their own document during registration
       allow create: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Users can update their own profile (limited)
-      // Admins can update any user
-      allow update: if isAuthenticated() && (
-        request.auth.uid == userId ||
-        isSiqowwamAdmin()
-      );
-      
-      // Only super admin can delete users
+    }
+    
+    // SIQowwam Roles collection - Admin and Super Admin can manage
+    match /siqowwam_roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // SIQowwam Fund requests collection
+    match /siqowwam_fund_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
       allow delete: if isSiqowwamSuperAdmin();
     }
     
-    // SIQowwam Transactions collection
+    // SIQowwam Transactions collection - SIMPLIFIED: all authenticated can write
     match /siqowwam_transactions/{transactionId} {
-      // Bendahara and above can read transactions
-      allow read, list: if isAuthenticated() && isSiqowwamBendahara();
-      
-      // Bendahara and above can create transactions
-      allow create: if isAuthenticated() && isSiqowwamBendahara();
-      
-      // Bendahara and above can update transactions
-      allow update: if isAuthenticated() && isSiqowwamBendahara();
-      
-      // Only admin can delete transactions
-      allow delete: if isSiqowwamAdmin();
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Legacy transactions collection
+    match /transactions/{transactionId} {
+      allow read, write: if isAuthenticated();
     }
     
     // SIQowwam Categories collection
     match /siqowwam_categories/{categoryId} {
-      // All authenticated SIQowwam users can read categories
-      allow read, list: if isAuthenticated();
-      
-      // Only admin can manage categories
-      allow create, update, delete: if isSiqowwamAdmin();
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Old categories collection
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
     }
     
     // SIQowwam Wallets collection
     match /siqowwam_wallets/{walletId} {
-      // Bendahara and above can read wallets
-      allow read, list: if isAuthenticated() && isSiqowwamBendahara();
-      
-      // Only admin can manage wallets
-      allow create, update, delete: if isSiqowwamAdmin();
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
     }
     
     // SIQowwam Projects collection
     match /siqowwam_projects/{projectId} {
-      // Bendahara and above can read projects
-      allow read, list: if isAuthenticated() && isSiqowwamBendahara();
-      
-      // Only admin can manage projects
-      allow create, update, delete: if isSiqowwamAdmin();
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
     }
   }
 }

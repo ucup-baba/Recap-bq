@@ -97,17 +97,26 @@ class FundRequestService {
     final request = FundRequestModel.fromFirestore(requestDoc);
     if (!request.isPending) throw Exception('Request already processed');
 
-    // Get organization account (Super Admin) to check balance
-    final superAdmins = await _usersRef
-        .where('role', isEqualTo: 'super_admin')
+    // Get organization account (yusuf Syaifulloh - main Super Admin) to check balance
+    // First try designated organization account
+    var orgAccountQuery = await _usersRef
+        .where('email', isEqualTo: 'ucupbaba0704@gmail.com')
         .limit(1)
         .get();
 
-    if (superAdmins.docs.isEmpty) {
+    // Fallback to any super_admin if designated account not found
+    if (orgAccountQuery.docs.isEmpty) {
+      orgAccountQuery = await _usersRef
+          .where('role', isEqualTo: 'super_admin')
+          .limit(1)
+          .get();
+    }
+
+    if (orgAccountQuery.docs.isEmpty) {
       throw Exception('Tidak ada akun organisasi (Super Admin)');
     }
 
-    final orgAccountDoc = superAdmins.docs.first;
+    final orgAccountDoc = orgAccountQuery.docs.first;
     final orgAccountId = orgAccountDoc.id;
     final orgData = orgAccountDoc.data();
     final orgBalance = (orgData['balance'] ?? 0).toDouble();
@@ -192,7 +201,7 @@ class FundRequestService {
       'userName': request.userName,
       'type': 'income',
       'amount': request.amount,
-      'category': 'Penerimaan Dana',
+      'category': 'Transfer Dana',
       'description': 'Dana dari $reviewerName: ${request.description}',
       'subject': reviewerName,
       'date': Timestamp.fromDate(now),

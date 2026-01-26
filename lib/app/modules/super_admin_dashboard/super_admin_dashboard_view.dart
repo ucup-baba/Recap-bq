@@ -19,6 +19,8 @@ import 'super_admin_dashboard_controller.dart';
 import '../super_admin_report/super_admin_report_view.dart';
 import '../super_admin_account/super_admin_account_view.dart';
 import '../memorable/memorable_view.dart';
+import '../financial/financial_tab_view.dart';
+import '../financial/financial_tab_controller.dart';
 
 class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
   const SuperAdminDashboardView({super.key});
@@ -36,6 +38,10 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
     // Study time monitor controller
     if (!Get.isRegistered<StudyTimeMonitorController>()) {
       Get.put(StudyTimeMonitorController());
+    }
+    // Financial tab controller
+    if (!Get.isRegistered<FinancialTabController>()) {
+      Get.put(FinancialTabController());
     }
 
     return Scaffold(
@@ -71,14 +77,10 @@ class SuperAdminDashboardView extends GetView<SuperAdminDashboardController> {
                       key: ValueKey('tab_2_memorable'),
                       child: MemorableView(hideHeader: false),
                     ),
-                    // Tab 3: Financial (Coming Soon)
-                    KeyedSubtree(
-                      key: const ValueKey('tab_3_financial'),
-                      child: _buildComingSoonTab(
-                        context,
-                        'Financial',
-                        Icons.account_balance_wallet,
-                      ),
+                    // Tab 3: Financial (SIQowwam Integration)
+                    const KeyedSubtree(
+                      key: ValueKey('tab_3_financial'),
+                      child: FinancialTabView(),
                     ),
                     // Tab 4: Akun
                     const KeyedSubtree(

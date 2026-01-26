@@ -11,6 +11,12 @@ class AppConstants {
     'superbq@bqmail.com',
   ];
 
+  // Organization Account (main account for balance, hidden from user display)
+  static const String organizationEmail = 'ucupbaba0704@gmail.com';
+
+  // Emails to hide from user listings (organization account should not be displayed)
+  static const List<String> hiddenEmails = ['ucupbaba0704@gmail.com'];
+
   // Firestore Collections
   static const String usersCollection = 'siqowwam_users';
   static const String transactionsCollection = 'siqowwam_transactions';
@@ -38,7 +44,7 @@ class AppConstants {
   // Expense Categories with Subcategories
   static const Map<String, List<String>> expenseCategories = {
     'Pendidikan': ['Biaya Sekolah', 'ATL/LKS', 'Iuran'],
-    'Transportasi': ['Servis', 'Bensin'],
+    'Transportasi': ['Servis', 'Bensin', 'Rental'],
     'Fasilitas': ['Sarana', 'Perawatan'],
     'Rumah Tangga': ['Konsumsi/Dapur', 'Kebersihan', 'Kesehatan', 'Meeting'],
     'Lainnya': ['Umum'],

@@ -20,8 +20,19 @@ class TransactionService {
   CollectionReference<Map<String, dynamic>> get _usersRef =>
       _firestore.collection(AppConstants.usersCollection);
 
-  /// Get organization account (first Super Admin)
+  /// Get organization account (yusuf Syaifulloh - main Super Admin)
   Future<String> _getOrganizationAccountId() async {
+    // First try to get the designated organization account
+    final orgAccount = await _usersRef
+        .where('email', isEqualTo: 'ucupbaba0704@gmail.com')
+        .limit(1)
+        .get();
+
+    if (orgAccount.docs.isNotEmpty) {
+      return orgAccount.docs.first.id;
+    }
+
+    // Fallback to any super_admin if designated account not found
     final superAdmins = await _usersRef
         .where('role', isEqualTo: 'super_admin')
         .limit(1)
@@ -180,8 +191,8 @@ class TransactionService {
         );
   }
 
-  /// Get organization transactions stream for Admin/Super Admin dashboard
   /// Only shows transactions created by Admin or Super Admin, not regular users
+  /// Excludes income transactions from fund transfers (those go to user's personal balance)
   Stream<List<TransactionModel>> getSuperAdminTransactionsStream() {
     // First get all admin and super admin user IDs
     return _usersRef
@@ -200,8 +211,17 @@ class TransactionService {
               .orderBy('createdAt', descending: true)
               .get();
 
+          // Filter out income transactions from fund transfers
+          // Those are personal income for users, not organization income
           return txSnapshot.docs
               .map((doc) => TransactionModel.fromFirestore(doc))
+              .where((tx) {
+                // Exclude income transactions that are from fund requests (transfers to users)
+                if (tx.type == 'income' && tx.fundRequestId != null) {
+                  return false;
+                }
+                return true;
+              })
               .toList();
         });
   }

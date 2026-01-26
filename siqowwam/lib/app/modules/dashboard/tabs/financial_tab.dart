@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../data/models/fund_request_model.dart';
 import '../../../data/services/fund_request_service.dart';
 import '../../../data/services/report_service.dart';
@@ -645,9 +646,9 @@ class FinancialTab extends GetView<DashboardController> {
 
   Widget _buildQuickStats(BuildContext context) {
     return Obx(() {
-      // Count users with roles
+      // Count users with roles (including Super Admins)
       final usersWithRoles = controller.allUsers
-          .where((u) => u.roleId != null && !u.isSuperAdmin)
+          .where((u) => u.roleId != null || u.isSuperAdmin)
           .length;
 
       return Column(
@@ -704,7 +705,8 @@ class FinancialTab extends GetView<DashboardController> {
 
   void _showUserSelectionDialog(BuildContext context) {
     final usersWithRoles = controller.allUsers
-        .where((u) => u.roleId != null && !u.isSuperAdmin)
+        .where((u) => u.roleId != null || u.isSuperAdmin)
+        .where((u) => !AppConstants.hiddenEmails.contains(u.email))
         .toList();
 
     if (usersWithRoles.isEmpty) {
