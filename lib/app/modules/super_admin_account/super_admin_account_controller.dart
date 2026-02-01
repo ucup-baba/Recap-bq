@@ -6,6 +6,7 @@ import '../../core/utils/logger.dart';
 import '../../core/utils/snackbar_helper.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/services/auth_service.dart';
 
 class SuperAdminAccountController extends GetxController {
   final _firestore = FirestoreService.instance;
@@ -161,6 +162,25 @@ class SuperAdminAccountController extends GetxController {
     } catch (e) {
       Logger.error('Error updating password', e);
       SnackbarHelper.showError('Gagal mengupdate password');
+    }
+  }
+
+  Future<void> resetPersonalFinance() async {
+    try {
+      final user = AuthService.instance.currentUser;
+      if (user == null) return;
+
+      isLoading.value = true;
+
+      // Get all personal transactions for this user using FirestoreService
+      await _firestore.deletePersonalTransactions(user.uid);
+
+      SnackbarHelper.showSuccess('Data keuangan pribadi berhasil direset');
+    } catch (e) {
+      Logger.error('Error resetting personal finance', e);
+      SnackbarHelper.showError('Gagal mereset data keuangan');
+    } finally {
+      isLoading.value = false;
     }
   }
 

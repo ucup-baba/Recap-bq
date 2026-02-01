@@ -49,6 +49,9 @@ function doGet(e) {
                 case 'syncFundRequest':
                     result = syncFundRequest(data);
                     break;
+                case 'logReset':
+                    result = logReset(data);
+                    break;
                 default:
                     result = { success: false, error: 'Unknown action: ' + action };
             }
@@ -86,6 +89,9 @@ function doPost(e) {
                 break;
             case 'syncFundRequest':
                 result = syncFundRequest(data);
+                break;
+            case 'logReset':
+                result = logReset(data);
                 break;
             default:
                 result = { success: false, error: 'Unknown action: ' + action };
@@ -320,6 +326,65 @@ function syncFundRequest(data) {
         sheet.appendRow(rowData);
         return { success: true, action: 'added', id: data.id };
     }
+}
+
+/**
+ * Log reset activity (Inline to all sheets)
+ */
+function logReset(data) {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = [TRANSACTIONS_SHEET, USERS_SHEET, FUND_REQUESTS_SHEET, USER_HISTORY_SHEET];
+
+    const timestamp = formatDate(data.date);
+    // Ganti === dengan >>> agar tidak dianggap rumus oleh Spreadsheet (#ERROR!)
+    const logMessage = `>>> RESET DATA <<< | Oleh: ${data.executorName} (${data.executorEmail}) | Waktu: ${timestamp}`;
+
+    sheets.forEach(sheetName => {
+        let sheet = ss.getSheetByName(sheetName);
+        if (sheet) {
+            // Append row with message spanning multiple columns
+            const lastRow = sheet.getLastRow();
+            const nextRow = lastRow + 1;
+            const maxCols = sheet.getMaxColumns(); // Or use getLastColumn()
+
+            // Insert content in the first cell needed
+            sheet.getRange(nextRow, 1).setValue(logMessage);
+
+            // Merge cells for better visibility (optional, but good for "separator" look)
+            try {
+                if (maxCols > 1) {
+                    sheet.getRange(nextRow, 1, 1, maxCols).merge();
+                }
+            } catch (e) {
+                // Ignore merge errors
+            }
+
+            // Style the row: Red background, White bold text
+            const range = sheet.getRange(nextRow, 1, 1, maxCols > 1 ? maxCols : 1);
+            range.setBackground('#D32F2F') // Darker red
+                .setFontColor('#FFFFFF')
+                .setFontWeight('bold')
+                .setHorizontalAlignment('center');
+        }
+    });
+
+    return { success: true, action: 'logged_reset_inline' };
+}
+
+/**
+ * MANUAL TEST FUNCTION
+ * Jalankan fungsi ini langsung di Editor Apps Script untuk mengecek apakah garis merah muncul.
+ * Caranya: Pilih 'testLogReset' di dropdown fungsi di atas, lalu klik 'Run'.
+ */
+function testLogReset() {
+    logReset({
+        date: new Date().toISOString(),
+        executorName: "TEST USER",
+        executorEmail: "test@example.com",
+        transactionsDeleted: 0,
+        fundRequestsDeleted: 0,
+        usersReset: 0
+    });
 }
 
 /**

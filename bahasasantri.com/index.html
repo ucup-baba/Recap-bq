@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Santri Pintar - v2 Light</title>
+
+    <!-- Tailwind v4 Compiled CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- External Resources -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0F172A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="images/icon-512.png">
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4 bg-pattern overflow-hidden font-sans">
+
+    <!-- MAIN APP CONTAINER -->
+    <div
+        class="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl h-[90vh] sm:h-[88vh] md:h-[85vh] bg-white/80 rounded-[2rem] sm:rounded-[2.5rem] shadow-soft overflow-hidden border border-white backdrop-blur-xl">
+
+        <!-- HEADER (Dynamic) -->
+        <div id="header-ui"
+            class="absolute top-0 left-0 w-full px-6 py-6 z-30 flex items-center justify-between bg-white/95 backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary">
+                    <i class="fas fa-shapes text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-brand-dark text-lg leading-tight">Santri<br><span
+                            class="text-brand-primary">Pintar</span></h1>
+                </div>
+            </div>
+            <!-- Theme Toggle & Menu -->
+            <div class="flex items-center gap-2">
+                <button id="theme-toggle" onclick="toggleTheme()" class="theme-toggle" title="Toggle Dark Mode">
+                    <i class="fas fa-sun icon-sun text-yellow-500"></i>
+                    <i class="fas fa-moon icon-moon text-indigo-400"></i>
+                </button>
+                <button onclick="toggleMenu()"
+                    class="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div id="app-container" class="w-full h-full relative">
+
+            <!-- LOGIN VIEW -->
+            <div id="view-login"
+                class="view-section active-view absolute inset-0 flex-col items-center justify-center p-8 z-40 bg-white/90 backdrop-blur-md">
+                <div class="mb-8 relative">
+                    <div
+                        class="w-32 h-32 bg-gradient-to-tr from-brand-primary to-orange-300 rounded-[2rem] flex items-center justify-center shadow-lg shadow-orange-200 animate-float transform rotate-3">
+                        <span class="text-6xl text-white drop-shadow-md">🕌</span>
+                    </div>
+                </div>
+
+                <h2 class="text-3xl font-display font-black text-brand-dark mb-2 text-center">Assalamu'alaikum</h2>
+                <p class="text-gray-500 mb-8 text-center text-sm">Masukan kode rahasia santri untuk masuk.</p>
+
+                <div class="w-full max-w-xs space-y-4">
+                    <input type="tel" id="login-code" maxlength="2" placeholder="00"
+                        class="w-full h-16 text-center text-3xl font-black tracking-[1rem] rounded-2xl bg-gray-50 border-2 border-gray-100 focus:border-brand-primary focus:bg-white transition-all outline-none text-brand-dark placeholder-gray-200">
+
+                    <button id="btn-login"
+                        class="w-full py-4 rounded-2xl btn-primary text-white font-bold text-lg shadow-lg flex items-center justify-center gap-2 group">
+                        <span>Masuk</span>
+                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                    <p id="login-error" class="text-red-500 text-xs text-center font-bold h-4"></p>
+                </div>
+            </div>
+
+            <!-- MENU VIEW (Refactored Tabs) -->
+            <div id="view-menu" class="hidden-view absolute inset-0 flex-col bg-gray-50 z-20">
+
+                <!-- Scrollable Content -->
+                <div id="menu-content" class="flex-1 overflow-y-auto hide-scrollbar pb-24">
+
+                    <!-- TAB: HOME -->
+                    <div id="tab-home" class="p-6 pt-24 space-y-6">
+                        <!-- User Card -->
+                        <div
+                            class="bg-gradient-to-r from-brand-primary to-orange-400 rounded-3xl p-6 text-white relative overflow-hidden shadow-lg shadow-orange-200">
+                            <div class="absolute right-[-20px] top-[-20px] w-32 h-32 bg-white/10 rounded-full blur-2xl">
+                            </div>
+                            <p class="text-orange-100 text-sm font-medium">Assalamu'alaikum,</p>
+                            <h2 id="menu-user-name" class="text-2xl font-bold mb-4">Santri</h2>
+                            <div class="flex gap-3">
+                                <div class="bg-white/20 rounded-xl px-3 py-2 flex-1 backdrop-blur-sm">
+                                    <span class="text-xs text-orange-100 block">Total Poin</span>
+                                    <span id="menu-highscore" class="font-bold text-lg">0</span>
+                                </div>
+                                <div class="bg-white/20 rounded-xl px-3 py-2 flex-1 backdrop-blur-sm">
+                                    <span class="text-xs text-orange-100 block">Ranking</span>
+                                    <span id="menu-rank" class="font-bold text-lg">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Exam Card -->
+                        <button onclick="startQuiz('mixed')"
+                            class="w-full bg-white rounded-3xl p-1 shadow-sm hover:shadow-md transition-all group border border-gray-100 text-left">
+                            <div
+                                class="rounded-[1.3rem] border-2 border-dashed border-brand-secondary/30 p-5 flex items-center gap-4 bg-mint/30">
+                                <div
+                                    class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-brand-secondary">
+                                    📚
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-brand-dark text-lg">Ujian Pekanan</h3>
+                                    <p class="text-gray-500 text-xs">Mode ujian dengan timer 10 menit</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-secondary text-white flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Practice Modes (Re-added to avoid missing feature complaint) -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="startQuiz('id-en')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-language"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Indo-Ing</span>
+                            </button>
+                            <button onclick="startQuiz('en-id')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-spell-check"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Ing-Indo</span>
+                            </button>
+                            <button onclick="startQuiz('listening')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-headphones"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Listening</span>
+                            </button>
+                            <button onclick="startQuiz('speaking')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-yellow-50 text-yellow-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-microphone"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Speaking</span>
+                            </button>
+                            </button>
+                        </div>
+
+                        <!-- MATH BATTLE BUTTON -->
+                        <button id="btn-math-battle"
+                            class="w-full bg-gradient-to-r from-pink-500 to-rose-500 rounded-3xl p-1 shadow-lg hover:shadow-xl transition-all group text-left mb-24">
+                            <div
+                                class="rounded-[1.3rem] border-2 border-dashed border-white/30 p-5 flex items-center gap-4">
+                                <div
+                                    class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl text-white backdrop-blur-sm">
+                                    ⚔️
+                                </div>
+                                <div class="flex-1 text-white">
+                                    <h3 class="font-bold text-lg">Math Battle 1v1</h3>
+                                    <p class="text-white/80 text-xs">Duel Perkalian Siapa Cepat!</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-white text-rose-500 flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div id="tab-ranking" class="hidden p-6 pt-24 space-y-4">
+                        <h2 class="text-2xl font-bold text-brand-dark mb-2">Papan Peringkat 🏆</h2>
+
+                        <!-- Ranking Sub-Tabs -->
+                        <div class="flex gap-2 mb-4">
+                            <button onclick="switchRankingTab('bahasa')" id="rank-tab-bahasa"
+                                class="flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-brand-primary text-white transition-all">
+                                📚 Bahasa
+                            </button>
+                            <button onclick="switchRankingTab('math')" id="rank-tab-math"
+                                class="flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-gray-100 text-gray-500 transition-all">
+                                🔢 Matematika
+                            </button>
+                        </div>
+
+                        <!-- Bahasa Leaderboard -->
+                        <div id="rank-bahasa" class="space-y-3">
+                            <div id="santri-leaderboard" class="space-y-3">
+                                <div class="text-center text-gray-400 mt-10">Memuat data...</div>
+                            </div>
+                        </div>
+
+                        <!-- Math Leaderboard -->
+                        <div id="rank-math" class="hidden space-y-3">
+                            <div id="math-leaderboard" class="space-y-3">
+                                <div class="text-center text-gray-400 mt-10">Memuat data...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: AKUN -->
+                    <div id="tab-akun" class="hidden p-6 pt-24 space-y-6">
+                        <div
+                            class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                            <div
+                                class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center text-3xl mb-4">
+                                👤
+                            </div>
+                            <h2 id="profile-name" class="text-xl font-bold text-brand-dark">Nama Santri</h2>
+                            <p id="profile-code"
+                                class="text-gray-400 text-sm font-mono bg-gray-100 px-3 py-1 rounded-full mt-2">ID: --
+                            </p>
+                        </div>
+
+                        <!-- Speech Speed Control -->
+                        <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 mb-4">
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                                <i class="fas fa-volume-up mr-1"></i> Kecepatan Suara
+                            </h3>
+                            <div class="flex gap-2">
+                                <button onclick="setSpeechRate(1.0)" id="speed-normal"
+                                    class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-brand-primary text-white transition-all">
+                                    Normal
+                                </button>
+                                <button onclick="setSpeechRate(0.7)" id="speed-slow"
+                                    class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-gray-100 text-gray-500 transition-all">
+                                    Lambat
+                                </button>
+                                <button onclick="setSpeechRate(0.5)" id="speed-veryslow"
+                                    class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-gray-100 text-gray-500 transition-all">
+                                    Sangat Lambat
+                                </button>
+                            </div>
+                        </div>
+
+                        <button onclick="checkAudio()"
+                            class="w-full py-4 rounded-2xl bg-gray-50 text-gray-500 font-bold border border-gray-100 flex items-center justify-center gap-2 mb-2">
+                            <i class="fas fa-wrench"></i> Cek Suara
+                        </button>
+
+                        <button onclick="logout()"
+                            class="w-full py-4 rounded-2xl bg-red-50 text-red-500 font-bold border border-red-100 flex items-center justify-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i> Keluar
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- BOTTOM NAVIGATION -->
+                <div
+                    class="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-3xl">
+                    <button onclick="switchTab('home')" id="nav-home"
+                        class="flex flex-col items-center gap-1 text-brand-primary transition-colors w-1/3">
+                        <i class="fas fa-home text-xl"></i>
+                        <span class="text-[10px] font-bold">Beranda</span>
+                    </button>
+                    <button onclick="switchTab('ranking')" id="nav-ranking"
+                        class="flex flex-col items-center gap-1 text-gray-400 hover:text-brand-primary transition-colors w-1/3">
+                        <i class="fas fa-trophy text-xl"></i>
+                        <span class="text-[10px] font-bold">Ranking</span>
+                    </button>
+                    <button onclick="switchTab('akun')" id="nav-akun"
+                        class="flex flex-col items-center gap-1 text-gray-400 hover:text-brand-primary transition-colors w-1/3">
+                        <i class="fas fa-user text-xl"></i>
+                        <span class="text-[10px] font-bold">Akun</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- MATH LOBBY VIEW -->
+            <div id="view-math-lobby" class="hidden-view absolute inset-0 flex-col bg-white z-50">
+                <div class="p-6 pt-12">
+                    <button onclick="switchView('menu')"
+                        class="mb-8 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-arrow-left text-gray-600"></i>
+                    </button>
+                    <h2 class="text-3xl font-black text-brand-dark mb-2">Math Battle</h2>
+                    <p class="text-gray-500 mb-12">Tantang temanmu duel perkalian!</p>
+
+                    <div class="space-y-4">
+                        <button onclick="createMathRoom()"
+                            class="w-full py-5 rounded-2xl bg-brand-primary text-white font-bold text-lg shadow-lg hover:bg-orange-600 transition-all flex items-center justify-center gap-3">
+                            <i class="fas fa-plus-circle"></i> Buat Room
+                        </button>
+                        <div class="text-center text-gray-300 font-bold text-xs uppercase tracking-wider">- Atau -</div>
+                        <button onclick="joinMathRoom()"
+                            class="w-full py-5 rounded-2xl bg-white border-2 border-brand-primary text-brand-primary font-bold text-lg hover:bg-orange-50 transition-all flex items-center justify-center gap-3">
+                            <i class="fas fa-sign-in-alt"></i> Join Room
+                        </button>
+                        <button onclick="spectateRoom()"
+                            class="w-full py-3 rounded-xl bg-gray-100 text-gray-500 font-bold text-sm hover:bg-gray-200 transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-eye"></i> Tonton Pertandingan
+                        </button>
+                    </div>
+
+                    <!-- Math Battle Leaderboard -->
+                    <div class="mt-8">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🏆 Top Champions</h3>
+                        <div id="math-leaderboard" class="space-y-2">
+                            <div class="skeleton skeleton-card"></div>
+                            <div class="skeleton skeleton-card"></div>
+                            <div class="skeleton skeleton-card"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MATH WAIT ROOM -->
+            <div id="view-math-room"
+                class="hidden-view absolute inset-0 flex flex-col items-center justify-center bg-brand-dark text-white z-50 p-6">
+                <div class="text-center">
+                    <p class="text-white/50 uppercase tracking-widest text-xs font-bold mb-4">KODE ROOM</p>
+                    <h1 id="math-room-code"
+                        class="text-6xl font-black tracking-widest mb-8 text-brand-primary font-display">....</h1>
+                    <div class="bg-white/10 rounded-3xl p-6 w-full max-w-xs backdrop-blur-sm">
+                        <ul id="math-player-list" class="space-y-3 text-center">
+                            <li class="font-bold text-brand-primary">Player 1</li>
+                            <li class="text-gray-400 italic">Menunggu...</li>
+                        </ul>
+                    </div>
+                    <button onclick="leaveMathGame()"
+                        class="mt-12 text-gray-400 hover:text-white underline">Batalkan</button>
+                </div>
+            </div>
+
+            <!-- MATH GAMEPLAY -->
+            <div id="view-math-game" class="hidden-view absolute inset-0 flex-col bg-gray-50 z-50">
+                <!-- Header Scores -->
+                <div class="bg-white p-6 shadow-sm z-10 flex justify-between items-end border-b border-gray-100">
+                    <div class="text-center">
+                        <div id="score-p1" class="text-3xl font-black text-brand-primary">0</div>
+                        <div id="name-p1" class="text-xs font-bold text-gray-400">Player 1</div>
+                    </div>
+                    <div class="text-2xl font-black text-brand-dark/20">VS</div>
+                    <div class="text-center">
+                        <div id="score-p2" class="text-3xl font-black text-rose-500">0</div>
+                        <div id="name-p2" class="text-xs font-bold text-gray-400">Player 2</div>
+                    </div>
+                </div>
+
+                <!-- Question Area -->
+                <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                    <div id="math-question"
+                        class="text-6xl font-black text-brand-dark mb-6 font-display animate-bounce-short">? x ?</div>
+                    <!-- Input Display -->
+                    <div id="math-input-display"
+                        class="text-4xl font-bold text-gray-700 h-16 border-b-4 border-gray-200 min-w-[100px] flex items-center justify-center">
+                        ?</div>
+                    <div id="math-feedback" class="h-8 text-red-500 font-bold mt-4 hidden">Salah!</div>
+                </div>
+
+                <!-- Keypad -->
+                <div class="bg-white p-6 pb-12 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                    <div class="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+                        <button onclick="pressMathKey('1')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">1</button>
+                        <button onclick="pressMathKey('2')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">2</button>
+                        <button onclick="pressMathKey('3')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">3</button>
+                        <button onclick="pressMathKey('4')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">4</button>
+                        <button onclick="pressMathKey('5')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">5</button>
+                        <button onclick="pressMathKey('6')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">6</button>
+                        <button onclick="pressMathKey('7')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">7</button>
+                        <button onclick="pressMathKey('8')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">8</button>
+                        <button onclick="pressMathKey('9')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">9</button>
+                        <button onclick="clearMathInput()"
+                            class="h-16 rounded-xl bg-red-50 font-bold text-xl text-red-500 shadow-sm border-b-4 border-red-200 active:border-b-0 active:translate-y-1 transition-all">C</button>
+                        <button onclick="pressMathKey('0')"
+                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">0</button>
+                        <button onclick="backspaceMathInput()"
+                            class="h-16 rounded-xl bg-gray-100 font-bold text-xl text-gray-500 shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all"><i
+                                class="fas fa-backspace"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUIZ VIEW -->
+            <div id="view-quiz"
+                class="hidden-view absolute inset-0 flex-col pt-20 sm:pt-24 pb-4 sm:pb-6 px-4 sm:px-6 md:px-8 z-20">
+
+                <!-- Question Number Navigation (Scrollable) -->
+                <div id="question-nav" class="mb-3 overflow-x-auto hide-scrollbar flex">
+                    <div id="question-nav-buttons" class="flex gap-2 min-w-max px-1 py-1 mx-auto">
+                        <!-- Buttons will be generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div class="flex-1 h-2 sm:h-3 rounded-full bg-gray-100 overflow-hidden">
+                        <div id="progress-bar"
+                            class="h-full bg-brand-primary rounded-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <div id="timer-badge"
+                        class="hidden px-2 py-1 bg-red-100 text-red-500 rounded-lg text-xs font-bold flex items-center gap-1">
+                        <i class="fas fa-clock"></i> <span id="timer-display">10:00</span>
+                    </div>
+                    <span id="question-indicator" class="text-xs font-bold text-gray-400">1/10</span>
+                </div>
+
+                <!-- Question Card -->
+                <div class="flex-1 flex flex-col items-center justify-center text-center mb-4 sm:mb-8">
+                    <span id="quiz-type-badge"
+                        class="px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-4">Mode</span>
+                    <h2 id="question-text"
+                        class="text-2xl sm:text-3xl md:text-4xl font-display font-black text-brand-dark mb-2 sm:mb-4">
+                        Question</h2>
+                    <button id="btn-speak" onclick="speakCurrentWord()"
+                        class="hidden w-12 h-12 rounded-full bg-brand-secondary/10 text-brand-secondary items-center justify-center hover:bg-brand-secondary hover:text-white transition-all">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+
+                <!-- Options -->
+                <div id="options-container"
+                    class="space-y-2 sm:space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 mb-4 sm:mb-6"></div>
+
+                <!-- Speaking UI -->
+                <div id="speaking-container" class="hidden flex-col items-center justify-center py-4">
+                    <p id="speak-result" class="text-base sm:text-lg text-gray-500 italic mb-4 sm:mb-6 min-h-[30px]">...
+                    </p>
+
+                    <!-- Mic Button (for devices with STT) -->
+                    <button id="btn-record" onclick="toggleRecording()"
+                        class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-500 text-white text-xl sm:text-2xl shadow-lg border-4 border-red-200 hover:scale-105 transition-transform flex items-center justify-center">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+
+                    <!-- Fallback Typing (for devices without STT) -->
+                    <div id="speaking-fallback" class="hidden w-full max-w-xs">
+                        <p class="text-xs text-gray-400 text-center mb-2">
+                            <i class="fas fa-keyboard mr-1"></i> Ketik jawaban bahasa Inggris
+                        </p>
+                        <div class="flex gap-2">
+                            <input type="text" id="speaking-input" placeholder="Type here..."
+                                class="flex-1 px-4 py-3 rounded-xl bg-gray-50 border-2 border-gray-200 text-brand-dark font-bold focus:border-brand-primary focus:outline-none"
+                                autocomplete="off" autocapitalize="off">
+                            <button onclick="submitTypedAnswer()"
+                                class="px-4 py-3 rounded-xl bg-brand-primary text-white font-bold hover:bg-orange-500 transition-colors">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nav Buttons -->
+                <div class="grid grid-cols-3 gap-2 sm:gap-4 mt-auto">
+                    <button id="btn-prev" onclick="prevQuestion()"
+                        class="col-span-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-gray-100 text-gray-500 font-bold text-sm sm:text-base disabled:opacity-50">Back</button>
+                    <button id="btn-next" onclick="nextQuestion()"
+                        class="col-span-2 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-brand-dark text-white font-bold text-sm sm:text-base shadow-lg hover:bg-gray-800 transition-colors">Next</button>
+                </div>
+            </div>
+
+            <!-- RESULT VIEW -->
+            <div id="view-result"
+                class="hidden-view absolute inset-0 flex-col items-center justify-center p-8 text-center z-30">
+                <div
+                    class="w-40 h-40 bg-gradient-to-tr from-yellow-300 to-orange-400 rounded-full flex items-center justify-center shadow-lg shadow-orange-200 mb-6 animate-bounce">
+                    <i class="fas fa-trophy text-6xl text-white"></i>
+                </div>
+
+                <h2 class="text-3xl font-display font-black text-brand-dark mb-2">Awesome!</h2>
+                <p class="text-gray-500 mb-8">Kamu telah menyelesaikan ujian.</p>
+
+                <div class="bg-white rounded-3xl p-6 w-full shadow-soft border border-gray-100 mb-8">
+                    <p class="text-xs uppercase tracking-widest text-gray-400 font-bold mb-2">Score</p>
+                    <div id="final-score" class="text-6xl font-black text-brand-primary">100</div>
+                    <div id="feedback-text" class="text-sm font-bold text-brand-secondary mt-2">Perfect Score!</div>
+                </div>
+
+                <!-- Rank & Total Score Animation -->
+                <div id="rank-update-box" class="hidden w-full mb-8">
+                    <div
+                        class="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <div class="text-left">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">Total Poin</p>
+                            <div class="flex items-baseline gap-1">
+                                <span id="display-total-score" class="text-2xl font-black text-brand-dark">0</span>
+                                <span class="text-xs font-bold text-green-500 bg-green-50 px-2 rounded-full">+<span
+                                        id="display-score-add">0</span></span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">Ranking</p>
+                            <div id="rank-change-text" class="text-sm font-bold text-gray-600">
+                                Calculating...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review Button (Exam Only) -->
+                <button id="btn-review" onclick="showReview()"
+                    class="hidden w-full py-4 rounded-2xl bg-brand-secondary text-white font-bold shadow-lg mb-3 hover:bg-teal-600 transition-colors">
+                    <i class="fas fa-clipboard-list mr-2"></i>Lihat Review Jawaban
+                </button>
+
+                <button id="btn-result-home"
+                    class="w-full py-4 rounded-2xl bg-brand-dark text-white font-bold shadow-lg">Back to Menu</button>
+            </div>
+
+            <!-- REVIEW VIEW -->
+            <div id="view-review"
+                class="hidden-view absolute inset-0 flex-col pt-24 pb-8 px-6 overflow-hidden z-30 bg-gray-50">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-brand-dark">Review Jawaban</h2>
+                    <button onclick="switchView('result')"
+                        class="px-4 py-2 rounded-xl bg-white text-gray-500 font-bold shadow-sm hover:bg-gray-100">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div id="review-list" class="flex-1 overflow-y-auto space-y-3 hide-scrollbar pb-4">
+                    <!-- Review items will be rendered here -->
+                </div>
+
+                <button onclick="switchView('menu')"
+                    class="w-full py-4 rounded-2xl bg-brand-dark text-white font-bold shadow-lg mt-4">Kembali ke
+                    Menu</button>
+            </div>
+
+            <!-- ADMIN VIEW -->
+            <!-- ADMIN VIEW -->
+            <div id="view-admin"
+                class="hidden-view absolute inset-0 flex-col pt-24 pb-8 px-0 overflow-hidden z-30 bg-gray-50">
+
+                <!-- Admin Header -->
+                <div class="px-6 flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-brand-dark">Admin Panel</h2>
+                        <p class="text-xs text-gray-500">Kelola Ujian & Santri</p>
+                    </div>
+                    <button onclick="location.reload()"
+                        class="w-10 h-10 rounded-full bg-white text-red-500 shadow-sm flex items-center justify-center hover:bg-red-50 transition-colors"><i
+                            class="fas fa-sign-out-alt"></i></button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="px-6 mb-6">
+                    <div class="bg-gray-200/50 p-1 rounded-2xl flex font-bold text-sm overflow-x-auto hide-scrollbar">
+                        <button id="btn-tab-ujian" onclick="switchAdminTab('ujian')"
+                            class="flex-1 py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-100 transition-all whitespace-nowrap">
+                            Soal
+                        </button>
+                        <button id="btn-tab-tes" onclick="switchAdminTab('tes')"
+                            class="flex-1 py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-100 transition-all whitespace-nowrap">
+                            Tes
+                        </button>
+                        <button id="btn-tab-ranking" onclick="switchAdminTab('ranking')"
+                            class="flex-1 py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-100 transition-all whitespace-nowrap">
+                            Ranking
+                        </button>
+                        <button id="btn-tab-akun" onclick="switchAdminTab('akun')"
+                            class="flex-1 py-3 px-4 rounded-xl bg-brand-primary text-white shadow-md transition-all whitespace-nowrap">
+                            Akun
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CONTENT AREA (Scrollable) -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar px-6 pb-20">
+
+                    <!-- TAB: UJIAN -->
+                    <div id="admin-tab-ujian" class="hidden space-y-4">
+                        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-book-open text-brand-primary"></i> Materi Hari Ini
+                            </h3>
+                            <table class="w-full text-left">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="p-3 text-xs text-gray-400 font-bold rounded-l-lg">#</th>
+                                        <th class="p-3 text-xs text-gray-400 font-bold">English</th>
+                                        <th class="p-3 text-xs text-gray-400 font-bold rounded-r-lg">Indo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-vocab-list">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB: TES (Simulation) -->
+                    <div id="admin-tab-tes" class="hidden space-y-6">
+                        <div
+                            class="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-blue-600 text-xs flex items-center gap-3">
+                            <i class="fas fa-info-circle text-lg"></i>
+                            <p>Mode Simulasi: Coba soal layaknya santri. Nilai tidak akan disimpan di ranking utama.</p>
+                        </div>
+
+                        <!-- Exam Card Copy -->
+                        <button onclick="startQuiz('mixed')"
+                            class="w-full bg-white rounded-3xl p-1 shadow-sm hover:shadow-md transition-all group border border-gray-100 text-left">
+                            <div
+                                class="rounded-[1.3rem] border-2 border-dashed border-brand-secondary/30 p-5 flex items-center gap-4 bg-mint/30">
+                                <div
+                                    class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-brand-secondary">
+                                    📚
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-brand-dark text-lg">Ujian Pekanan</h3>
+                                    <p class="text-gray-500 text-xs">Simulasi Timer 10 Menit</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-secondary text-white flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                            </div>
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="startQuiz('id-en')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-language"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Indo-Ing</span>
+                            </button>
+                            <button onclick="startQuiz('en-id')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-spell-check"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Ing-Indo</span>
+                            </button>
+                            <button onclick="startQuiz('listening')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-headphones"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Listening</span>
+                            </button>
+                            <button onclick="startQuiz('speaking')"
+                                class="bg-white p-4 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-yellow-50 text-yellow-500 flex items-center justify-center text-lg">
+                                    <i class="fas fa-microphone"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-xs">Speaking</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TAB: RANKING -->
+                    <div id="admin-tab-ranking" class="hidden space-y-4">
+                        <div
+                            class="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-3xl p-6 shadow-lg text-white mb-4">
+                            <h3 class="font-bold text-lg mb-1">Top Santri</h3>
+                            <p class="text-white/80 text-sm">Pencetak skor tertinggi pekan ini.</p>
+                        </div>
+
+                        <!-- Admin Ranking Sub-Tabs -->
+                        <div class="flex gap-2 mb-4">
+                            <button onclick="switchAdminRankingTab('bahasa')" id="admin-rank-tab-bahasa"
+                                class="flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-brand-primary text-white transition-all">
+                                📚 Bahasa
+                            </button>
+                            <button onclick="switchAdminRankingTab('math')" id="admin-rank-tab-math"
+                                class="flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-gray-100 text-gray-500 transition-all">
+                                🔢 Matematika
+                            </button>
+                        </div>
+
+                        <!-- Bahasa Ranking Table -->
+                        <div id="admin-rank-bahasa"
+                            class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase text-center w-16">Rank
+                                        </th>
+                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase">Nama</th>
+                                        <th class="p-4 text-xs font-bold text-gray-400 uppercase text-right">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-ranking-list">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Math Ranking Table -->
+                        <div id="admin-rank-math"
+                            class="hidden bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-blue-50 border-b border-blue-100">
+                                    <tr>
+                                        <th class="p-4 text-xs font-bold text-blue-400 uppercase text-center w-16">Rank
+                                        </th>
+                                        <th class="p-4 text-xs font-bold text-blue-400 uppercase">Nama</th>
+                                        <th class="p-4 text-xs font-bold text-blue-400 uppercase text-right">Menang</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-math-ranking-list">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB: AKUN (CRUD) -->
+                    <div id="admin-tab-akun" class="space-y-6">
+                        <!-- Add User Form -->
+                        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="font-bold text-gray-500 text-xs uppercase tracking-wider mb-4">Tambah Santri</h3>
+                            <form id="admin-form" class="space-y-4">
+                                <div class="grid grid-cols-4 gap-4">
+                                    <input type="tel" id="input-code" maxlength="2" placeholder="Kd" required
+                                        class="col-span-1 h-12 rounded-xl bg-gray-50 border border-gray-200 text-center font-bold text-brand-dark focus:border-brand-primary focus:outline-none">
+                                    <input type="text" id="input-name" placeholder="Nama Santri" required
+                                        class="col-span-3 h-12 px-4 rounded-xl bg-gray-50 border border-gray-200 text-brand-dark focus:border-brand-primary focus:outline-none">
+                                </div>
+                                <button type="submit"
+                                    class="w-full py-3 rounded-xl bg-brand-primary text-white font-bold shadow-md hover:bg-orange-500 transition-colors">
+                                    <i class="fas fa-plus mr-2"></i> Tambah
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- User List -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                                <span class="font-bold text-gray-500 text-sm">Daftar Santri</span>
+                                <span class="text-xs text-gray-400 bg-white px-2 py-1 rounded-lg border">Total: <span
+                                        id="santri-count">-</span></span>
+                            </div>
+                            <table class="w-full text-left border-collapse">
+                                <tbody id="admin-user-list">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- EXIT EXAM CONFIRMATION DIALOG -->
+    <div id="exit-exam-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark text-center mb-2">Keluar dari Ujian?</h3>
+            <p class="text-gray-500 text-sm text-center mb-6">
+                Jika keluar sekarang, nilaimu akan dihitung berdasarkan jawaban yang sudah dijawab.
+                <span class="text-red-500 font-bold">Kamu hanya bisa ujian lagi pekan depan.</span>
+            </p>
+            <div class="space-y-2">
+                <button onclick="confirmExitExam()"
+                    class="w-full py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
+                    Ya, Keluar & Hitung Nilai
+                </button>
+                <button onclick="cancelExitExam()"
+                    class="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">
+                    Lanjutkan Ujian
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXIT PRACTICE CONFIRMATION DIALOG -->
+    <div id="exit-practice-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-door-open text-yellow-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark text-center mb-2">Keluar dari Latihan?</h3>
+            <p class="text-gray-500 text-sm text-center mb-6">
+                Progress latihan akan hilang jika kamu keluar sekarang.
+                Kamu bisa latihan lagi kapan saja! 📚
+            </p>
+            <div class="space-y-2">
+                <button onclick="confirmExitPractice()"
+                    class="w-full py-3 rounded-xl bg-yellow-500 text-white font-bold hover:bg-yellow-600 transition-colors">
+                    Ya, Keluar
+                </button>
+                <button onclick="cancelExitPractice()"
+                    class="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">
+                    Lanjutkan Latihan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXAM LIMIT DIALOG (Weekly Limit Reached) -->
+    <div id="exam-limit-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-calendar-check text-yellow-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark text-center mb-2">Sudah Ujian Minggu Ini</h3>
+            <p class="text-gray-500 text-sm text-center mb-2">
+                Kamu sudah mengikuti ujian pekanan pada:
+            </p>
+            <p id="last-exam-date" class="text-brand-primary font-bold text-center mb-4">-</p>
+            <p class="text-gray-400 text-xs text-center mb-6">
+                Ujian berikutnya bisa dilakukan setelah hari Senin depan. Gunakan waktu ini untuk latihan! 📚
+            </p>
+            <button onclick="closeExamLimitDialog()"
+                class="w-full py-3 rounded-xl bg-brand-primary text-white font-bold hover:bg-orange-500 transition-colors">
+                Mengerti
+            </button>
+        </div>
+    </div>
+
+    <!-- ADMIN: DELETE USER DIALOG -->
+    <div id="admin-delete-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-user-times text-red-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark text-center mb-2">Hapus Santri?</h3>
+            <p class="text-gray-500 text-sm text-center mb-2">
+                Kamu akan menghapus akun santri:
+            </p>
+            <p id="delete-user-name" class="text-red-500 font-bold text-center mb-4">-</p>
+            <p class="text-gray-400 text-xs text-center mb-6">
+                Semua data termasuk skor dan riwayat ujian akan dihapus permanen.
+            </p>
+            <div class="space-y-2">
+                <button onclick="confirmDeleteUser()"
+                    class="w-full py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
+                    Ya, Hapus Santri
+                </button>
+                <button onclick="closeAdminDialog('admin-delete-dialog')"
+                    class="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN: RESET SCORE DIALOG -->
+    <div id="admin-reset-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-undo text-orange-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark text-center mb-2">Reset Skor</h3>
+            <p class="text-gray-500 text-sm text-center mb-2">
+                Pilih skor yang ingin di-reset untuk:
+            </p>
+            <p id="reset-user-name" class="text-orange-500 font-bold text-center mb-4">-</p>
+            <p class="text-gray-400 text-xs text-center mb-4">
+                Aksi ini tidak dapat dibatalkan.
+            </p>
+            <div class="space-y-2">
+                <button onclick="confirmResetBahasaScore()"
+                    class="w-full py-3 rounded-xl bg-brand-primary text-white font-bold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-book"></i> Reset Skor Bahasa
+                </button>
+                <button onclick="confirmResetMathScore()"
+                    class="w-full py-3 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-calculator"></i> Reset Skor Matematika
+                </button>
+                <button onclick="closeAdminDialog('admin-reset-dialog')"
+                    class="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN: UNLOCK EXAM DIALOG -->
+    <div id="admin-unlock-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-unlock text-blue-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark text-center mb-2">Buka Kunci Ujian?</h3>
+            <p class="text-gray-500 text-sm text-center mb-2">
+                Santri ini akan bisa ujian lagi minggu ini:
+            </p>
+            <p id="unlock-user-name" class="text-blue-500 font-bold text-center mb-4">-</p>
+            <p class="text-gray-400 text-xs text-center mb-6">
+                Gunakan fitur ini jika santri perlu mengulang ujian karena alasan khusus.
+            </p>
+            <div class="space-y-2">
+                <button onclick="confirmUnlockExam()"
+                    class="w-full py-3 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-colors">
+                    Ya, Buka Kunci
+                </button>
+                <button onclick="closeAdminDialog('admin-unlock-dialog')"
+                    class="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE LOGIC (Modular) -->
+    <script type="module" src="js/app.js?v=2.9"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</body>
+
+</html>

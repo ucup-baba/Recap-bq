@@ -1,13 +1,16 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../models/transaction_model.dart';
 import '../models/user_model.dart';
 import '../models/fund_request_model.dart';
+import '../../core/constants/app_constants.dart';
 
 /// Service to sync data to Google Sheets via Google Apps Script Web App
 /// This uses a deployed Apps Script as a simple API endpoint
+/// URL is stored centrally in Firestore so Super Admin configures once for all users
 class GoogleSheetsService {
   static GoogleSheetsService? _instance;
   static GoogleSheetsService get instance =>
@@ -15,15 +18,70 @@ class GoogleSheetsService {
 
   GoogleSheetsService._();
 
-  // Apps Script Web App URL - will be set after deployment
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Apps Script Web App URL - loaded from Firestore
   String? _webAppUrl;
 
   // Reactive variable for UI updates
   final isConfiguredRx = false.obs;
+  final isLoadingRx = false.obs;
 
   bool get isConfigured => _webAppUrl != null && _webAppUrl!.isNotEmpty;
+  String? get currentUrl => _webAppUrl;
 
-  /// Initialize with the Apps Script Web App URL
+  /// Initialize by loading URL from Firestore
+  /// Called on app startup and after login
+  Future<void> loadFromFirestore() async {
+    try {
+      isLoadingRx.value = true;
+      final doc = await _firestore
+          .collection(AppConstants.settingsCollection)
+          .doc('google_sheets')
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        final url = data?['webAppUrl'] as String?;
+        if (url != null && url.isNotEmpty) {
+          _webAppUrl = url;
+          isConfiguredRx.value = true;
+          debugPrint('✅ GoogleSheetsService loaded URL from Firestore');
+        } else {
+          debugPrint('⚠️ Google Sheets URL not set in Firestore');
+        }
+      } else {
+        debugPrint('⚠️ Google Sheets settings document does not exist');
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading Google Sheets URL from Firestore: $e');
+    } finally {
+      isLoadingRx.value = false;
+    }
+  }
+
+  /// Save URL to Firestore (Super Admin only)
+  Future<bool> saveToFirestore(String url) async {
+    try {
+      await _firestore
+          .collection(AppConstants.settingsCollection)
+          .doc('google_sheets')
+          .set({
+            'webAppUrl': url,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+
+      _webAppUrl = url;
+      isConfiguredRx.value = url.isNotEmpty;
+      debugPrint('✅ Google Sheets URL saved to Firestore');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error saving Google Sheets URL to Firestore: $e');
+      return false;
+    }
+  }
+
+  /// Initialize with URL directly (for backward compatibility)
   void initialize(String webAppUrl) {
     _webAppUrl = webAppUrl;
     isConfiguredRx.value = webAppUrl.isNotEmpty;
@@ -33,7 +91,7 @@ class GoogleSheetsService {
   /// Send data using GET request to avoid CORS issues
   Future<bool> _sendData(String action, Map<String, dynamic> data) async {
     if (!isConfigured) {
-      debugPrint('GoogleSheetsService not configured');
+      debugPrint('⚠️ GoogleSheetsService not configured');
       return false;
     }
 
@@ -42,20 +100,22 @@ class GoogleSheetsService {
       final encodedData = Uri.encodeComponent(jsonEncode(data));
       final url = '$_webAppUrl?action=$action&data=$encodedData';
 
-      debugPrint('Sending to Google Sheets: $action');
+      debugPrint('📤 Sending to Google Sheets: $action');
 
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
-        debugPrint('Google Sheets response: $result');
+        debugPrint('✅ Google Sheets response: $result');
         return result['success'] == true;
       } else {
-        debugPrint('Failed to sync: ${response.statusCode} - ${response.body}');
+        debugPrint(
+          '❌ Failed to sync: ${response.statusCode} - ${response.body}',
+        );
         return false;
       }
     } catch (e) {
-      debugPrint('Error syncing to Google Sheets: $e');
+      debugPrint('❌ Error syncing to Google Sheets: $e');
       return false;
     }
   }
@@ -65,7 +125,16 @@ class GoogleSheetsService {
     TransactionModel transaction, {
     double? balanceBefore,
     double? balanceAfter,
+    String? userEmail,
   }) async {
+    // Debug log for troubleshooting
+    if (!isConfigured) {
+      debugPrint(
+        '⚠️ GoogleSheetsService not configured - transaction not synced',
+      );
+      return false;
+    }
+
     final data = {
       'id': transaction.id,
       'date': transaction.createdAt.toIso8601String(),
@@ -74,6 +143,7 @@ class GoogleSheetsService {
       'amount': transaction.amount,
       'userId': transaction.userId,
       'userName': transaction.userName,
+      'userEmail': userEmail ?? '',
       'description': transaction.description,
       'approvedUserId': transaction.approvedUserId ?? '',
       'approvedUserName': transaction.approvedUserName ?? '',
@@ -83,7 +153,11 @@ class GoogleSheetsService {
 
     final success = await _sendData('addTransaction', data);
     if (success) {
-      debugPrint('Transaction synced to Google Sheets: ${transaction.id}');
+      debugPrint('✅ Transaction synced to Google Sheets: ${transaction.id}');
+    } else {
+      debugPrint(
+        '❌ Failed to sync transaction to Google Sheets: ${transaction.id}',
+      );
     }
     return success;
   }
@@ -162,5 +236,30 @@ class GoogleSheetsService {
       }
     }
     return successCount;
+  }
+
+  /// Log reset activity to the Log sheet
+  Future<bool> logReset({
+    required String executorName,
+    required String executorEmail,
+    required int transactionsDeleted,
+    required int fundRequestsDeleted,
+    required int usersReset,
+  }) async {
+    final data = {
+      'date': DateTime.now().toIso8601String(),
+      'executorName': executorName,
+      'executorEmail': executorEmail,
+      'detail': 'Reset Data Keuangan via Aplikasi',
+      'transactionsDeleted': transactionsDeleted,
+      'fundRequestsDeleted': fundRequestsDeleted,
+      'usersReset': usersReset,
+    };
+
+    final success = await _sendData('logReset', data);
+    if (success) {
+      debugPrint('Reset logged to Google Sheets');
+    }
+    return success;
   }
 }

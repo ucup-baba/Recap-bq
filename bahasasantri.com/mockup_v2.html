@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Santri Pintar - v2 Light</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        cream: '#FFF9E5', // Soft Yellow/Cream
+                        mint: '#E0F7FA', // Soft Mint
+                        pastel: {
+                            orange: '#FFAB91', // Peach/Orange accent
+                            green: '#A5D6A7', // Soft Green accent
+                            blue: '#90CAF9', // Soft Blue accent
+                            purple: '#CE93D8', // Soft Purple accent
+                        },
+                        brand: {
+                            primary: '#FF8A65', // Vibrant Peach (Action)
+                            secondary: '#4DB6AC', // Teal (Decor)
+                            dark: '#37474F', // Text
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #FFF9E5 0%, #E0F7FA 100%);
+            color: #37474F;
+        }
+
+        /* Claymorphism/Neumorphism-lite Cards */
+        .card-soft {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 2rem;
+            box-shadow:
+                0 20px 40px rgba(0, 0, 0, 0.05),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF8A65 0%, #FF7043 100%);
+            box-shadow: 0 10px 20px -5px rgba(255, 138, 101, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.96);
+            box-shadow: 0 5px 10px -5px rgba(255, 138, 101, 0.4);
+        }
+
+        /* Decorative Background Elements */
+        .bg-pattern {
+            background-image: radial-gradient(circle at 1px 1px, rgba(55, 71, 79, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+
+        /* Transition view */
+        .view-section {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hidden-view {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .active-view {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+            animation: fadeIn 0.4s forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4 bg-pattern overflow-hidden font-sans">
+
+    <!-- Decorative Blobs -->
+    <div class="fixed top-[-10%] right-[-10%] w-96 h-96 bg-pastel-orange/20 rounded-full blur-3xl animate-float"></div>
+    <div class="fixed bottom-[-10%] left-[-10%] w-80 h-80 bg-pastel-green/20 rounded-full blur-3xl animate-float"
+        style="animation-delay: 2s;"></div>
+
+    <!-- Main App Container -->
+    <div class="w-full max-w-md h-[90vh] card-soft relative overflow-hidden flex flex-col shadow-soft">
+
+        <!-- Header (Shared) -->
+        <div id="header-ui"
+            class="hidden absolute top-0 left-0 w-full p-6 flex justify-between items-center z-20 bg-gradient-to-b from-white/80 to-transparent">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                    <i class="fas fa-shapes text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-brand-dark leading-tight">Santri<br><span
+                            class="text-brand-primary">Pintar</span></h1>
+                </div>
+            </div>
+            <div id="timer-badge"
+                class="hidden px-3 py-1 rounded-full bg-red-50 text-red-500 text-xs font-bold border border-red-100 flex items-center gap-2">
+                <i class="fas fa-clock"></i> <span id="timer-display">10:00</span>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div id="content-area" class="flex-1 w-full h-full relative overflow-hidden">
+
+            <!-- LOGIN VIEW -->
+            <div id="view-login"
+                class="active-view absolute inset-0 flex-col items-center justify-center p-8 text-center z-30">
+                <div class="mb-8 relative">
+                    <div class="absolute inset-0 bg-yellow-200 rounded-full blur-xl opacity-50 transform scale-110">
+                    </div>
+                    <img src="https://cdn-icons-png.flaticon.com/512/3063/3063835.png"
+                        class="w-40 relative z-10 animate-float" alt="Mascot">
+                </div>
+
+                <h2 class="text-3xl font-display font-black text-brand-dark mb-2">Hello, Santri! 👋</h2>
+                <p class="text-gray-500 mb-8 font-medium">Siap untuk menambah kosa kata hari ini?</p>
+
+                <div class="w-full space-y-4">
+                    <div class="relative">
+                        <input type="tel" id="login-code" maxlength="2" placeholder="00"
+                            class="w-full h-16 rounded-2xl bg-gray-50 border-2 border-gray-100 text-center text-2xl font-bold text-brand-dark focus:outline-none focus:border-brand-primary focus:bg-white transition-all placeholder-gray-300">
+                    </div>
+
+                    <button onclick="handleLogin()"
+                        class="btn-primary w-full py-4 rounded-2xl text-white font-bold text-lg shadow-lg">
+                        Masuk Sekarang
+                    </button>
+
+                    <p id="login-error"
+                        class="text-red-500 text-sm font-bold bg-red-50 py-2 rounded-lg hidden animate-pulse">
+                        <i class="fas fa-times-circle mr-1"></i> Kode Salah
+                    </p>
+                </div>
+            </div>
+
+            <!-- MENU VIEW -->
+            <div id="view-menu"
+                class="hidden-view absolute inset-0 flex-col pt-24 pb-8 px-6 overflow-y-auto hide-scrollbar z-20">
+
+                <!-- User Card -->
+                <div
+                    class="bg-gradient-to-r from-brand-primary to-orange-400 rounded-3xl p-6 mb-8 text-white relative overflow-hidden shadow-lg shadow-orange-200">
+                    <div class="absolute right-[-20px] top-[-20px] w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                    <p class="text-orange-100 text-sm font-medium">Assalamu'alaikum,</p>
+                    <h2 id="menu-user-name" class="text-2xl font-bold mb-4">Cah Bagus</h2>
+
+                    <div class="flex gap-3">
+                        <div class="bg-white/20 rounded-xl px-3 py-2 flex-1 backdrop-blur-sm">
+                            <span class="text-xs text-orange-100 block">High Score</span>
+                            <span id="menu-highscore" class="font-bold text-lg">0</span>
+                        </div>
+                        <div class="bg-white/20 rounded-xl px-3 py-2 flex-1 backdrop-blur-sm">
+                            <span class="text-xs text-orange-100 block">Level</span>
+                            <span class="font-bold text-lg">Novice</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exam Card -->
+                <button onclick="startQuiz('mixed')"
+                    class="w-full bg-white rounded-3xl p-1 mb-8 shadow-sm hover:shadow-md transition-all group border border-gray-100">
+                    <div
+                        class="rounded-[1.3rem] border-2 border-dashed border-brand-secondary/30 p-5 flex items-center gap-4 bg-mint/30">
+                        <div
+                            class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-brand-secondary">
+                            📚
+                        </div>
+                        <div class="text-left flex-1">
+                            <h3 class="font-bold text-brand-dark text-lg">Ujian Pekanan</h3>
+                            <p class="text-gray-500 text-xs">Mode ujian dengan timer 10 menit</p>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-full bg-brand-secondary text-white flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                </button>
+
+                <h3 class="font-bold text-gray-400 text-sm uppercase tracking-wider mb-4 ml-1">Latihan Mandiri</h3>
+
+                <div class="grid grid-cols-2 gap-4 pb-20">
+                    <button onclick="startQuiz('id-en')"
+                        class="bg-white p-5 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-3">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
+                            🇮🇩</div>
+                        <span class="font-bold text-gray-700 text-sm">Indo ➔ Ing</span>
+                    </button>
+                    <button onclick="startQuiz('en-id')"
+                        class="bg-white p-5 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-3">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-xl">
+                            🇬🇧</div>
+                        <span class="font-bold text-gray-700 text-sm">Ing ➔ Indo</span>
+                    </button>
+                    <button onclick="startQuiz('listening')"
+                        class="bg-white p-5 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-3">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-pink-50 text-pink-500 flex items-center justify-center text-xl">
+                            <i class="fas fa-headphones"></i></div>
+                        <span class="font-bold text-gray-700 text-sm">Listening</span>
+                    </button>
+                    <button onclick="startQuiz('speaking')"
+                        class="bg-white p-5 rounded-3xl shadow-sm hover:shadow-md transition-all border border-gray-50 flex flex-col items-center gap-3">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-500 flex items-center justify-center text-xl">
+                            <i class="fas fa-microphone"></i></div>
+                        <span class="font-bold text-gray-700 text-sm">Speaking</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- QUIZ VIEW -->
+            <div id="view-quiz" class="hidden-view absolute inset-0 flex-col pt-24 pb-6 px-6 z-20">
+
+                <!-- Progress -->
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
+                        <div id="progress-bar"
+                            class="h-full bg-brand-primary rounded-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <span id="question-indicator" class="text-xs font-bold text-gray-400">1/10</span>
+                </div>
+
+                <!-- Question Card -->
+                <div class="flex-1 flex flex-col items-center justify-center text-center mb-8">
+                    <span id="quiz-type-badge"
+                        class="px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold uppercase mb-4">Mode</span>
+                    <h2 id="question-text" class="text-4xl font-display font-black text-brand-dark mb-4">Question</h2>
+                    <button id="btn-speak" onclick="speakCurrentWord()"
+                        class="hidden w-12 h-12 rounded-full bg-brand-secondary/10 text-brand-secondary items-center justify-center hover:bg-brand-secondary hover:text-white transition-all">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+
+                <!-- Options -->
+                <div id="options-container" class="space-y-3 mb-6"></div>
+
+                <!-- Speaking UI -->
+                <div id="speaking-container" class="hidden flex-col items-center justify-center py-4">
+                    <p id="speak-result" class="text-lg text-gray-500 italic mb-6 min-h-[30px]">...</p>
+                    <button id="btn-record" onclick="toggleRecording()"
+                        class="w-20 h-20 rounded-full bg-red-500 text-white text-2xl shadow-lg border-4 border-red-200 hover:scale-105 transition-transform flex items-center justify-center">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+
+                <!-- Nav Buttons -->
+                <div class="grid grid-cols-3 gap-4 mt-auto">
+                    <button id="btn-prev" onclick="prevQuestion()"
+                        class="col-span-1 py-4 rounded-2xl bg-gray-100 text-gray-500 font-bold disabled:opacity-50">Back</button>
+                    <button id="btn-next" onclick="nextQuestion()"
+                        class="col-span-2 py-4 rounded-2xl bg-brand-dark text-white font-bold shadow-lg hover:bg-gray-800 transition-colors">Next</button>
+                </div>
+            </div>
+
+            <!-- RESULT VIEW -->
+            <div id="view-result"
+                class="hidden-view absolute inset-0 flex-col items-center justify-center p-8 text-center z-30">
+                <div
+                    class="w-40 h-40 bg-gradient-to-tr from-yellow-300 to-orange-400 rounded-full flex items-center justify-center shadow-lg shadow-orange-200 mb-6 animate-bounce">
+                    <i class="fas fa-trophy text-6xl text-white"></i>
+                </div>
+
+                <h2 class="text-3xl font-display font-black text-brand-dark mb-2">Awesome!</h2>
+                <p class="text-gray-500 mb-8">Kamu telah menyelesaikan ujian.</p>
+
+                <div class="bg-white rounded-3xl p-6 w-full shadow-soft border border-gray-100 mb-8">
+                    <p class="text-xs uppercase tracking-widest text-gray-400 font-bold mb-2">Score</p>
+                    <div id="final-score" class="text-6xl font-black text-brand-primary">100</div>
+                    <div id="feedback-text" class="text-sm font-bold text-brand-secondary mt-2">Perfect Score!</div>
+                </div>
+
+                <button onclick="showMenu()"
+                    class="w-full py-4 rounded-2xl bg-brand-dark text-white font-bold shadow-lg">Back to Menu</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- LOGIC INTEGRATION (Copied & Adapted) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+        // CONFIG
+        const firebaseConfig = {
+            apiKey: 'AIzaSyALAwhfIGOb5i7ls65-4t7t_Qqrl_VpA7Q',
+            authDomain: 'recap-bq.firebaseapp.com',
+            projectId: 'recap-bq',
+            storageBucket: 'recap-bq.firebasestorage.app',
+            messagingSenderId: '733581949032',
+            appId: '1:733581949032:web:50163e0f53b622666123dd',
+            measurementId: 'G-MWBNZ8RL31'
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Fetch Func
+        window.fetchVocab = async function () {
+            try {
+                await signInAnonymously(auth);
+                const q = query(
+                    collection(db, "global/daily_vocab/history"),
+                    orderBy("createdAt", "desc"),
+                    limit(15)
+                );
+                const snap = await getDocs(q);
+                let all = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.vocab) data.vocab.forEach(v => all.push({ en: v.english, id: v.indonesian, pron: v.pronunciation }));
+                });
+                // Dedup
+                all = all.filter((v, i, a) => a.findIndex(t => t.en === v.en) === i);
+                window.vocabularyDB = all;
+                console.log("Loaded", all.length);
+            } catch (e) {
+                console.error(e);
+                window.vocabularyDB = [{ en: "Cat", id: "Kucing" }, { en: "Dog", id: "Anjing" }];
+            }
+        };
+    </script>
+
+    <script>
+        // STATE
+        const USERS = { '00': { name: 'Admin' }, '01': { name: 'Thoriq' }, '02': { name: 'Raihan' } };
+        let state = {
+            score: 0,
+            index: 0,
+            max: 10,
+            mode: 'id-en',
+            isExam: false,
+            q: [],
+            answers: [],
+            currAns: null,
+            timer: null,
+            time: 600
+        };
+
+        // NAV
+        function switchView(id) {
+            document.querySelectorAll('.active-view').forEach(el => {
+                el.classList.remove('active-view');
+                el.classList.add('hidden-view');
+            });
+            const target = document.getElementById('view-' + id);
+            target.classList.remove('hidden-view');
+            target.classList.add('active-view');
+
+            document.getElementById('header-ui').style.display = (id === 'menu' || id === 'quiz') ? 'flex' : 'none';
+        }
+
+        function handleLogin() {
+            const code = document.getElementById('login-code').value;
+            if (USERS[code]) {
+                document.getElementById('menu-user-name').textContent = USERS[code].name;
+                window.fetchVocab().then(() => switchView('menu'));
+            } else {
+                const err = document.getElementById('login-error');
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 2000);
+            }
+        }
+
+        function showMenu() { switchView('menu'); }
+
+        // QUIZ
+        function startQuiz(mode) {
+            state.mode = mode;
+            state.isExam = (mode === 'mixed');
+            state.score = 0;
+            state.index = 0;
+            state.answers = [];
+            state.time = 600;
+
+            // Prep pool
+            let pool = window.vocabularyDB || [];
+            pool = pool.sort(() => 0.5 - Math.random());
+
+            if (state.isExam) {
+                state.max = 15;
+                state.q = pool.slice(0, 15).map(i => ({ ...i, type: ['id-en', 'en-id', 'listening'][Math.floor(Math.random() * 3)] }));
+                state.q.forEach(() => state.answers.push(null));
+                document.getElementById('timer-badge').classList.remove('hidden');
+                startTimer();
+            } else {
+                state.max = 10;
+                state.q = pool.slice(0, 10).map(i => ({ ...i, type: mode }));
+                document.getElementById('timer-badge').classList.add('hidden');
+            }
+
+            switchView('quiz');
+            loadQ(0);
+        }
+
+        function loadQ(i) {
+            state.index = i;
+            const q = state.q[i];
+            const type = q.type;
+            const saved = state.isExam ? state.answers[i] : null;
+
+            // UI
+            document.getElementById('question-indicator').textContent = `${i + 1}/${state.max}`;
+            document.getElementById('progress-bar').style.width = `${((i) / (state.max - 1 || 1)) * 100}%`;
+            document.getElementById('quiz-type-badge').textContent = type.toUpperCase();
+
+            const txt = document.getElementById('question-text');
+            const cont = document.getElementById('options-container');
+            const speak = document.getElementById('speaking-container');
+            const btnSpeak = document.getElementById('btn-speak');
+
+            cont.innerHTML = '';
+            speak.classList.add('hidden');
+            speak.classList.remove('flex');
+            btnSpeak.classList.add('hidden');
+
+            // Nav Btn
+            document.getElementById('btn-prev').disabled = (i === 0);
+            const nextBtn = document.getElementById('btn-next');
+            if (state.isExam) {
+                document.getElementById('btn-prev').classList.remove('hidden');
+                nextBtn.textContent = (i === state.max - 1) ? 'Finish' : 'Next';
+            } else {
+                document.getElementById('btn-prev').classList.add('hidden');
+                nextBtn.classList.add('hidden'); // Auto advance in practice
+            }
+
+            // Render
+            if (type === 'speaking') {
+                txt.textContent = q.id;
+                speak.classList.remove('hidden');
+                speak.classList.add('flex');
+            } else {
+                if (type === 'id-en') txt.textContent = q.id;
+                else if (type === 'en-id') { txt.textContent = q.en; btnSpeak.classList.remove('hidden'); btnSpeak.classList.add('flex'); }
+                else if (type === 'listening') { txt.innerHTML = '<i class="fas fa-headphones"></i>'; btnSpeak.classList.remove('hidden'); btnSpeak.classList.add('flex'); }
+
+                // Options (Simple shuffle)
+                let opts = [q];
+                let dist = window.vocabularyDB.filter(x => x.en !== q.en).sort(() => 0.5 - Math.random()).slice(0, 3);
+                opts = opts.concat(dist).sort(() => 0.5 - Math.random());
+
+                opts.forEach(o => {
+                    const btn = document.createElement('button');
+                    const val = (type === 'id-en') ? o.en : o.id;
+                    const isSel = (saved === val);
+
+                    btn.className = `w-full p-4 rounded-2xl font-bold text-left transition-all border-2 ${isSel ? 'bg-brand-secondary/10 border-brand-secondary text-brand-secondary' : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'}`;
+                    btn.textContent = val;
+                    btn.onclick = () => handleAns(val, (type === 'id-en' ? q.en : q.id) === val);
+                    cont.appendChild(btn);
+                });
+            }
+        }
+
+        function handleAns(ans, isCorrect) {
+            if (state.isExam) {
+                state.answers[state.index] = ans;
+                loadQ(state.index); // Re-render for selection
+            } else {
+                // Practice immediate
+                if (isCorrect) {
+                    confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+                    setTimeout(() => {
+                        if (state.index < state.max - 1) loadQ(state.index + 1);
+                        else showResult(100);
+                    }, 1000);
+                } else {
+                    document.getElementById('top-bar').classList.add('bg-red-500'); // shake effect placeholder
+                }
+            }
+        }
+
+        function nextQuestion() {
+            if (state.index < state.max - 1) loadQ(state.index + 1);
+            else showResult();
+        }
+        function prevQuestion() {
+            if (state.index > 0) loadQ(state.index - 1);
+        }
+
+        function showResult(forcedScore) {
+            stopTimer();
+            let score = forcedScore || 0;
+            if (state.isExam && !forcedScore) {
+                let correct = 0;
+                state.q.forEach((q, i) => {
+                    const ans = state.answers[i];
+                    const target = (q.type === 'id-en') ? q.en : q.id;
+                    if (ans === target) correct++;
+                });
+                score = Math.round((correct / state.max) * 100);
+            }
+            document.getElementById('final-score').textContent = score;
+            switchView('result');
+        }
+
+        // TIMER
+        function startTimer() {
+            if (state.timer) clearInterval(state.timer);
+            const disp = document.getElementById('timer-display');
+            state.timer = setInterval(() => {
+                state.time--;
+                const m = Math.floor(state.time / 60).toString().padStart(2, '0');
+                const s = (state.time % 60).toString().padStart(2, '0');
+                disp.textContent = m + ":" + s;
+                if (state.time <= 0) showResult();
+            }, 1000);
+        }
+        function stopTimer() { clearInterval(state.timer); }
+
+        // TTS
+        window.speakCurrentWord = function () {
+            const q = state.q[state.index];
+            if (q && window.speechSynthesis) {
+                const u = new SpeechSynthesisUtterance(q.en);
+                window.speechSynthesis.speak(u);
+            }
+        };
+
+    </script>
+</body>
+
+</html>

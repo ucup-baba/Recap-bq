@@ -95,6 +95,7 @@ class TransactionService {
       transaction,
       balanceBefore: balanceBefore,
       balanceAfter: balanceAfter,
+      userEmail: user.email,
     );
 
     return transaction;
@@ -161,6 +162,7 @@ class TransactionService {
       transaction,
       balanceBefore: currentBalance,
       balanceAfter: balanceAfter,
+      userEmail: user.email,
     );
 
     return transaction;
@@ -193,19 +195,30 @@ class TransactionService {
 
   /// Only shows transactions created by Admin or Super Admin, not regular users
   /// Excludes income transactions from fund transfers (those go to user's personal balance)
+  /// Excludes superbq@bqmail.com - their transactions are tracked separately in RecapBQ
   Stream<List<TransactionModel>> getSuperAdminTransactionsStream() {
-    // First get all admin and super admin user IDs
+    // Email to exclude from organization transactions (tracked in separate app)
+    const excludedEmail = 'superbq@bqmail.com';
+
+    // First get all admin and super admin user IDs (excluding superbq)
     return _usersRef
         .where('role', whereIn: ['super_admin', 'admin'])
         .snapshots()
         .asyncMap((userSnapshot) async {
-          final adminIds = userSnapshot.docs.map((doc) => doc.id).toList();
+          // Filter out superbq email from admin IDs
+          final adminIds = userSnapshot.docs
+              .where((doc) {
+                final data = doc.data();
+                return data['email'] != excludedEmail;
+              })
+              .map((doc) => doc.id)
+              .toList();
 
           if (adminIds.isEmpty) {
             return <TransactionModel>[];
           }
 
-          // Get transactions for admin/super admin users only
+          // Get transactions for admin/super admin users only (excluding superbq)
           final txSnapshot = await _transactionsRef
               .where('userId', whereIn: adminIds)
               .orderBy('createdAt', descending: true)

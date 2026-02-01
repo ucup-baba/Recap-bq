@@ -1,0 +1,601 @@
+/* ========================================
+   TAILWIND V4 CSS-FIRST CONFIGURATION
+======================================== */
+@import "tailwindcss";
+
+/* Theme Configuration using @theme directive */
+@theme {
+    /* Fonts */
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+
+    /* Brand Colors */
+    --color-brand-primary: #FF8A65;
+    --color-brand-secondary: #4DB6AC;
+    --color-brand-dark: #37474F;
+
+    /* Custom Colors */
+    --color-cream: #FFF9E5;
+    --color-mint: #E0F7FA;
+    --color-pastel-orange: #FFAB91;
+    --color-pastel-green: #A5D6A7;
+    --color-pastel-blue: #90CAF9;
+    --color-pastel-purple: #CE93D8;
+
+    /* Box Shadows */
+    --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+    --shadow-inner-soft: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+    /* Border Radius */
+    --radius-4xl: 2.5rem;
+
+    /* Animations */
+    --animate-float: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* ========================================
+   THEME VARIABLES (Dark Mode Support)
+======================================== */
+:root {
+    /* Light Mode (Default) */
+    --bg-gradient-start: #FFF9E5;
+    --bg-gradient-end: #E0F7FA;
+    --bg-primary: rgba(255, 255, 255, 0.9);
+    --bg-secondary: rgba(255, 255, 255, 0.8);
+    --bg-card: rgba(255, 255, 255, 0.95);
+    --text-primary: #37474F;
+    --text-secondary: #607D8B;
+    --text-muted: #90A4AE;
+    --border-color: rgba(255, 255, 255, 0.8);
+    --shadow-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] {
+    --bg-gradient-start: #1a1a2e;
+    --bg-gradient-end: #16213e;
+    --bg-primary: rgba(30, 30, 50, 0.95);
+    --bg-secondary: rgba(40, 40, 60, 0.9);
+    --bg-card: rgba(35, 35, 55, 0.98);
+    --text-primary: #E8EAED;
+    --text-secondary: #9AA0A6;
+    --text-muted: #5F6368;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   BASE STYLES
+======================================== */
+body {
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    color: var(--text-primary);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ========================================
+   CLAYMORPHISM CARDS
+======================================== */
+.card-soft {
+    background: var(--bg-primary);
+    border-radius: 2rem;
+    box-shadow:
+        0 20px 40px var(--shadow-color),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+[data-theme="dark"] .card-soft {
+    box-shadow:
+        0 20px 40px var(--shadow-color),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* ========================================
+   MAIN APP CONTAINER - DARK MODE
+======================================== */
+
+/* Main app container (bg-white/80) */
+[data-theme="dark"] .bg-white\/80 {
+    background-color: rgba(30, 30, 50, 0.95) !important;
+}
+
+/* Header (bg-white/95) */
+[data-theme="dark"] .bg-white\/95 {
+    background-color: rgba(35, 35, 55, 0.98) !important;
+}
+
+/* Login page (bg-white/90) */
+[data-theme="dark"] .bg-white\/90 {
+    background-color: rgba(30, 30, 50, 0.95) !important;
+}
+
+/* Menu view (bg-gray-50) */
+[data-theme="dark"] .view-section.bg-gray-50,
+[data-theme="dark"] #view-menu.bg-gray-50 {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Border white */
+[data-theme="dark"] .border-white {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   BUTTONS
+======================================== */
+.btn-primary {
+    background: linear-gradient(135deg, #FF8A65 0%, #FF7043 100%);
+    box-shadow: 0 10px 20px -5px rgba(255, 138, 101, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:active {
+    transform: scale(0.96);
+    box-shadow: 0 5px 10px -5px rgba(255, 138, 101, 0.4);
+}
+
+/* ========================================
+   BACKGROUND PATTERNS
+======================================== */
+.bg-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgba(55, 71, 79, 0.05) 1px, transparent 0);
+    background-size: 24px 24px;
+}
+
+[data-theme="dark"] .bg-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0);
+}
+
+/* ========================================
+   VIEW TRANSITIONS (Smooth Animations)
+======================================== */
+.view-section {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hidden-view {
+    display: none !important;
+    opacity: 0;
+    transform: translateX(30px) scale(0.98);
+}
+
+.active-view {
+    display: flex !important;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(30px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(-30px) scale(0.98);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    70% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   LOADING SKELETON
+======================================== */
+.skeleton {
+    background: linear-gradient(90deg,
+            var(--bg-secondary) 25%,
+            rgba(255, 255, 255, 0.3) 50%,
+            var(--bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 0.5rem;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-text {
+    height: 1rem;
+    width: 80%;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-circle {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+}
+
+.skeleton-card {
+    height: 4rem;
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+/* ========================================
+   DARK MODE TOGGLE BUTTON
+======================================== */
+.theme-toggle {
+    position: relative;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+.theme-toggle .icon-sun,
+.theme-toggle .icon-moon {
+    position: absolute;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle .icon-sun {
+    opacity: 1;
+    transform: rotate(0deg);
+}
+
+.theme-toggle .icon-moon {
+    opacity: 0;
+    transform: rotate(-90deg);
+}
+
+[data-theme="dark"] .theme-toggle .icon-sun {
+    opacity: 0;
+    transform: rotate(90deg);
+}
+
+[data-theme="dark"] .theme-toggle .icon-moon {
+    opacity: 1;
+    transform: rotate(0deg);
+}
+
+/* ========================================
+   UTILITIES
+======================================== */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Dark mode text adjustments */
+[data-theme="dark"] .text-gray-600 {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .text-gray-500 {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .text-gray-400 {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .bg-white {
+    background-color: var(--bg-card);
+}
+
+[data-theme="dark"] .bg-gray-50 {
+    background-color: var(--bg-secondary);
+}
+
+[data-theme="dark"] .bg-gray-100 {
+    background-color: var(--bg-secondary);
+}
+
+[data-theme="dark"] .border-gray-100 {
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .border-gray-200 {
+    border-color: var(--border-color);
+}
+
+/* ========================================
+   SOUND FEEDBACK ANIMATIONS
+======================================== */
+.correct-flash {
+    animation: correctPulse 0.5s ease;
+}
+
+.wrong-flash {
+    animation: wrongShake 0.5s ease;
+}
+
+@keyframes correctPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.3);
+    }
+}
+
+@keyframes wrongShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20%,
+    60% {
+        transform: translateX(-5px);
+    }
+
+    40%,
+    80% {
+        transform: translateX(5px);
+    }
+}
+
+/* ========================================
+   DARK MODE - COMPREHENSIVE FIXES
+======================================== */
+
+/* Practice Mode Cards - bordered white cards */
+[data-theme="dark"] .bg-white.rounded-3xl,
+[data-theme="dark"] .bg-white.rounded-2xl {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Gray borders */
+[data-theme="dark"] .border-gray-50 {
+    border-color: var(--border-color) !important;
+}
+
+/* Text brand-dark for dark mode */
+[data-theme="dark"] .text-brand-dark {
+    color: var(--text-primary) !important;
+}
+
+/* Gray text adjustments */
+[data-theme="dark"] .text-gray-700 {
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .text-gray-800 {
+    color: var(--text-primary) !important;
+}
+
+/* Bottom nav bar */
+[data-theme="dark"] .bg-white.border-t {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Buttons with gray bg */
+[data-theme="dark"] button.bg-white {
+    background-color: var(--bg-card) !important;
+}
+
+/* Shadow adjustments */
+[data-theme="dark"] .shadow-sm,
+[data-theme="dark"] .shadow-md,
+[data-theme="dark"] .shadow-lg {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Border-white for cards */
+[data-theme="dark"] .border-white {
+    border-color: var(--border-color) !important;
+}
+
+/* Input fields */
+[data-theme="dark"] input.bg-gray-50,
+[data-theme="dark"] input.bg-white {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] input::placeholder {
+    color: var(--text-muted) !important;
+}
+
+/* Red, Green, Blue backgrounds in dark mode - slightly muted */
+[data-theme="dark"] .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+[data-theme="dark"] .bg-green-50 {
+    background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
+[data-theme="dark"] .bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+[data-theme="dark"] .bg-yellow-50 {
+    background-color: rgba(234, 179, 8, 0.1) !important;
+}
+
+[data-theme="dark"] .bg-purple-50 {
+    background-color: rgba(168, 85, 247, 0.1) !important;
+}
+
+/* White text on dark backgrounds should stay white */
+[data-theme="dark"] .text-white {
+    color: white !important;
+}
+
+/* Keep branded gradient cards looking good */
+[data-theme="dark"] .from-yellow-400,
+[data-theme="dark"] .from-orange-400,
+[data-theme="dark"] .bg-gradient-to-br {
+    /* Keep gradients as-is */
+}
+
+/* Table headers */
+[data-theme="dark"] thead.bg-gray-50 {
+    background-color: var(--bg-secondary) !important;
+}
+
+[data-theme="dark"] tbody tr {
+    border-color: var(--border-color) !important;
+}
+
+/* Tab buttons inactive */
+[data-theme="dark"] button.bg-gray-100.text-gray-500 {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+}
+
+/* Admin tab bar buttons with bg-gray-100 text-gray-600 */
+[data-theme="dark"] button.bg-gray-100 {
+    background-color: var(--bg-secondary) !important;
+}
+
+[data-theme="dark"] .text-gray-600 {
+    color: var(--text-secondary) !important;
+}
+
+/* Rounded pill tabs */
+[data-theme="dark"] .rounded-full.bg-gray-100 {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Form inputs with placeholder */
+[data-theme="dark"] input.bg-gray-50 {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] input::placeholder {
+    color: var(--text-muted) !important;
+}
+
+/* Focus states for inputs */
+[data-theme="dark"] input:focus {
+    border-color: #FF8A65 !important;
+    background-color: var(--bg-card) !important;
+}
+
+/* All white backgrounds */
+[data-theme="dark"] .bg-white {
+    background-color: var(--bg-card) !important;
+}
+
+/* All gray-50 backgrounds */
+[data-theme="dark"] .bg-gray-50 {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Shadow orange should be darker */
+[data-theme="dark"] .shadow-orange-200 {
+    --tw-shadow-color: rgba(255, 138, 101, 0.15) !important;
+}
+
+/* Tables */
+[data-theme="dark"] table {
+    background-color: var(--bg-card) !important;
+}
+
+/* Specific text overrides for better visibility */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4 {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] p {
+    color: var(--text-secondary) !important;
+}
+
+/* Menu content scrollable area */
+[data-theme="dark"] #menu-content {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Border colors */
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200 {
+    border-color: var(--border-color) !important;
+}
+
+/* Dark mode quiz view */
+[data-theme="dark"] #view-quiz {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Active admin tab highlighting */
+[data-theme="dark"] button.bg-brand-primary {
+    background-color: #FF8A65 !important;
+    color: white !important;
+}

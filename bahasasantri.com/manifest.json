@@ -1,0 +1,22 @@
+{
+    "name": "Bahasa Santri BQ",
+    "short_name": "BahasaSantri",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#F8FAFC",
+    "theme_color": "#0F172A",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "images/icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        },
+        {
+            "src": "images/icon-512.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "any maskable"
+        }
+    ]
+}

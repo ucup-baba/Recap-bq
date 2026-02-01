@@ -498,6 +498,31 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create, update, delete: if isAuthenticated();
     }
+    // Personal Finance Transactions (Me Tab)
+    match /personal_transactions/{txId} {
+      // User can read their own transactions
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        // Allow reading if filtering by userId in list query
+        (request.query.limit != null)
+      );
+      
+      // User can create their own transaction
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // User can update/delete their own transaction
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    // Santri Users collection (Bahasasantri.com)
+    match /santri_users/{userId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Math Battle Rooms (Bahasasantri.com - Math Battle 1v1)
+    match /math_rooms/{roomId} {
+      // Anyone can read/write (real-time multiplayer, no auth required for simplicity)
+      allow read, write: if true;
+    }
   }
 }
 

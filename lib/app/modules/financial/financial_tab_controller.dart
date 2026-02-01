@@ -16,6 +16,9 @@ class FinancialTabController extends GetxController {
   static const String rolesCollection = 'siqowwam_roles';
   static const String categoriesCollection = 'categories'; // Master categories
 
+  // App source identifier to separate transactions from different apps
+  static const String appSource = 'recapbq';
+
   // Status constants
   static const String statusPending = 'pending';
   static const String statusApproved = 'approved';
@@ -68,6 +71,10 @@ class FinancialTabController extends GetxController {
     super.onInit();
     _loadMasterCategories(); // Load master categories first
     _loadData();
+    // Also load personal data if user is logged in
+    if (_auth.currentUser != null) {
+      _loadPersonalTransactions(_auth.currentUser!.uid);
+    }
   }
 
   @override
@@ -241,11 +248,12 @@ class FinancialTabController extends GetxController {
         );
   }
 
-  /// Load user's transactions
+  /// Load user's transactions (filtered by appSource)
   void _loadTransactions(String userId) {
     _firestore
         .collection(transactionsCollection)
         .where('userId', isEqualTo: userId)
+        .where('appSource', isEqualTo: appSource)
         .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
@@ -440,6 +448,7 @@ class FinancialTabController extends GetxController {
         'description': description,
         'date': Timestamp.fromDate(now),
         'createdAt': Timestamp.fromDate(now),
+        'appSource': appSource,
       });
 
       // Deduct balance
@@ -554,11 +563,13 @@ class FinancialTabController extends GetxController {
         'balance': FieldValue.increment(amount),
       });
 
-      // Create expense transaction for Super Admin
+      // Create expense transaction for Super Admin (organization account)
+      final orgUserName =
+          orgAccountQuery.docs.first.data()['username'] ?? 'Super Admin';
       final expenseRef = _firestore.collection(transactionsCollection).doc();
       batch.set(expenseRef, {
-        'userId': user.uid,
-        'userName': reviewerName,
+        'userId': orgAccountId,
+        'userName': orgUserName,
         'type': 'expense',
         'amount': amount,
         'category': 'Transfer Dana',
@@ -569,6 +580,7 @@ class FinancialTabController extends GetxController {
         'fundRequestId': requestId,
         'approvedUserId': requesterId,
         'approvedUserName': requesterName,
+        'appSource': appSource,
       });
 
       // Create income transaction for requester
@@ -583,6 +595,7 @@ class FinancialTabController extends GetxController {
         'date': Timestamp.fromDate(now),
         'createdAt': Timestamp.fromDate(now),
         'fundRequestId': requestId,
+        'appSource': appSource,
       });
 
       await batch.commit();
@@ -644,8 +657,274 @@ class FinancialTabController extends GetxController {
     }
   }
 
+  // --- Quick Fund Request Logic ---
+  final quickFundAmountController = TextEditingController();
+
+  Future<void> submitQuickFundRequest(String amountStr) async {
+  // Check if there's already a pending request
+  final hasPending = fundRequests.any((r) => r['status'] == 'pending');
+  if (hasPending) {
+    Get.snackbar(
+      'Tidak Bisa Mengajukan', 
+      'Masih ada pengajuan yang sedang diproses',
+      backgroundColor: Colors.orange.shade100,
+      colorText: Colors.orange.shade900,
+    );
+    return;
+  }
+
+  final cleanAmount = amountStr.replaceAll(RegExp(r'[^0-9]'), '');
+  if (cleanAmount.isEmpty) return;
+
+  final amount = double.tryParse(cleanAmount);
+  if (amount == null || amount <= 0) {
+    Get.snackbar('Error', 'Jumlah tidak valid', backgroundColor: Colors.red.shade100);
+    return;
+  }
+
+  // Set default description and amount for the main form logic
+  fundAmountController.text = cleanAmount;
+  fundDescriptionController.text = 'Operasional'; // Auto-fill description
+
+  // Reuse existing submission logic
+  await submitFundRequest();
+  
+  // Clear quick input
+  quickFundAmountController.clear();
+}
   /// Refresh data
   Future<void> refreshData() async {
     await _loadData();
   }
+  // --- Personal Finance Logic (Me Tab) ---
+
+  static const String personalTransactionsCollection = 'personal_transactions';
+
+  // Personal Finance Categories
+  static const String typeIncome = 'income';
+  static const String typeExpense = 'expense';
+  static const String typeInvestment = 'investment';
+
+  // Categories by Type
+  static const Map<String, List<String>> personalCategories = {
+    typeIncome: ['Honor', 'Emoney', 'Business'],
+    typeExpense: [
+      'Transport',
+      'Mandi',
+      'Jajan',
+      'Pakaian',
+      'Pulsa',
+      'Elektronik',
+      'Others',
+    ],
+    typeInvestment: ['Book', 'Masjid', 'Monthly', 'Share'],
+  };
+
+  // Subcategories
+  static const Map<String, List<String>> personalSubcategories = {
+    'Transport': ['Servis', 'Bensin'],
+    'Jajan': ['Food', 'Snack', 'Drink'],
+    'Pakaian': ['Laundry', 'Fashion'],
+  };
+
+  // Personal Finance State
+  final personalTransactions = <Map<String, dynamic>>[].obs;
+  final personalBalance = 0.0.obs; // Calculated locally from history
+  
+  // Computed Properties for Overview
+  /// Wallet balance = SiQowwam + Personal Cash (excluding E-Money)
+  double get walletBalance => currentBalance + personalCashIncome;
+
+  double get personalCashIncome {
+    return personalTransactions.fold(0.0, (sum, tx) {
+      final amount = ((tx['amount'] ?? 0) as num).toDouble();
+      final type = tx['type'];
+      final category = tx['category'];
+      final fundSource = tx['fundSource']; // 'Cash' or 'E-Money'
+
+      // ADD: Income that is NOT specifically E-Money
+      if (type == typeIncome && category != 'Emoney') {
+        return sum + amount;
+      }
+      
+      // SUBTRACT: Expense/Invest using Cash (or default/null)
+      if (type != typeIncome && (fundSource == 'Cash' || fundSource == null)) {
+        return sum - amount;
+      }
+
+      return sum;
+    });
+  }
+
+  double get personalEmoneyIncome {
+    return personalTransactions.fold(0.0, (sum, tx) {
+      final amount = ((tx['amount'] ?? 0) as num).toDouble();
+      final type = tx['type'];
+      final category = tx['category'];
+      final fundSource = tx['fundSource'];
+
+      // ADD: Income specifically for Emoney
+      if (type == typeIncome && category == 'Emoney') {
+        return sum + amount;
+      }
+
+      // SUBTRACT: Expense/Invest using E-Money
+      if (type != typeIncome && fundSource == 'E-Money') {
+        return sum - amount;
+      }
+
+      return sum;
+    });
+  }
+  
+  // Personal Finance Form
+  final personalAmountController = TextEditingController();
+  final personalDescriptionController = TextEditingController();
+  final selectedPersonalType = typeExpense.obs; // Default to expense
+  final selectedPersonalCategory = RxnString();
+  final selectedPersonalSubcategory = RxnString();
+  final selectedFundSource = 'Cash'.obs; // Default to Cash
+
+  /// Load personal transactions
+  void _loadPersonalTransactions(String userId) {
+    _firestore
+        .collection(personalTransactionsCollection)
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            final docs = snapshot.docs
+                .map((doc) => {'id': doc.id, ...doc.data()})
+                .toList();
+            
+            // Sort client-side to avoid Firestore index requirements
+            docs.sort((a, b) {
+              final tA = a['createdAt'] as Timestamp?;
+              final tB = b['createdAt'] as Timestamp?;
+              if (tA == null) return 1;
+              if (tB == null) return -1;
+              return tB.compareTo(tA);
+            });
+
+            personalTransactions.value = docs;
+            _calculatePersonalBalance(docs);
+          },
+          onError: (e) {
+            debugPrint('Error loading personal transactions: $e');
+            personalTransactions.value = [];
+          },
+        );
+  }
+
+  /// Calculate personal balance from transaction history
+  void _calculatePersonalBalance(List<Map<String, dynamic>> txList) {
+    double balance = 0;
+    for (var tx in txList) {
+      final amount = (tx['amount'] ?? 0).toDouble();
+      final type = tx['type'];
+      
+      if (type == typeIncome) {
+        balance += amount;
+      } else {
+        // Expense and Investment reduce balance
+        balance -= amount;
+      }
+    }
+    personalBalance.value = balance;
+  }
+
+  /// Create personal transaction
+  Future<bool> createPersonalTransaction() async {
+    final amountText = personalAmountController.text.replaceAll(
+      RegExp(r'[^0-9]'),
+      '',
+    );
+    final amount = double.tryParse(amountText);
+    final description = personalDescriptionController.text.trim();
+    final type = selectedPersonalType.value;
+    final category = selectedPersonalCategory.value;
+    final subcategory = selectedPersonalSubcategory.value;
+
+    if (amount == null || amount <= 0) {
+      Get.snackbar(
+        'Error',
+        'Masukkan nominal yang valid',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
+      return false;
+    }
+
+    if (category == null || category.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Pilih kategori',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
+      return false;
+    }
+
+    if (description.isEmpty && type != typeIncome) {
+       // Optional description for income? Let's make it mandatory for consistency
+       // Or keeping it consistent with other forms
+    }
+    
+    // Allow empty description? Let's require it for good records
+    if (description.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Masukkan keterangan',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
+      return false;
+    }
+
+    isLoading.value = true;
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('Not authenticated');
+
+      final now = DateTime.now();
+
+      await _firestore.collection(personalTransactionsCollection).add({
+        'userId': user.uid,
+        'type': type, // income, expense, investment
+        'category': category,
+        'subcategory': subcategory,
+        'amount': amount,
+        'description': description,
+        'fundSource': selectedFundSource.value,
+        'date': Timestamp.fromDate(now),
+        'createdAt': Timestamp.fromDate(now),
+      });
+
+      // Clear form
+      personalAmountController.clear();
+      personalDescriptionController.clear();
+      selectedPersonalCategory.value = null;
+      selectedPersonalSubcategory.value = null;
+      selectedFundSource.value = 'Cash';
+
+      Get.snackbar(
+        'Sukses',
+        'Data berhasil disimpan',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade100,
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal menyimpan: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
 }

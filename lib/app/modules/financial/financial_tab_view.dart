@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/theme/app_colors.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'financial_tab_controller.dart';
 
 /// Financial Tab View for Super Admin
@@ -25,8 +26,10 @@ class FinancialTabView extends GetView<FinancialTabController> {
       backgroundColor: context.backgroundColor,
       body: Column(
         children: [
-          // Header with gradient
-          _buildHeader(context, currencyFormat),
+          // Header with gradient - Show for Fund Request (1) and Expense (2)
+          Obx(() => (controller.selectedSubTab.value == 1 || controller.selectedSubTab.value == 2)
+              ? _buildHeader(context, currencyFormat)
+              : const SizedBox.shrink()),
           // Sub-tabs
           _buildSubTabs(context),
           // Content
@@ -41,6 +44,8 @@ class FinancialTabView extends GetView<FinancialTabController> {
                   return _buildFundRequestTab(context, currencyFormat);
                 case 2:
                   return _buildExpenseTab(context, currencyFormat);
+                case 3:
+                  return _buildPersonalTab(context, currencyFormat);
                 default:
                   return _buildOverviewTab(context, currencyFormat);
               }
@@ -80,7 +85,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
                     Text(
                       'SIQowwam',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: Colors.white.withOpacity(0.8),
                         fontSize: 14,
                       ),
                     ),
@@ -101,7 +106,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -119,7 +124,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
               () => Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -127,7 +132,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -144,7 +149,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
                           Text(
                             'Saldo Anda',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: Colors.white.withOpacity(0.9),
                               fontSize: 13,
                             ),
                           ),
@@ -167,7 +172,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -205,6 +210,13 @@ class FinancialTabView extends GetView<FinancialTabController> {
               2,
               'Pengeluaran',
               Icons.remove_circle_outline,
+            ),
+            const SizedBox(width: 8),
+            _buildSubTabButton(
+              context,
+              3,
+              'Me',
+              Icons.person_outline,
             ),
           ],
         ),
@@ -257,87 +269,407 @@ class FinancialTabView extends GetView<FinancialTabController> {
     );
   }
 
-  /// Overview tab - shows recent transactions and pending requests
+  /// Overview tab - shows combined assets and split details
   Widget _buildOverviewTab(BuildContext context, NumberFormat currencyFormat) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Pending requests section (for approval)
-          Obx(() {
-            final pendingRequests = controller.allPendingRequests;
-            if (pendingRequests.isEmpty) return const SizedBox.shrink();
-
-            return Column(
+          // 1. TOTAL ASET CARD (Separate - Top)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: context.isDark 
+                    ? [const Color(0xFF00695C), const Color(0xFF1565C0)] 
+                    : [Colors.teal.shade700, Colors.blue.shade700],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.pending_actions,
-                      size: 20,
-                      color: Colors.orange,
+                    Container(
+                      width: 28,
+                      height: 28,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(PhosphorIcons.wallet(PhosphorIconsStyle.fill), size: 20, color: Colors.teal),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Pengajuan Pending (${pendingRequests.length})',
+                      'Wallet',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: context.textColor,
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 14,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                ...pendingRequests
-                    .take(5)
-                    .map(
-                      (request) => _buildPendingRequestCard(
-                        context,
-                        request,
-                        currencyFormat,
-                      ),
-                    ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                Obx(() => Text(
+                  'Rp ${currencyFormat.format(controller.walletBalance)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )),
               ],
-            );
-          }),
-
-          // Recent transactions
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // 2. SPLIT CARDS ROW (SiQowwam & Pribadi - Separate)
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.receipt_long, size: 20, color: Colors.teal),
-              const SizedBox(width: 8),
-              Text(
-                'Transaksi Terbaru',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: context.textColor,
+              // SIQOWWAM CARD (Green/Teal Theme)
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.teal.shade600, Colors.teal.shade800],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.teal.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(PhosphorIcons.shieldCheckered(PhosphorIconsStyle.fill), size: 18, color: Colors.teal),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'SIQOWWAM',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Obx(() => Text(
+                        'Rp ${currencyFormat.format(controller.currentBalance)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )),
+                      const SizedBox(height: 16),
+                      
+                      // Pengajuan Dana Section
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pengajuan Dana',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 38,
+                                    child: TextField(
+                                      controller: controller.quickFundAmountController,
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        _ThousandsSeparatorFormatter(),
+                                      ],
+                                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                                      decoration: InputDecoration(
+                                        hintText: 'Masukkan jumlah...',
+                                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                                        filled: true,
+                                        fillColor: Colors.white.withOpacity(0.1),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                InkWell(
+                                  onTap: () { 
+                                    if (controller.quickFundAmountController.text.isNotEmpty) {
+                                      controller.submitQuickFundRequest(controller.quickFundAmountController.text);
+                                      FocusScope.of(context).unfocus();
+                                    }
+                                  },
+                                  child: Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: Colors.tealAccent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.send_rounded, color: Colors.teal, size: 18),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Icon(Icons.schedule, color: Colors.white.withOpacity(0.7), size: 14),
+                                const SizedBox(width: 6),
+                                Obx(() {
+                                  final hasPending = controller.fundRequests.any((r) => r['status'] == 'pending');
+                                  return Text(
+                                    hasPending ? 'Pending' : 'Tidak Ada Pending',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(width: 12),
+              
+              // PRIBADI CARD (Blue Theme)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => controller.selectedSubTab.value = 3,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade600, Colors.blue.shade800],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Icon(Icons.person, color: Colors.white, size: 14),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'PRIBADI',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Obx(() => Text(
+                          'Rp ${currencyFormat.format(controller.personalBalance.value)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )),
+                        const SizedBox(height: 16),
+                        
+                        // Cash Box
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.payments_outlined, color: Colors.white.withOpacity(0.8), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Cash (Honor + Biz)',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    Obx(() => Text(
+                                      'Rp ${currencyFormat.format(controller.personalCashIncome)}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // E-Money Box
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.account_balance_wallet_outlined, color: Colors.white.withOpacity(0.8), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'E-Money',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    Obx(() => Text(
+                                      'Rp ${currencyFormat.format(controller.personalEmoneyIncome)}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          
+          const SizedBox(height: 24),
+          
+          // Recent Transactions Section
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 12),
+            child: Text(
+              'Aktivitas Terbaru',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: context.textColor,
+              ),
+            ),
+          ),
+
           Obx(() {
-            final txList = controller.transactions;
-            if (txList.isEmpty) {
-              return _buildEmptyState(
-                context,
-                'Belum ada transaksi',
-                Icons.receipt_long,
+            final personalTx = controller.personalTransactions;
+            if (personalTx.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(Icons.receipt_long, size: 48, color: context.subtextColor.withOpacity(0.5)),
+                      const SizedBox(height: 12),
+                      Text('Belum ada transaksi', style: TextStyle(color: context.subtextColor)),
+                    ],
+                  ),
+                ),
               );
             }
-
+            
             return Column(
-              children: txList
-                  .take(10)
-                  .map(
-                    (tx) => _buildTransactionCard(context, tx, currencyFormat),
-                  )
-                  .toList(),
+              children: personalTx.take(5).map((tx) {
+                return _buildPersonalTransactionCard(context, tx, currencyFormat);
+              }).toList(),
             );
           }),
         ],
@@ -363,7 +695,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -506,7 +838,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -580,13 +912,13 @@ class FinancialTabView extends GetView<FinancialTabController> {
                                   color: isSelected
                                       ? catColor
                                       : context.isDark
-                                      ? catColor.withValues(alpha: 0.25)
-                                      : catColor.withValues(alpha: 0.12),
+                                      ? catColor.withOpacity(0.25)
+                                      : catColor.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected
                                         ? catColor
-                                        : catColor.withValues(alpha: 0.5),
+                                        : catColor.withOpacity(0.5),
                                     width: isSelected ? 2 : 1.5,
                                   ),
                                   boxShadow: isSelected
@@ -604,7 +936,15 @@ class FinancialTabView extends GetView<FinancialTabController> {
                                 child: Center(
                                   child: Icon(
                                     icon,
-                                    color: isSelected ? Colors.white : catColor,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : context.isDark
+                                        ? Color.lerp(
+                                            catColor,
+                                            Colors.white,
+                                            0.4,
+                                          )!
+                                        : catColor,
                                     size: 26,
                                   ),
                                 ),
@@ -797,18 +1137,646 @@ class FinancialTabView extends GetView<FinancialTabController> {
   Color _getCategoryColor(String category) {
     switch (category) {
       case 'Pendidikan':
-        return const Color(0xFF2196F3); // Blue
+        return Colors.blue;
       case 'Transportasi':
-        return const Color(0xFFFF9800); // Orange
+        return Colors.orange;
       case 'Fasilitas':
-        return const Color(0xFF9C27B0); // Purple
+        return Colors.purple;
       case 'Rumah Tangga':
-        return const Color(0xFF4CAF50); // Green
+        return Colors.green;
       case 'Lainnya':
       default:
-        return const Color(0xFF607D8B); // Grey
+        return Colors.grey;
     }
   }
+
+  // --- Personal Finance UI ---
+
+  Widget _buildPersonalTab(BuildContext context, NumberFormat currencyFormat) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Personal Balance Card
+          _buildPersonalBalanceCard(context, currencyFormat),
+          const SizedBox(height: 16),
+          
+          // Personal Transaction Form
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.person, color: Colors.blue.shade600),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Keuangan Pribadi',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: context.textColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Type Selector (In / Out / Invest)
+                Obx(() => Row(
+                  children: [
+                    _buildPersonalTypeButton(context, FinancialTabController.typeIncome, 'Income', Icons.arrow_downward, Colors.green),
+                    const SizedBox(width: 8),
+                    _buildPersonalTypeButton(context, FinancialTabController.typeExpense, 'Expense', Icons.arrow_upward, Colors.red),
+                    const SizedBox(width: 8),
+                    _buildPersonalTypeButton(context, FinancialTabController.typeInvestment, 'Invest', PhosphorIcons.trendUp(), Colors.blue),
+                  ],
+                )),
+                const SizedBox(height: 20),
+
+                // Category Selector
+                Obx(() {
+                  final type = controller.selectedPersonalType.value;
+                  final categories = FinancialTabController.personalCategories[type] ?? [];
+                  
+                  return Column(
+                    children: [
+                      Text(
+                        'Kategori',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: context.textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          alignment: WrapAlignment.center,
+                          children: categories.map((category) {
+                          final isSelected = controller.selectedPersonalCategory.value == category;
+                          final icon = _getPersonalCategoryIcon(category);
+                          final color = _getPersonalTypeColor(type);
+
+                          return GestureDetector(
+                            onTap: () {
+                              controller.selectedPersonalCategory.value = category;
+                              controller.selectedPersonalSubcategory.value = null; // Reset subcategory
+                            },
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? color : color.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isSelected ? color : color.withOpacity(0.5),
+                                      width: isSelected ? 2 : 1.5,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      icon,
+                                      color: isSelected ? Colors.white : color,
+                                      size: 26,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  category,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    color: isSelected ? color : context.subtextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                      
+                      // Subcategories
+                      if (controller.selectedPersonalCategory.value != null && 
+                          FinancialTabController.personalSubcategories.containsKey(controller.selectedPersonalCategory.value)) ...[
+                        const SizedBox(height: 20),
+                        Text(
+                          'Sub-kategori',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: context.textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          alignment: WrapAlignment.center,
+                          children: FinancialTabController.personalSubcategories[controller.selectedPersonalCategory.value]!.map((sub) {
+                            final isSelected = controller.selectedPersonalSubcategory.value == sub;
+                            final color = _getPersonalTypeColor(type);
+                            
+                            return GestureDetector(
+                              onTap: () => controller.selectedPersonalSubcategory.value = sub,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? color : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected ? color : color.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Text(
+                                  sub,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : context.textColor,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  );
+                }),
+                const SizedBox(height: 20),
+
+                // Fund Source Selector (Only for Expense & Invest)
+                Obx(() {
+                  final type = controller.selectedPersonalType.value;
+                  if (type == FinancialTabController.typeIncome) return const SizedBox.shrink();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'Sumber Dana',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: context.textColor,
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => controller.selectedFundSource.value = 'Cash',
+                              child: Obx(() {
+                                final isSelected = controller.selectedFundSource.value == 'Cash';
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+                                    border: Border.all(
+                                      color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.3),
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        PhosphorIcons.money(isSelected ? PhosphorIconsStyle.fill : PhosphorIconsStyle.regular),
+                                        color: isSelected ? Colors.blue : Colors.grey,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Cash',
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.blue : context.subtextColor,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => controller.selectedFundSource.value = 'E-Money',
+                              child: Obx(() {
+                                final isSelected = controller.selectedFundSource.value == 'E-Money';
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+                                    border: Border.all(
+                                      color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.3),
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        PhosphorIcons.creditCard(isSelected ? PhosphorIconsStyle.fill : PhosphorIconsStyle.regular),
+                                        color: isSelected ? Colors.blue : Colors.grey,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'E-Money',
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.blue : context.subtextColor,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  );
+                }),
+
+                // Amount Field
+                TextField(
+                  controller: controller.personalAmountController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    _ThousandsSeparatorFormatter(),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Nominal',
+                    prefixText: 'Rp ',
+                    prefixIcon: const Icon(Icons.attach_money),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: context.isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Description Field
+                TextField(
+                  controller: controller.personalDescriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Keterangan',
+                    prefixIcon: const Icon(Icons.description),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: context.isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => controller.createPersonalTransaction(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Simpan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // History Section
+          Text(
+            'Riwayat Transaksi',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: context.textColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          Obx(() {
+            final txList = controller.personalTransactions;
+            if (txList.isEmpty) {
+              return _buildEmptyState(
+                context,
+                'Belum ada riwayat',
+                Icons.history,
+              );
+            }
+
+            return Column(
+              children: txList.map((tx) => _buildPersonalTransactionCard(context, tx, currencyFormat)).toList(),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalTypeButton(
+    BuildContext context, 
+    String type, 
+    String label, 
+    IconData icon,
+    Color color,
+  ) {
+    final isSelected = controller.selectedPersonalType.value == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          controller.selectedPersonalType.value = type;
+          controller.selectedPersonalCategory.value = null; // Reset category on type switch
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color : color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: color.withOpacity(isSelected ? 1 : 0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: isSelected ? Colors.white : color, size: 20),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonalBalanceCard(BuildContext context, NumberFormat currencyFormat) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: context.isDark 
+              ? [const Color(0xFF1E88E5), const Color(0xFF1565C0)] 
+              : [Colors.blue.shade400, Colors.blue.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Saldo Pribadi',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Obx(() => Text(
+            'Rp ${currencyFormat.format(controller.personalBalance.value)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalTransactionCard(
+    BuildContext context,
+    Map<String, dynamic> tx,
+    NumberFormat currencyFormat,
+  ) {
+    final type = tx['type'];
+    final isIncome = type == FinancialTabController.typeIncome;
+    final isInvestment = type == FinancialTabController.typeInvestment;
+    
+    // Determine color and icon based on type
+    Color color;
+    IconData iconData;
+    
+    if (isIncome) {
+      color = Colors.green;
+      iconData = Icons.arrow_downward;
+    } else if (isInvestment) {
+      color = Colors.blue;
+      iconData = PhosphorIcons.trendUp();
+    } else {
+      color = Colors.red;
+      iconData = Icons.arrow_upward;
+    }
+
+    final date = (tx['date'] as Timestamp).toDate();
+    final amount = (tx['amount'] ?? 0).toDouble();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              _getPersonalCategoryIcon(tx['category']),
+              color: color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tx['subcategory'] != null 
+                      ? '${tx['category']} - ${tx['subcategory']}' 
+                      : (tx['category'] ?? 'Umum'),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: context.textColor,
+                  ),
+                ),
+                Text(
+                  DateFormat('dd MMM yyyy, HH:mm').format(date),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.subtextColor,
+                  ),
+                ),
+                if (tx['description'] != null && tx['description'].toString().isNotEmpty)
+                   Text(
+                    tx['description'],
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: context.subtextColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            '${isIncome ? "+" : "-"} Rp ${currencyFormat.format(amount)}',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getPersonalTypeColor(String type) {
+    switch (type) {
+      case FinancialTabController.typeIncome:
+        return Colors.green;
+      case FinancialTabController.typeInvestment:
+        return Colors.blue;
+      case FinancialTabController.typeExpense:
+      default:
+        return Colors.red;
+    }
+  }
+
+  IconData _getPersonalCategoryIcon(String category) {
+    switch (category) {
+      // Income
+      case 'Honor': return PhosphorIcons.briefcase();
+      case 'Emoney': return PhosphorIcons.wallet();
+      case 'Business': return Icons.store; // Fallback if PhosphorIcons.storefront missing
+      
+      // Expense
+      case 'Transport': return PhosphorIcons.car();
+      case 'Mandi': return PhosphorIcons.bathtub();
+      case 'Jajan': return PhosphorIcons.hamburger();
+      case 'Pakaian': return PhosphorIcons.coatHanger();
+      case 'Pulsa': return PhosphorIcons.deviceMobile();
+      case 'Elektronik': return PhosphorIcons.desktop();
+      case 'Others': return Icons.more_horiz; // Fallback if PhosphorIcons.dotsThreeCircle missing
+      
+      // Investment
+      case 'Book': return PhosphorIcons.book();
+      case 'Masjid': return PhosphorIcons.mosque();
+      case 'Monthly': return PhosphorIcons.calendar();
+      case 'Share': return PhosphorIcons.shareNetwork();
+      
+      default: return PhosphorIcons.tag();
+    }
+  }
+
+  /// Empty state widget
+  Widget _buildEmptyState(BuildContext context, String message, IconData icon) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 64,
+              color: context.isDark ? Colors.white24 : Colors.black12,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: TextStyle(
+                color: context.subtextColor,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
 
   /// Build pending request card (for approval)
   Widget _buildPendingRequestCard(
@@ -1002,7 +1970,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
+              color: statusColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(statusIcon, color: statusColor, size: 22),
@@ -1038,7 +2006,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
+              color: statusColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -1082,7 +2050,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -1128,24 +2096,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
     );
   }
 
-  /// Empty state widget
-  Widget _buildEmptyState(BuildContext context, String message, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 48,
-            color: context.subtextColor.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 12),
-          Text(message, style: TextStyle(color: context.subtextColor)),
-        ],
-      ),
-    );
-  }
+
 }
 
 /// Thousands separator formatter

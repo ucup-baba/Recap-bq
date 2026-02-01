@@ -582,6 +582,28 @@ class FirestoreService {
     }
   }
 
+  /// Delete all personal transactions for a user
+  Future<void> deletePersonalTransactions(String userId) async {
+    try {
+      final snapshot = await _db
+          .collection('personal_transactions')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final batch = _db.batch();
+        for (final doc in snapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        Logger.info('Deleted personal transactions for user: $userId');
+      }
+    } catch (e) {
+      Logger.error('Error deleting personal transactions for user: $userId', e);
+      rethrow;
+    }
+  }
+
   Stream<List<DailyReportModel>> reportsByGroupAndDate(
     int kelompokId,
     dynamic date, // Accept both String and DateTime

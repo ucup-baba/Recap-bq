@@ -7,6 +7,9 @@ import '../../data/models/fund_request_model.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/role_service.dart';
 import '../../data/services/fund_request_service.dart';
+import '../../data/services/google_sheets_service.dart';
+import '../../data/services/transaction_service.dart';
+import '../../data/models/transaction_model.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_pages.dart';
 
@@ -307,6 +310,7 @@ class UserDashboardController extends GetxController {
     // Allow negative balance - no balance check needed
 
     isLoading.value = true;
+    final now = DateTime.now();
     try {
       final batch = _firestore.batch();
 
@@ -321,8 +325,11 @@ class UserDashboardController extends GetxController {
         'amount': amount,
         'category': category,
         'subcategory': subcategory,
+        'category': category,
+        'subcategory': subcategory,
         'description': description,
-        'createdAt': FieldValue.serverTimestamp(),
+        'date': Timestamp.fromDate(now),
+        'createdAt': Timestamp.fromDate(now),
       });
 
       // Deduct balance
@@ -332,6 +339,35 @@ class UserDashboardController extends GetxController {
       );
 
       await batch.commit();
+
+      // Sync to Google Sheets
+      try {
+        final transaction = TransactionModel(
+          id: transactionRef.id,
+          userId: user.uid,
+          userName: user.username,
+          type: AppConstants.typeExpense,
+          amount: amount,
+          category: category,
+          subcategory: subcategory,
+          description: description,
+          date: now,
+          createdAt: now,
+        );
+
+        // Calculate balances for sync log
+        final balanceBefore = user.balance;
+        final balanceAfter = balanceBefore - amount;
+
+        GoogleSheetsService.instance.syncTransaction(
+          transaction,
+          balanceBefore: balanceBefore,
+          balanceAfter: balanceAfter,
+          userEmail: user.email,
+        );
+      } catch (e) {
+        debugPrint('Error syncing to spreadsheet: $e');
+      }
 
       Get.snackbar(
         'Sukses',

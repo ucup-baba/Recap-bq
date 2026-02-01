@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/services/reset_service.dart';
 import '../../data/services/google_sheets_service.dart';
@@ -290,15 +289,10 @@ class AccountView extends GetView<DashboardController> {
   /// Show Google Sheets settings dialog
   void _showGoogleSheetsSettings(BuildContext context) {
     final urlController = TextEditingController();
+    final isSaving = false.obs;
 
-    // Load saved URL from SharedPreferences
-    SharedPreferences.getInstance().then((prefs) {
-      final savedUrl = prefs.getString('google_sheets_url') ?? '';
-      urlController.text = savedUrl;
-      if (savedUrl.isNotEmpty) {
-        GoogleSheetsService.instance.initialize(savedUrl);
-      }
-    });
+    // Load current URL from service
+    urlController.text = GoogleSheetsService.instance.currentUrl ?? '';
 
     Get.dialog(
       AlertDialog(
@@ -314,6 +308,49 @@ class AccountView extends GetView<DashboardController> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Status indicator
+              Obx(() {
+                final isConfigured =
+                    GoogleSheetsService.instance.isConfiguredRx.value;
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isConfigured
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isConfigured
+                          ? Colors.green.withValues(alpha: 0.3)
+                          : Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isConfigured ? Icons.check_circle : Icons.warning,
+                        color: isConfigured ? Colors.green : Colors.orange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isConfigured
+                              ? 'Terhubung - Semua user dapat sync data'
+                              : 'Belum dikonfigurasi',
+                          style: TextStyle(
+                            color: isConfigured
+                                ? Colors.green.shade700
+                                : Colors.orange.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 16),
               const Text(
                 'Cara Setup:',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -335,6 +372,7 @@ class AccountView extends GetView<DashboardController> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  helperText: 'URL ini akan berlaku untuk semua pengguna',
                 ),
                 maxLines: 2,
               ),
@@ -343,30 +381,63 @@ class AccountView extends GetView<DashboardController> {
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
-          ElevatedButton.icon(
-            onPressed: () async {
-              final url = urlController.text.trim();
-              if (url.isNotEmpty) {
-                // Save to SharedPreferences
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('google_sheets_url', url);
+          Obx(
+            () => ElevatedButton.icon(
+              onPressed: isSaving.value
+                  ? null
+                  : () async {
+                      final url = urlController.text.trim();
+                      if (url.isEmpty) {
+                        Get.snackbar(
+                          'Error',
+                          'URL tidak boleh kosong',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white,
+                        );
+                        return;
+                      }
 
-                // Initialize service
-                GoogleSheetsService.instance.initialize(url);
+                      isSaving.value = true;
 
-                Get.back();
-                Get.snackbar(
-                  'Berhasil',
-                  'Google Sheets URL tersimpan. Data akan sync otomatis.',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
-              }
-            },
-            icon: const Icon(Icons.save),
-            label: const Text('Simpan'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      // Save to Firestore (centralized for all users)
+                      final success = await GoogleSheetsService.instance
+                          .saveToFirestore(url);
+
+                      isSaving.value = false;
+
+                      if (success) {
+                        Get.back();
+                        Get.snackbar(
+                          'Berhasil',
+                          'Google Sheets URL tersimpan untuk semua pengguna.',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.green,
+                          colorText: Colors.white,
+                        );
+                      } else {
+                        Get.snackbar(
+                          'Gagal',
+                          'Tidak dapat menyimpan URL ke database',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white,
+                        );
+                      }
+                    },
+              icon: isSaving.value
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.save),
+              label: Text(isSaving.value ? 'Menyimpan...' : 'Simpan'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            ),
           ),
         ],
       ),

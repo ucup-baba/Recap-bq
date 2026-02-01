@@ -25,6 +25,7 @@ class AppConstants {
   static const String projectsCollection = 'siqowwam_projects';
   static const String rolesCollection = 'siqowwam_roles';
   static const String fundRequestsCollection = 'siqowwam_fund_requests';
+  static const String settingsCollection = 'siqowwam_settings';
 
   // Transaction Types
   static const String typeIncome = 'income';

@@ -80,7 +80,17 @@ class _UserStatsPageState extends State<UserStatsPage> {
       // Load role first
       RoleModel? role;
       List<String> allowedCategories = [];
-      if (user.roleId != null) {
+
+      // Special case for superbq@bqmail.com - show all categories
+      if (user.email == 'superbq@bqmail.com') {
+        allowedCategories = [
+          'Fasilitas',
+          'Pendidikan',
+          'Rumah Tangga',
+          'Transportasi',
+          'Lainnya',
+        ];
+      } else if (user.roleId != null) {
         final roles = await _roleService.getRolesStream().first;
         try {
           role = roles.firstWhere((r) => r.id == user.roleId);
@@ -173,8 +183,14 @@ class _UserStatsPageState extends State<UserStatsPage> {
         .fold(0.0, (sum, tx) => sum + tx.amount);
   }
 
-  // Check if selected user is super admin (superbq@bqmail.com)
-  bool get _isSuperAdmin => _selectedUser?.isSuperAdmin ?? false;
+  // Check if selected user should show income stats (Super Admin except superbq@bqmail.com)
+  // superbq@bqmail.com is excluded because their expenses are tracked separately in RecapBQ
+  bool get _isSuperAdmin {
+    if (_selectedUser == null) return false;
+    if (_selectedUser!.email == 'superbq@bqmail.com')
+      return false; // Exclude superbq
+    return _selectedUser!.isSuperAdmin;
+  }
 
   Map<String, double> _getSubcategoryExpenses(String category) {
     final result = <String, double>{};

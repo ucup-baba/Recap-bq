@@ -1,0 +1,21 @@
+{
+  "name": "bahasasantri.com",
+  "version": "1.0.0",
+  "main": "sw.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./css/styles.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./css/styles.css --watch",
+    "build": "npm run build:css",
+    "deploy": "npm run build && firebase deploy --only hosting"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Santri Pintar - Bahasa Learning App",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
+  }
+}

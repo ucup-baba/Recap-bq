@@ -76,6 +76,9 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
                   // Notification settings button
                   _buildNotificationSettingsButton(context),
                   const SizedBox(height: 12),
+                  // Reset Finance button
+                  _buildResetFinanceButton(context),
+                  const SizedBox(height: 12),
                   // Logout button
                   _buildLogoutButton(context),
                 ],
@@ -293,6 +296,59 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.purple),
         onTap: () => Get.toNamed(AppRoutes.notificationSettings),
+      ),
+    );
+  }
+
+  Widget _buildResetFinanceButton(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: context.isDark ? context.cardColor : Colors.orange.shade50,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.orange.shade100,
+          child: const Icon(Icons.history, color: Colors.orange),
+        ),
+        title: const Text(
+          'Reset Keuangan Pribadi',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+        ),
+        subtitle: const Text(
+          'Hapus semua data pribadi',
+          style: TextStyle(fontSize: 12),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.orange),
+        onTap: () => _showResetFinanceConfirmation(context),
+      ),
+    );
+  }
+
+  void _showResetFinanceConfirmation(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Reset Keuangan Pribadi?'),
+        content: const Text(
+          'Semua data Transaksi Pribadi akan dihapus permanen. Data SiQowwam TIDAK akan terhapus.\n\nApakah Anda yakin?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back(); // Close dialog
+              controller.resetPersonalFinance();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Reset Data'),
+          ),
+        ],
       ),
     );
   }

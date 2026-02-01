@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/app_constants.dart';
+import 'google_sheets_service.dart';
+import 'auth_service.dart';
 
 /// Reset Service for SIQowwam
 /// Handles resetting all financial data (Super Admin only)
@@ -18,34 +21,83 @@ class ResetService {
     int transactionsDeleted = 0;
     int fundRequestsDeleted = 0;
     int usersReset = 0;
+    bool spreadsheetLogged = false;
+    String? spreadsheetError;
 
     try {
       // 1. Delete all transactions
       transactionsDeleted = await _deleteCollection(
         AppConstants.transactionsCollection,
       );
+      debugPrint('✅ Deleted $transactionsDeleted transactions');
 
       // 2. Delete all fund requests
       fundRequestsDeleted = await _deleteCollection(
         AppConstants.fundRequestsCollection,
       );
+      debugPrint('✅ Deleted $fundRequestsDeleted fund requests');
 
       // 3. Reset all user balances to 0
       usersReset = await _resetAllUserBalances();
+      debugPrint('✅ Reset $usersReset user balances');
+
+      // 4. Log to Google Sheets
+      debugPrint('📊 Attempting to log reset to Google Sheets...');
+
+      // Check if Google Sheets is configured
+      if (!GoogleSheetsService.instance.isConfigured) {
+        spreadsheetError = 'Google Sheets belum dikonfigurasi';
+        debugPrint(
+          '⚠️ Google Sheets not configured - skipping spreadsheet log',
+        );
+      } else {
+        try {
+          final userModel = await AuthService().getCurrentUserModel();
+          if (userModel == null) {
+            spreadsheetError = 'User model tidak ditemukan';
+            debugPrint('⚠️ User model is null - cannot log to spreadsheet');
+          } else {
+            debugPrint(
+              '📤 Sending log to spreadsheet for user: ${userModel.username}',
+            );
+            spreadsheetLogged = await GoogleSheetsService.instance.logReset(
+              executorName: userModel.username,
+              executorEmail: userModel.email,
+              transactionsDeleted: transactionsDeleted,
+              fundRequestsDeleted: fundRequestsDeleted,
+              usersReset: usersReset,
+            );
+            if (spreadsheetLogged) {
+              debugPrint('✅ Successfully logged reset to Google Sheets');
+            } else {
+              spreadsheetError = 'Gagal mengirim ke spreadsheet';
+              debugPrint('❌ Failed to log reset to Google Sheets');
+            }
+          }
+        } catch (e) {
+          spreadsheetError = e.toString();
+          debugPrint('❌ Error logging reset to spreadsheet: $e');
+        }
+      }
 
       return ResetResult(
         success: true,
         transactionsDeleted: transactionsDeleted,
         fundRequestsDeleted: fundRequestsDeleted,
         usersReset: usersReset,
+        spreadsheetLogged: spreadsheetLogged,
+        spreadsheetError: spreadsheetError,
       );
     } catch (e) {
+      debugPrint('❌ Reset failed: $e');
       return ResetResult(
         success: false,
         error: e.toString(),
         transactionsDeleted: transactionsDeleted,
         fundRequestsDeleted: fundRequestsDeleted,
         usersReset: usersReset,
+        spreadsheetLogged: spreadsheetLogged,
+        spreadsheetError: spreadsheetError,
       );
     }
   }
@@ -118,6 +170,8 @@ class ResetResult {
   final int transactionsDeleted;
   final int fundRequestsDeleted;
   final int usersReset;
+  final bool spreadsheetLogged;
+  final String? spreadsheetError;
 
   ResetResult({
     required this.success,
@@ -125,13 +179,28 @@ class ResetResult {
     required this.transactionsDeleted,
     required this.fundRequestsDeleted,
     required this.usersReset,
+    this.spreadsheetLogged = false,
+    this.spreadsheetError,
   });
 
   String get summary {
     if (!success) return 'Reset gagal: $error';
-    return 'Reset berhasil!\n'
-        '• $transactionsDeleted transaksi dihapus\n'
-        '• $fundRequestsDeleted pengajuan dana dihapus\n'
-        '• $usersReset saldo pengguna direset ke 0';
+
+    final buffer = StringBuffer();
+    buffer.writeln('Reset berhasil!');
+    buffer.writeln('• $transactionsDeleted transaksi dihapus');
+    buffer.writeln('• $fundRequestsDeleted pengajuan dana dihapus');
+    buffer.writeln('• $usersReset saldo pengguna direset ke 0');
+
+    // Add spreadsheet status
+    if (spreadsheetLogged) {
+      buffer.write('• ✅ Tercatat di Spreadsheet');
+    } else if (spreadsheetError != null) {
+      buffer.write('• ⚠️ Spreadsheet: $spreadsheetError');
+    } else {
+      buffer.write('• ⚠️ Spreadsheet tidak dikonfigurasi');
+    }
+
+    return buffer.toString();
   }
 }
