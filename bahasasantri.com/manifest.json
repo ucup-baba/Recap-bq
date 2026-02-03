@@ -1,22 +1,41 @@
 {
-    "name": "Bahasa Santri BQ",
-    "short_name": "BahasaSantri",
+    "name": "Santri Pintar - Belajar Bahasa Inggris",
+    "short_name": "Santri Pintar",
+    "description": "Aplikasi belajar bahasa Inggris untuk santri. Latihan vocabulary, ujian pekanan, dan Math Battle.",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#F8FAFC",
-    "theme_color": "#0F172A",
+    "theme_color": "#F97316",
     "orientation": "portrait",
+    "categories": ["education", "games"],
+    "lang": "id",
     "icons": [
         {
             "src": "images/icon-512.png",
             "type": "image/png",
-            "sizes": "512x512"
+            "sizes": "512x512",
+            "purpose": "any"
         },
         {
             "src": "images/icon-512.png",
             "type": "image/png",
             "sizes": "192x192",
-            "purpose": "any maskable"
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Latihan Vocabulary",
+            "short_name": "Latihan",
+            "url": "./index.html?mode=practice",
+            "icons": [{ "src": "images/icon-512.png", "sizes": "96x96" }]
+        },
+        {
+            "name": "Ujian Pekanan",
+            "short_name": "Ujian",
+            "url": "./index.html?mode=exam",
+            "icons": [{ "src": "images/icon-512.png", "sizes": "96x96" }]
         }
     ]
 }

@@ -1,6 +1,7 @@
 // Text-to-Speech (TTS) & Speech-to-Text (STT) Logic
 import { state } from './state.js';
 import { handleAns } from './quiz.js'; // Circular dependency handled via function call
+import { showNotification } from './dialogs.js';
 
 let voices = [];
 let audioUnlocked = false;
@@ -32,14 +33,37 @@ export function unlockAudio() {
     console.log("Audio Unlocked");
 }
 
+// Request microphone permission early (at login)
+export async function requestMicPermission() {
+    // Check if API is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.log("Mic: getUserMedia not supported");
+        return false;
+    }
+
+    try {
+        // Request mic access - this triggers the browser permission popup
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Immediately stop all tracks (we just wanted permission)
+        stream.getTracks().forEach(track => track.stop());
+
+        console.log("✅ Microphone permission granted");
+        return true;
+    } catch (err) {
+        console.log("⚠️ Microphone permission denied or error:", err.message);
+        return false;
+    }
+}
+
 export function checkAudio() {
     loadVoices();
     if (!window.speechSynthesis) {
-        alert("Maaf, Browser Anda TIDAK mendukung fitur suara.\n\nSolusi: Gunakan Google Chrome.");
+        showNotification("Maaf, Browser Anda TIDAK mendukung fitur suara.\n\nSolusi: Gunakan Google Chrome.", "Browser Tidak Didukung", "error");
         return;
     }
     if (voices.length === 0) {
-        alert("Suara tidak terdeteksi (" + window.speechSynthesis.getVoices().length + " voices).\n\nHP ini mungkin tidak punya 'Google Speech Services'.\n\nSolusi: Gunakan Google Chrome.");
+        showNotification("Suara tidak terdeteksi (" + window.speechSynthesis.getVoices().length + " voices).\n\nHP ini mungkin tidak punya 'Google Speech Services'.\n\nSolusi: Gunakan Google Chrome.", "Suara Tidak Tersedia", "warning");
         return;
     }
 
@@ -48,8 +72,8 @@ export function checkAudio() {
     u.rate = 1.0;
     u.volume = 1.0;
 
-    u.onstart = () => alert("Suara sedang diputar...\nDengarkan 'Audio check'.");
-    u.onerror = (e) => alert("Error pemutaran: " + e.error);
+    u.onstart = () => showNotification("Suara sedang diputar...\nDengarkan 'Audio check'.", "Test Audio", "info");
+    u.onerror = (e) => showNotification("Error pemutaran: " + e.error, "Error Audio", "error");
 
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
@@ -102,7 +126,7 @@ export function toggleRecording() {
     const res = document.getElementById('speak-result');
 
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Browser ini tidak mendukung fitur Speaking (STT).\nGunakan Google Chrome.");
+        showNotification("Browser ini tidak mendukung fitur Speaking (STT).\nGunakan Google Chrome.", "Fitur Tidak Didukung", "warning");
         return;
     }
 
@@ -179,7 +203,7 @@ window.submitTypedAnswer = function () {
 
     const answer = input.value.trim();
     if (!answer) {
-        alert("Ketik jawaban dulu!");
+        showNotification("Ketik jawaban dulu!", "Jawaban Kosong", "warning");
         return;
     }
 

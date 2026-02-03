@@ -6,11 +6,15 @@ export const state = {
     // Quiz State
     mode: 'mixed', // mixed (exam), id-en, en-id, listening, speaking
     isExam: false,
+    isRemedial: false,        // NEW: apakah sedang remidi
+    remedialAvailable: false, // NEW: apakah eligible untuk remidi  
     questions: [], // Array of question objects
     answers: [],   // Array of user answers
     index: 0,      // Current question index
     max: 0,        // Total questions
     score: 0,
+    isFinished: false, // NEW: prevent double submission
+    practiceCorrect: 0, // NEW: track correct answers in practice mode
 
     // Timer
     timer: null,

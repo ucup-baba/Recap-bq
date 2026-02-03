@@ -1,21 +1,21 @@
 // Main App Entry
 import { state } from './state.js';
 import { fetchVocab } from './config.js';
-import { startQuiz, nextQuestion, prevQuestion, showResult } from './quiz.js';
-import { loadVoices, unlockAudio, checkAudio, speakCurrentWord, toggleRecording } from './audio.js';
 import { switchView } from './ui.js';
+import { nextQuestion, prevQuestion, startQuiz } from './quiz.js';
 import { initAdmin } from './admin.js';
+import { unlockAudio, requestMicPermission, speakCurrentWord, toggleRecording } from './audio.js';
 import { initMath } from './math.js';
+import { showConfirmation } from './dialogs.js';
 
 // Global Exposure for HTML onclick events
-window.startQuiz = startQuiz;
-window.nextQuestion = nextQuestion;
-window.prevQuestion = prevQuestion;
-window.checkAudio = checkAudio;
-window.speakCurrentWord = speakCurrentWord;
-window.toggleRecording = toggleRecording;
 window.fetchVocab = fetchVocab;
 window.switchView = switchView;
+window.nextQuestion = nextQuestion;
+window.prevQuestion = prevQuestion;
+window.startQuiz = startQuiz;
+window.speakCurrentWord = speakCurrentWord;
+window.toggleRecording = toggleRecording;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     document.getElementById('menu-user-name').textContent = state.currentUser.name;
                     unlockAudio(); // Unlock audio context
+                    requestMicPermission(); // Request mic permission early
                     switchView('menu');
                 }
             } else {
@@ -52,17 +53,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Navigation
     const btnBack = document.getElementById('btn-back-menu');
     if (btnBack) {
-        btnBack.addEventListener('click', () => {
-            const confirmExit = confirm("Yakin ingin keluar dari ujian?");
+        btnBack.addEventListener('click', async () => {
+            const confirmExit = await showConfirmation("Yakin ingin keluar dari ujian?", "Keluar Ujian");
             if (confirmExit) switchView('menu');
         });
     }
 
-    const btnNext = document.getElementById('btn-next');
-    if (btnNext) btnNext.addEventListener('click', nextQuestion);
-
-    const btnPrev = document.getElementById('btn-prev');
-    if (btnPrev) btnPrev.addEventListener('click', prevQuestion);
 
     // Result Home Button (Conditional)
     const btnResultHome = document.getElementById('btn-result-home');

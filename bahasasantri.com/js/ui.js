@@ -1,5 +1,7 @@
 // UI & View Management
 import { state } from './state.js';
+import { getWeekStart } from './quiz.js';
+import { showNotification, showConfirmation } from './dialogs.js';
 
 export function switchView(viewName) {
     const views = ['login', 'menu', 'quiz', 'result', 'review', 'admin', 'math-lobby', 'math-room', 'math-game'];
@@ -78,6 +80,99 @@ export function updateHomeUI() {
     } else {
         if (rankEl) rankEl.textContent = '-';
     }
+
+    // Update exam button status
+    updateExamButton();
+}
+
+// Update exam button based on user status
+function updateExamButton() {
+    if (!state.currentUser || state.currentUser.role === 'admin') return;
+
+    const icon = document.getElementById('exam-icon');
+    const title = document.getElementById('exam-title');
+    const subtitle = document.getElementById('exam-subtitle');
+    const playIcon = document.getElementById('exam-play-icon');
+
+    if (!icon || !title || !subtitle || !playIcon) return;
+
+    const weekStart = getWeekStart();
+    const lastExamDate = state.currentUser.lastExamDate ? new Date(state.currentUser.lastExamDate) : null;
+    const tookExamThisWeek = lastExamDate && lastExamDate > weekStart;
+    const score = state.currentUser.weeklyScore || state.currentUser.lastExamScore || 0;
+    const remedialAvailable = state.currentUser.remedialAvailable || false;
+
+    if (tookExamThisWeek && score >= 70) {
+        // Completed with good score
+        icon.textContent = '✅';
+        title.textContent = 'Ujian Selesai';
+        subtitle.textContent = `Nilai minggu ini: ${score} - Bagus!`;
+        playIcon.className = 'fas fa-check';
+    } else if (tookExamThisWeek && remedialAvailable) {
+        // Eligible for remedial
+        icon.textContent = '🔄';
+        title.textContent = 'Remidi Tersedia';
+        subtitle.textContent = `Nilai: ${score} - Klik untuk perbaiki nilai (Max: 70)`;
+        playIcon.className = 'fas fa-redo';
+    } else {
+        // Regular exam or not taken yet
+        icon.textContent = '📚';
+        title.textContent = 'Ujian Pekanan';
+        subtitle.textContent = 'Mode ujian dengan timer 10 menit';
+        playIcon.className = 'fas fa-play';
+    }
+}
+
+// Check exam status and start appropriate quiz
+window.checkExamStatus = function () {
+    if (!state.currentUser) return;
+
+    const weekStart = getWeekStart();
+    const lastExamDate = state.currentUser.lastExamDate ? new Date(state.currentUser.lastExamDate) : null;
+    const tookExamThisWeek = lastExamDate && lastExamDate > weekStart;
+    const score = state.currentUser.weeklyScore || state.currentUser.lastExamScore || 0;
+    const remedialAvailable = state.currentUser.remedialAvailable || false;
+
+    if (tookExamThisWeek && score >= 70) {
+        // Already completed with good score
+        showNotification('Anda sudah menyelesaikan ujian minggu ini dengan nilai bagus! Kembali lagi Senin depan.', 'Ujian Selesai', 'success');
+        return;
+    }
+
+    if (tookExamThisWeek && remedialAvailable) {
+        // Show remedial confirmation dialog
+        const dialog = document.getElementById('remedial-confirm-dialog');
+        const scoreEl = document.getElementById('remedial-current-score');
+
+        if (dialog && scoreEl) {
+            scoreEl.textContent = score;
+            dialog.classList.remove('hidden');
+            dialog.classList.add('flex');
+        }
+        return;
+    }
+
+    // Regular exam
+    import('./quiz.js').then(module => {
+        module.startQuiz('mixed', false);
+    });
+}
+
+// Confirm remedial and start quiz
+window.confirmRemedial = function () {
+    closeRemedialDialog();
+    import('./quiz.js').then(module => {
+        module.startQuiz('mixed', true); // isRemedial = true
+    });
+}
+
+// Close remedial dialog
+window.closeRemedialDialog = function () {
+    const dialog = document.getElementById('remedial-confirm-dialog');
+    if (dialog) {
+        dialog.classList.add('hidden');
+        dialog.classList.remove('flex');
+    }
 }
 
 // --- TAB SWITCHER ---
@@ -143,24 +238,34 @@ function renderSantriLeaderboard() {
     list.innerHTML = html;
 }
 
-// Switch between Bahasa and Math ranking tabs
+// Switch between Total, Weekly, and Math ranking tabs
 window.switchRankingTab = function (tab) {
-    const bahasaTab = document.getElementById('rank-tab-bahasa');
+    const totalTab = document.getElementById('rank-tab-total');
+    const weeklyTab = document.getElementById('rank-tab-weekly');
     const mathTab = document.getElementById('rank-tab-math');
-    const bahasaContent = document.getElementById('rank-bahasa');
+    const totalContent = document.getElementById('rank-total');
+    const weeklyContent = document.getElementById('rank-weekly');
     const mathContent = document.getElementById('rank-math');
 
-    if (tab === 'bahasa') {
-        bahasaTab.className = 'flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-brand-primary text-white transition-all';
-        mathTab.className = 'flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-gray-100 text-gray-500 transition-all';
-        bahasaContent.classList.remove('hidden');
-        mathContent.classList.add('hidden');
-    } else {
-        mathTab.className = 'flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-blue-500 text-white transition-all';
-        bahasaTab.className = 'flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-gray-100 text-gray-500 transition-all';
-        mathContent.classList.remove('hidden');
-        bahasaContent.classList.add('hidden');
+    // Reset all tabs
+    const inactiveClass = 'flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-gray-100 text-gray-500 transition-all';
+    const activeClass = 'flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-brand-primary text-white transition-all';
+    const mathActiveClass = 'flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-blue-500 text-white transition-all';
 
+    [totalTab, weeklyTab, mathTab].forEach(t => t.className = inactiveClass);
+    [totalContent, weeklyContent, mathContent].forEach(c => c.classList.add('hidden'));
+
+    if (tab === 'total') {
+        totalTab.className = activeClass;
+        totalContent.classList.remove('hidden');
+    } else if (tab === 'weekly') {
+        weeklyTab.className = activeClass;
+        weeklyContent.classList.remove('hidden');
+        // Load weekly leaderboard
+        updateWeeklyLeaderboard();
+    } else if (tab === 'math') {
+        mathTab.className = mathActiveClass;
+        mathContent.classList.remove('hidden');
         // Load math leaderboard
         updateMathLeaderboard();
     }
@@ -208,8 +313,71 @@ export function updateMathLeaderboard() {
     list.innerHTML = html;
 }
 
-window.logout = function () {
-    if (confirm('Yakin ingin keluar?')) {
+export function updateWeeklyLeaderboard() {
+    const list = document.getElementById('weekly-leaderboard');
+    if (!list || !state.userList) return;
+
+    const weekStart = getWeekStart();
+
+    // Sort users by weeklyScore (descending), including users with existing data
+    const sortedWeekly = [...state.userList]
+        .filter(u => {
+            // Include if has weeklyScore > 0
+            if ((u.weeklyScore || 0) > 0) return true;
+
+            // OR if has lastExamDate this week (backward compat)
+            if (u.lastExamDate) {
+                const examDate = new Date(u.lastExamDate);
+                return examDate > weekStart;
+            }
+            return false;
+        })
+        .sort((a, b) => (b.weeklyScore || 0) - (a.weeklyScore || 0))
+        .slice(0, 10);  // Top 10
+
+    if (sortedWeekly.length === 0) {
+        list.innerHTML = '<div class="text-center text-gray-400 mt-10">Belum ada ujian minggu ini.<br><span class="text-xs">Ikut ujian untuk masuk ranking!</span></div>';
+        return;
+    }
+
+    let html = '';
+
+    sortedWeekly.forEach((u, index) => {
+        const isMe = (state.currentUser && u.name === state.currentUser.name);
+        const weeklyScore = u.weeklyScore || 0;
+        const KKM = 70;
+
+        let rankColor = 'bg-white text-gray-500';
+        let medal = '';
+
+        if (index === 0) { rankColor = 'bg-yellow-100 text-yellow-600'; medal = '🥇'; }
+        else if (index === 1) { rankColor = 'bg-gray-100 text-gray-600'; medal = '🥈'; }
+        else if (index === 2) { rankColor = 'bg-orange-100 text-orange-600'; medal = '🥉'; }
+
+        // Color based on KKM
+        const scoreColor = weeklyScore >= KKM ? 'text-green-600' : 'text-orange-500';
+        const scoreBg = weeklyScore >= KKM ? 'bg-green-50' : 'bg-orange-50';
+
+        html += `
+        <div class="flex items-center gap-4 p-4 rounded-2xl border ${isMe ? 'border-brand-primary bg-brand-primary/5' : 'border-gray-50 bg-white'} shadow-sm">
+            <div class="w-10 h-10 rounded-full ${rankColor} flex items-center justify-center font-bold text-sm">
+                ${medal || '#' + (index + 1)}
+            </div>
+            <div class="flex-1">
+                <h4 class="font-bold text-gray-800 ${isMe ? 'text-brand-primary' : ''}">${u.name} ${isMe ? '(Anda)' : ''}</h4>
+                <p class="text-xs text-gray-400">Skor Pekan Ini</p>
+            </div>
+            <div class="font-bold ${scoreColor} ${scoreBg} px-3 py-1 rounded-lg">${weeklyScore} pts</div>
+        </div>
+        `;
+    });
+
+    list.innerHTML = html;
+}
+
+window.logout = async function () {
+    const confirmed = await showConfirmation('Yakin ingin keluar?', 'Logout');
+    if (confirmed) {
         state.currentUser = null;
         switchView('login');
     }

@@ -2,6 +2,7 @@ import { db } from './config.js';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, increment, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { state } from './state.js';
 import { switchView } from './ui.js';
+import { showNotification } from './dialogs.js';
 
 let mathUnsub = null;
 let currentRoomId = null;
@@ -56,13 +57,13 @@ async function joinMathRoom() {
     const snap = await getDoc(roomRef);
 
     if (!snap.exists()) {
-        alert("Room tidak ditemukan!");
+        showNotification("Room tidak ditemukan!", "Error", "error");
         return;
     }
 
     const data = snap.data();
     if (data.status !== 'waiting') {
-        alert("Game sudah berjalan atau penuh!");
+        showNotification("Game sudah berjalan atau penuh!", "Tidak Bisa Join", "warning");
         return;
     }
 
@@ -148,7 +149,7 @@ function subscribeToRoom(roomId, role) {
 
     mathUnsub = onSnapshot(roomRef, (doc) => {
         if (!doc.exists()) {
-            alert("Room dibubarkan.");
+            showNotification("Room dibubarkan.", "Game Berakhir", "info");
             leaveMathGame();
             return;
         }
@@ -311,7 +312,7 @@ function renderMathUI(data, myRole) {
             recordMathWin(data.winner);
         }
 
-        alert(`Game Selesai! Pemenang: ${data.winner}`);
+        showNotification(`Game Selesai! Pemenang: ${data.winner}`, "Selamat!", "success");
         leaveMathGame();
     }
 }
@@ -467,13 +468,13 @@ async function spectateRoom() {
     const snap = await getDoc(roomRef);
 
     if (!snap.exists()) {
-        alert("Room tidak ditemukan!");
+        showNotification("Room tidak ditemukan!", "Error", "error");
         return;
     }
 
     const data = snap.data();
     if (data.status === 'waiting') {
-        alert("Game belum dimulai, tunggu sampai ada 2 pemain!");
+        showNotification("Game belum dimulai, tunggu sampai ada 2 pemain!", "Tunggu Sebentar", "warning");
         return;
     }
 

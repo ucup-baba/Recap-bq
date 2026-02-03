@@ -1,8 +1,14 @@
 import { db } from './config.js';
-import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { state } from './state.js';
+import { showNotification } from './dialogs.js';
 
 export function initAdmin() {
+    // Show skeleton loading initially
+    showAdminSkeleton();
+
+    // Auto-reset weekly scores if new week started
+    checkAndResetWeeklyScores();
     // Expose Tab Switcher
     window.switchAdminTab = (tab) => {
         ['ujian', 'tes', 'ranking', 'akun'].forEach(t => {
@@ -30,8 +36,42 @@ export function initAdmin() {
         state.userList = [];
 
         snapshot.forEach(doc => {
-
             const data = doc.data();
+
+            // BACKWARD COMPATIBILITY: Set missing fields for existing users
+            const now = new Date();
+            const weekStart = getWeekStart();
+
+            // If weeklyScore is missing, check if lastExamDate is within this week
+            if (typeof data.weeklyScore === 'undefined' && data.lastExamDate) {
+                const lastExamDate = new Date(data.lastExamDate);
+                if (lastExamDate > weekStart) {
+                    // Exam was this week, use the score
+                    data.weeklyScore = data.lastExamScore || data.highscore || 0;
+                } else {
+                    data.weeklyScore = 0; // Exam was before this week
+                }
+            }
+
+            // If remedialAvailable is missing, check if eligible
+            if (typeof data.remedialAvailable === 'undefined') {
+                // Check if last exam was this week AND score < 70
+                if (data.lastExamDate) {
+                    const lastExamDate = new Date(data.lastExamDate);
+                    const lastScore = data.lastExamScore || data.weeklyScore || 0;
+
+                    if (lastExamDate > weekStart && lastScore < 70) {
+                        // Hasn't done remedial this week, eligible
+                        const lastRemedial = data.lastRemedialDate ? new Date(data.lastRemedialDate) : null;
+                        data.remedialAvailable = !lastRemedial || lastRemedial < weekStart;
+                    } else {
+                        data.remedialAvailable = false;
+                    }
+                } else {
+                    data.remedialAvailable = false;
+                }
+            }
+
             state.users[doc.id] = { id: doc.id, ...data }; // Include ID in object
             state.userList.push({ id: doc.id, ...data }); // For Table display
         });
@@ -52,11 +92,70 @@ export function initAdmin() {
             const name = document.getElementById('input-name').value.trim();
 
             if (code && name) {
-                if (code === '00') { alert("Kode 00 dilindungi."); return; }
+                if (code === '00') { showNotification("Kode 00 dilindungi.", "Tidak Diizinkan", "error"); return; }
                 await addSantri(code, name);
                 form.reset();
             }
         });
+    }
+}
+
+// ========================================
+// AUTO-RESET WEEKLY SCORES
+// ========================================
+
+async function checkAndResetWeeklyScores() {
+    const lastResetKey = 'lastWeeklyReset';
+    const lastReset = localStorage.getItem(lastResetKey);
+    const now = new Date();
+    const weekStart = getWeekStart();
+
+    // First time initialization - don't reset, just save timestamp
+    if (!lastReset) {
+        localStorage.setItem(lastResetKey, now.toISOString());
+        console.log('✓ Auto-reset initialized (first time, no reset needed)');
+        return;
+    }
+
+    // Check if we crossed into a NEW week since last reset
+    const lastResetDate = new Date(lastReset);
+
+    // Only reset if:
+    // 1. Last reset was BEFORE this week's Monday (weekStart)
+    // 2. AND we are now ON or AFTER this week's Monday
+    if (lastResetDate < weekStart && now >= weekStart) {
+        console.log('🔄 Auto-resetting weekly scores (new week detected)...');
+
+        try {
+            // Get all users
+            const usersRef = collection(db, "santri_users");
+            const snapshot = await getDocs(usersRef);
+
+            const resetPromises = [];
+            snapshot.forEach(doc => {
+                const userRef = doc.ref;
+                resetPromises.push(
+                    updateDoc(userRef, {
+                        weeklyScore: 0,
+                        lastExamDate: null,
+                        remedialAvailable: false,
+                        lastRemedialDate: null
+                    })
+                );
+            });
+
+            // Execute all resets in parallel
+            await Promise.all(resetPromises);
+
+            // Update last reset timestamp to current time
+            localStorage.setItem(lastResetKey, now.toISOString());
+            console.log(`✅ Reset ${resetPromises.length} users successfully!`);
+
+        } catch (error) {
+            console.error('❌ Error auto-resetting weekly scores:', error);
+        }
+    } else {
+        console.log('✓ Weekly scores already reset for this week');
     }
 }
 
@@ -68,10 +167,10 @@ async function addSantri(code, name) {
             highscore: 0,
             createdAt: new Date().toISOString()
         });
-        alert(`Santri ${name} (${code}) berhasil ditambahkan!`);
+        showNotification(`Santri ${name} (${code}) berhasil ditambahkan!`, "Berhasil", "success");
     } catch (e) {
         console.error("Error adding:", e);
-        alert("Gagal menambah santri: " + e.message);
+        showNotification("Gagal menambah santri: " + e.message, "Error", "error");
     }
 }
 
@@ -116,44 +215,90 @@ window.confirmDeleteUser = async function () {
         closeAdminDialog('admin-delete-dialog');
     } catch (e) {
         console.error("Error delete:", e);
-        alert("Gagal hapus: " + e.message);
+        showNotification("Gagal hapus: " + e.message, "Error", "error");
     }
 }
 
-// Reset score - show dialog
-function resetUserScore(code) {
+// ========================================
+// RESET SCORE FUNCTIONS (3 types)
+// ========================================
+
+// Reset Weekly Score (weeklyScore + lastExamScore)
+async function resetWeeklyScore(code) {
     const user = state.userList.find(u => u.id === code);
     const name = user?.name || 'Unknown';
-    showAdminDialog('admin-reset-dialog', code, name);
+
+    const confirmed = await showConfirmation(
+        `Reset skor pekan ini untuk ${name}?\n\nIni akan reset:\n- Skor Pekan Ini\n- Skor Ujian Terakhir\n\n(Total akumulasi tidak terpengaruh)`,
+        'Reset Pekan Ini',
+        'Ya, Reset',
+        'Batal'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await updateDoc(doc(db, "santri_users", code), {
+            weeklyScore: 0,
+            lastExamScore: 0
+        });
+        showNotification(`✅ Skor pekan ini ${name} sudah direset!`, "Berhasil", "success");
+    } catch (e) {
+        console.error("Error reset weekly:", e);
+        showNotification("Gagal reset skor pekan ini: " + e.message, "Error", "error");
+    }
 }
 
-// Confirm reset BAHASA score (exposed to window)
-window.confirmResetBahasaScore = async function () {
-    if (!pendingAction.code) return;
+// Reset Total Akumulasi (highscore)
+async function resetTotalScore(code) {
+    const user = state.userList.find(u => u.id === code);
+    const name = user?.name || 'Unknown';
+
+    const confirmed = await showConfirmation(
+        `Reset TOTAL AKUMULASI untuk ${name}?\n\n⚠️ WARNING: Ini akan menghapus SEMUA progress sepanjang waktu!\n\n(Skor pekan ini tidak terpengaruh)`,
+        'Reset Total Akumulasi',
+        'Ya, Reset',
+        'Batal'
+    );
+
+    if (!confirmed) return;
+
     try {
-        await updateDoc(doc(db, "santri_users", pendingAction.code), {
+        await updateDoc(doc(db, "santri_users", code), {
             highscore: 0
         });
-        closeAdminDialog('admin-reset-dialog');
+        showNotification(`✅ Total akumulasi ${name} sudah direset!`, "Berhasil", "success");
     } catch (e) {
-        console.error("Error reset bahasa:", e);
-        alert("Gagal reset skor bahasa: " + e.message);
+        console.error("Error reset total:", e);
+        showNotification("Gagal reset total akumulasi: " + e.message, "Error", "error");
     }
 }
 
-// Confirm reset MATH score (exposed to window)
-window.confirmResetMathScore = async function () {
-    if (!pendingAction.code) return;
+// Reset Math Score (mathWins)
+async function resetMathScore(code) {
+    const user = state.userList.find(u => u.id === code);
+    const name = user?.name || 'Unknown';
+
+    const confirmed = await showConfirmation(
+        `Reset skor matematika untuk ${name}?`,
+        'Reset Skor MTK',
+        'Ya, Reset',
+        'Batal'
+    );
+
+    if (!confirmed) return;
+
     try {
-        await updateDoc(doc(db, "santri_users", pendingAction.code), {
+        await updateDoc(doc(db, "santri_users", code), {
             mathWins: 0
         });
-        closeAdminDialog('admin-reset-dialog');
+        showNotification(`✅ Skor matematika ${name} sudah direset!`, "Berhasil", "success");
     } catch (e) {
         console.error("Error reset math:", e);
-        alert("Gagal reset skor matematika: " + e.message);
+        showNotification("Gagal reset skor matematika: " + e.message, "Error", "error");
     }
 }
+
 
 // Unlock exam - show dialog
 function resetExamStatus(code) {
@@ -172,7 +317,7 @@ window.confirmUnlockExam = async function () {
         closeAdminDialog('admin-unlock-dialog');
     } catch (e) {
         console.error("Error unlock:", e);
-        alert("Gagal buka kunci: " + e.message);
+        showNotification("Gagal buka kunci: " + e.message, "Error", "error");
     }
 }
 
@@ -199,14 +344,24 @@ function renderRanking() {
     if (!tbody) return;
 
     tbody.innerHTML = '';
-    const sorted = [...state.userList].sort((a, b) => (b.highscore || 0) - (a.highscore || 0));
+    // Sort by weekly score (current week performance)
+    const sorted = [...state.userList].sort((a, b) => (b.weeklyScore || 0) - (a.weeklyScore || 0));
+    const KKM = 70; // Minimum passing score
 
     sorted.forEach((u, i) => {
         const tr = document.createElement('tr');
+        const weeklyScore = u.weeklyScore || 0;
+        const highscore = u.highscore || 0;
+
         let badge = '';
         if (i === 0) badge = '🥇';
         else if (i === 1) badge = '🥈';
         else if (i === 2) badge = '🥉';
+
+        // Color based on KKM
+        const scoreColor = weeklyScore >= KKM ? 'text-green-600' : 'text-orange-500';
+        const scoreBg = weeklyScore >= KKM ? 'bg-green-50' : 'bg-orange-50';
+        const statusIcon = weeklyScore >= KKM ? '✓' : '↓';
 
         tr.className = "border-b border-gray-100 hover:bg-yellow-50 transition-colors";
         tr.innerHTML = `
@@ -215,7 +370,10 @@ function renderRanking() {
                 ${u.name} 
                 <span class="text-[10px] bg-gray-100 px-2 rounded-full text-gray-500">${u.id}</span>
             </td>
-            <td class="p-4 text-right font-black text-brand-primary">${u.highscore || 0}</td>
+            <td class="p-4 text-right">
+                <span class="font-black ${scoreColor} ${scoreBg} px-2 py-1 rounded-lg">${weeklyScore} ${statusIcon}</span>
+                <span class="text-xs text-gray-400 ml-2">Best: ${highscore}</span>
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -326,8 +484,14 @@ function renderUserList() {
                 <button class="btn-reset-exam ${lockClass} p-2 rounded-lg transition-all" data-id="${u.id}" data-locked="${isLocked}" title="${lockTitle}">
                     <i class="fas ${lockIcon}"></i>
                 </button>
-                <button class="btn-reset text-orange-400 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition-all" data-id="${u.id}" title="Reset Skor">
-                    <i class="fas fa-undo"></i>
+                <button class="btn-reset-weekly text-blue-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-all" data-id="${u.id}" title="Reset Pekan Ini">
+                    <i class="fas fa-calendar-week"></i>
+                </button>
+                <button class="btn-reset-total text-orange-400 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition-all" data-id="${u.id}" title="Reset Total Akumulasi">
+                    <i class="fas fa-chart-line"></i>
+                </button>
+                <button class="btn-reset-math text-purple-400 hover:text-purple-600 hover:bg-purple-50 p-2 rounded-lg transition-all" data-id="${u.id}" title="Reset Skor MTK">
+                    <i class="fas fa-calculator"></i>
                 </button>
                 <button class="btn-delete text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all" data-id="${u.id}" title="Hapus User">
                     <i class="fas fa-trash"></i>
@@ -342,11 +506,53 @@ function renderUserList() {
         btn.addEventListener('click', () => deleteSantri(btn.dataset.id));
     });
 
-    document.querySelectorAll('.btn-reset').forEach(btn => {
-        btn.addEventListener('click', () => resetUserScore(btn.dataset.id));
+    document.querySelectorAll('.btn-reset-weekly').forEach(btn => {
+        btn.addEventListener('click', () => resetWeeklyScore(btn.dataset.id));
+    });
+
+    document.querySelectorAll('.btn-reset-total').forEach(btn => {
+        btn.addEventListener('click', () => resetTotalScore(btn.dataset.id));
+    });
+
+    document.querySelectorAll('.btn-reset-math').forEach(btn => {
+        btn.addEventListener('click', () => resetMathScore(btn.dataset.id));
     });
 
     document.querySelectorAll('.btn-reset-exam').forEach(btn => {
         btn.addEventListener('click', () => resetExamStatus(btn.dataset.id));
     });
+}
+
+// ========================================
+// SKELETON LOADING HELPER
+// ========================================
+function showAdminSkeleton() {
+    // Generate skeleton rows for tables
+    const skeletonRow = `
+        <tr class="border-b border-gray-100">
+            <td class="p-4"><div class="skeleton h-4 w-12"></div></td>
+            <td class="p-4"><div class="skeleton h-4 w-40"></div></td>
+            <td class="p-4"><div class="skeleton h-4 w-16"></div></td>
+        </tr>
+    `;
+
+    const skeletonRows = skeletonRow.repeat(5); // 5 skeleton rows
+
+    // User List Skeleton
+    const userList = document.getElementById('admin-user-list');
+    if (userList) {
+        userList.innerHTML = skeletonRows;
+    }
+
+    // Ranking List Skeleton  
+    const rankingList = document.getElementById('admin-ranking-list');
+    if (rankingList) {
+        rankingList.innerHTML = skeletonRows;
+    }
+
+    // Math Ranking Skeleton
+    const mathRanking = document.getElementById('admin-math-ranking-list');
+    if (mathRanking) {
+        mathRanking.innerHTML = skeletonRows;
+    }
 }

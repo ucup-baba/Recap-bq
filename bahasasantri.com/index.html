@@ -4,7 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Santri Pintar - v2 Light</title>
+    <title>Santri Pintar - Belajar Bahasa Inggris</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Aplikasi belajar bahasa Inggris untuk santri. Latihan vocabulary, ujian pekanan, dan Math Battle.">
+    <meta name="keywords" content="santri, bahasa inggris, vocabulary, belajar, quiz, ujian">
+    <meta name="author" content="Bahasa Santri BQ">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bahasasantri.com/">
+    <meta property="og:title" content="Santri Pintar - Belajar Bahasa Inggris">
+    <meta property="og:description"
+        content="Aplikasi belajar bahasa Inggris untuk santri. Latihan vocabulary, ujian pekanan, dan Math Battle.">
+    <meta property="og:image" content="https://bahasasantri.com/images/icon-512.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://bahasasantri.com/">
+    <meta property="twitter:title" content="Santri Pintar - Belajar Bahasa Inggris">
+    <meta property="twitter:description"
+        content="Aplikasi belajar bahasa Inggris untuk santri. Latihan vocabulary, ujian pekanan, dan Math Battle.">
+    <meta property="twitter:image" content="https://bahasasantri.com/images/icon-512.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-512.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/icon-512.png">
+    <link rel="shortcut icon" href="images/icon-512.png">
 
     <!-- Tailwind v4 Compiled CSS -->
     <link rel="stylesheet" href="css/styles.css">
@@ -18,9 +45,11 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0F172A">
+    <meta name="theme-color" content="#F97316">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Santri Pintar">
     <link rel="apple-touch-icon" href="images/icon-512.png">
 </head>
 
@@ -113,21 +142,22 @@
                         </div>
 
                         <!-- Exam Card -->
-                        <button onclick="startQuiz('mixed')"
+                        <button id="btn-exam-card" onclick="checkExamStatus()"
                             class="w-full bg-white rounded-3xl p-1 shadow-sm hover:shadow-md transition-all group border border-gray-100 text-left">
                             <div
                                 class="rounded-[1.3rem] border-2 border-dashed border-brand-secondary/30 p-5 flex items-center gap-4 bg-mint/30">
                                 <div
                                     class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-brand-secondary">
-                                    📚
+                                    <span id="exam-icon">📚</span>
                                 </div>
                                 <div class="flex-1">
-                                    <h3 class="font-bold text-brand-dark text-lg">Ujian Pekanan</h3>
-                                    <p class="text-gray-500 text-xs">Mode ujian dengan timer 10 menit</p>
+                                    <h3 id="exam-title" class="font-bold text-brand-dark text-lg">Ujian Pekanan</h3>
+                                    <p id="exam-subtitle" class="text-gray-500 text-xs">Mode ujian dengan timer 10 menit
+                                    </p>
                                 </div>
                                 <div
                                     class="w-10 h-10 rounded-full bg-brand-secondary text-white flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
-                                    <i class="fas fa-play"></i>
+                                    <i id="exam-play-icon" class="fas fa-play"></i>
                                 </div>
                             </div>
                         </button>
@@ -195,19 +225,30 @@
 
                         <!-- Ranking Sub-Tabs -->
                         <div class="flex gap-2 mb-4">
-                            <button onclick="switchRankingTab('bahasa')" id="rank-tab-bahasa"
-                                class="flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-brand-primary text-white transition-all">
-                                📚 Bahasa
+                            <button onclick="switchRankingTab('total')" id="rank-tab-total"
+                                class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-brand-primary text-white transition-all">
+                                📊 Total
+                            </button>
+                            <button onclick="switchRankingTab('weekly')" id="rank-tab-weekly"
+                                class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-gray-100 text-gray-500 transition-all">
+                                📅 Pekan Ini
                             </button>
                             <button onclick="switchRankingTab('math')" id="rank-tab-math"
-                                class="flex-1 py-2 px-4 rounded-xl font-bold text-sm bg-gray-100 text-gray-500 transition-all">
+                                class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-gray-100 text-gray-500 transition-all">
                                 🔢 Matematika
                             </button>
                         </div>
 
-                        <!-- Bahasa Leaderboard -->
-                        <div id="rank-bahasa" class="space-y-3">
+                        <!-- Total Leaderboard (Bahasa) -->
+                        <div id="rank-total" class="space-y-3">
                             <div id="santri-leaderboard" class="space-y-3">
+                                <div class="text-center text-gray-400 mt-10">Memuat data...</div>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Leaderboard -->
+                        <div id="rank-weekly" class="hidden space-y-3">
+                            <div id="weekly-leaderboard" class="space-y-3">
                                 <div class="text-center text-gray-400 mt-10">Memuat data...</div>
                             </div>
                         </div>
@@ -519,6 +560,12 @@
                     </div>
                 </div>
 
+                <!-- Remedial Button (Only for score < 70) -->
+                <button id="btn-remedial" onclick="startQuiz('mixed', true)"
+                    class="hidden w-full py-4 rounded-2xl bg-yellow-500 text-white font-bold shadow-lg mb-3 hover:bg-yellow-600 transition-colors">
+                    <i class="fas fa-redo mr-2"></i>Ikut Remidi (Max Nilai: 70)
+                </button>
+
                 <!-- Review Button (Exam Only) -->
                 <button id="btn-review" onclick="showReview()"
                     class="hidden w-full py-4 rounded-2xl bg-brand-secondary text-white font-bold shadow-lg mb-3 hover:bg-teal-600 transition-colors">
@@ -560,9 +607,15 @@
                         <h2 class="text-2xl font-bold text-brand-dark">Admin Panel</h2>
                         <p class="text-xs text-gray-500">Kelola Ujian & Santri</p>
                     </div>
-                    <button onclick="location.reload()"
-                        class="w-10 h-10 rounded-full bg-white text-red-500 shadow-sm flex items-center justify-center hover:bg-red-50 transition-colors"><i
-                            class="fas fa-sign-out-alt"></i></button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleTheme()" class="theme-toggle" title="Toggle Dark Mode">
+                            <i class="fas fa-sun icon-sun text-yellow-500"></i>
+                            <i class="fas fa-moon icon-moon text-indigo-400"></i>
+                        </button>
+                        <button onclick="location.reload()"
+                            class="w-10 h-10 rounded-full bg-white text-red-500 shadow-sm flex items-center justify-center hover:bg-red-50 transition-colors"><i
+                                class="fas fa-sign-out-alt"></i></button>
+                    </div>
                 </div>
 
                 <!-- Tabs -->
@@ -872,6 +925,38 @@
         </div>
     </div>
 
+    <!-- Remedial Confirmation Dialog -->
+    <div id="remedial-confirm-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-redo text-yellow-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark text-center mb-2">Ujian Remidi</h3>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+                <p class="text-sm text-gray-600 text-center mb-2">
+                    Nilai ujian Anda: <span id="remedial-current-score" class="font-bold text-orange-500">-</span>
+                </p>
+                <p class="text-sm text-gray-600 text-center">
+                    Nilai maksimal remidi: <span class="font-bold text-yellow-600">70</span>
+                </p>
+            </div>
+            <p class="text-gray-400 text-xs text-center mb-4">
+                ⚠️ Remidi hanya bisa diikuti 1× per minggu
+            </p>
+            <div class="space-y-2">
+                <button onclick="confirmRemedial()"
+                    class="w-full py-3 rounded-xl bg-yellow-500 text-white font-bold hover:bg-yellow-600 transition-colors">
+                    Ya, Ikut Remidi
+                </button>
+                <button onclick="closeRemedialDialog()"
+                    class="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ADMIN: RESET SCORE DIALOG -->
     <div id="admin-reset-dialog"
         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
@@ -904,6 +989,49 @@
         </div>
     </div>
 
+    <!-- Generic Notification Dialog (replaces alert) -->
+    <div id="notification-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div id="notif-icon-container"
+                class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i id="notif-icon" class="fas fa-info-circle text-blue-500 text-2xl"></i>
+            </div>
+            <h3 id="notif-title" class="text-xl font-bold text-brand-dark text-center mb-2">Notifikasi</h3>
+            <p id="notif-message" class="text-gray-600 text-sm text-center mb-4 whitespace-pre-line">
+                Pesan notifikasi
+            </p>
+            <button onclick="closeNotificationDialog()"
+                class="w-full py-3 rounded-xl bg-brand-primary text-white font-bold hover:bg-orange-600 transition-colors">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <!-- Generic Confirmation Dialog (replaces confirm) -->
+    <div id="confirmation-dialog"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-question-circle text-orange-500 text-2xl"></i>
+            </div>
+            <h3 id="confirm-title" class="text-xl font-bold text-brand-dark text-center mb-2">Konfirmasi</h3>
+            <p id="confirm-message" class="text-gray-600 text-sm text-center mb-4 whitespace-pre-line">
+                Apakah Anda yakin?
+            </p>
+            <div class="space-y-2">
+                <button id="confirm-yes-btn" onclick="handleConfirmYes()"
+                    class="w-full py-3 rounded-xl bg-brand-primary text-white font-bold hover:bg-orange-600 transition-colors">
+                    Ya
+                </button>
+                <button onclick="closeConfirmationDialog()"
+                    class="w-full py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ADMIN: UNLOCK EXAM DIALOG -->
     <div id="admin-unlock-dialog"
         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
@@ -929,6 +1057,15 @@
                     Batal
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- LOADING OVERLAY (for quiz submit) -->
+    <div id="loading-overlay"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center">
+        <div class="bg-white rounded-3xl p-8 flex flex-col items-center shadow-2xl dialog-content">
+            <div class="spinner spinner-brand spinner-lg mb-4"></div>
+            <p id="loading-text" class="text-gray-600 font-medium">Menyimpan hasil...</p>
         </div>
     </div>
 

@@ -2,6 +2,7 @@
 import { state } from './state.js';
 import { switchView, updateTimerDisplay, showConfetti, setTopBarShake, playSoundCorrect, playSoundWrong } from './ui.js';
 import { speakCurrentWord, setupSpeakingUI } from './audio.js';
+import { showNotification, showConfirmation } from './dialogs.js';
 import { db } from './config.js';
 import { doc, updateDoc, increment, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
@@ -40,7 +41,7 @@ function similarity(s1, s2) {
 }
 
 // Helper: Get Monday 00:01 of Current Week
-function getWeekStart() {
+export function getWeekStart() {
     const d = new Date();
     const day = d.getDay();
     const diff = d.getDate() - day + (day == 0 ? -6 : 1);
@@ -73,12 +74,34 @@ export function stopTimer() {
 // QUIZ INITIALIZATION
 // ========================================
 
-export function startQuiz(mode) {
+export function startQuiz(mode, isRemedial = false) {
     state.mode = mode;
     state.isExam = (mode === 'mixed');
+    state.isRemedial = isRemedial;
 
-    // Weekly exam limit check
-    if (state.isExam && state.currentUser && state.currentUser.role === 'student') {
+    // Remedial eligibility check
+    if (state.isRemedial && state.currentUser && state.currentUser.role === 'student') {
+        const lastRemedial = state.currentUser.lastRemedialDate;
+        const weekStart = getWeekStart();
+
+        // Check if already took remedial this week
+        if (lastRemedial) {
+            const lastRemedialDate = new Date(lastRemedial);
+            if (lastRemedialDate > weekStart) {
+                showNotification('Anda sudah mengikuti remidi minggu ini.', 'Remidi', 'warning');
+                return;
+            }
+        }
+
+        // Check if eligible (score < 70)
+        if (!state.currentUser.remedialAvailable) {
+            showNotification('Remidi hanya untuk nilai di bawah 70.', 'Tidak Eligible', 'warning');
+            return;
+        }
+    }
+
+    // Weekly exam limit check (only for regular exam, not remedial)
+    if (state.isExam && !state.isRemedial && state.currentUser && state.currentUser.role === 'student') {
         const lastExam = state.currentUser.lastExamDate;
         if (lastExam) {
             const lastExamDate = new Date(lastExam);
@@ -180,7 +203,6 @@ function updateQuestionNav() {
     }
 }
 
-// Get class for nav button based on state
 // Get class for nav button based on state
 function getNavButtonClass(i) {
     // Buttons made even larger: w-14 h-14 (56px)
@@ -456,12 +478,38 @@ export function handleAns(ans, isCorrect, isTyped = false) {
 // NAVIGATION
 // ========================================
 
-export function nextQuestion() {
+export async function nextQuestion() {
     state.isNavigating = false;
 
-    // On last question, finish the quiz
+    // On last question, show confirmation before finishing
     if (state.index === state.max - 1) {
-        showResult();
+        // Count unanswered questions
+        const unanswered = state.answers.filter(a => a === null).length;
+        let message = 'Yakin ingin menyelesaikan ujian?';
+        if (unanswered > 0) {
+            message = `Masih ada ${unanswered} soal belum dijawab. Yakin ingin selesai?`;
+        }
+
+        const confirmed = await showConfirmation(message, 'Selesaikan Ujian', 'Ya, Selesai', 'Kembali');
+        if (confirmed) {
+            // Show loading overlay
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            }
+
+            // Small delay to show loading animation
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            await showResult();
+
+            // Hide loading overlay after showResult is done
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+        }
     } else if (state.index < state.max - 1) {
         loadQ(state.index + 1);
     }
@@ -492,6 +540,11 @@ export async function showResult(forcedScore) {
             if (ans && ans.correct) correct++;
         });
         score = Math.round((correct / state.max) * 100);
+
+        // Cap score at 70 for remedial exams
+        if (state.isRemedial) {
+            score = Math.min(score, 70);
+        }
     } else if (!state.isExam && typeof forcedScore === 'undefined') {
         // Practice mode: Calculate actual score
         score = Math.round((state.practiceCorrect / state.max) * 100);
@@ -528,7 +581,7 @@ export async function showResult(forcedScore) {
                 const rankText = document.getElementById('rank-change-text');
                 if (rankText) rankText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
-                const result = await processRanking(userId, score);
+                const result = await processRanking(userId, score, state.isRemedial);
                 updateRankUI(result, score);
             } catch (e) {
                 console.error("Ranking Error:", e);
@@ -538,6 +591,16 @@ export async function showResult(forcedScore) {
         }
     } else {
         if (rankBox) rankBox.classList.add('hidden');
+    }
+
+    // Show Remedial Button (only for regular exam with score < 70)
+    const remedialBtn = document.getElementById('btn-remedial');
+    if (remedialBtn) {
+        if (state.isExam && !state.isRemedial && score < 70 && state.currentUser && state.currentUser.role === 'student') {
+            remedialBtn.classList.remove('hidden');
+        } else {
+            remedialBtn.classList.add('hidden');
+        }
     }
 
     // Show Review Button for Exam Mode
@@ -623,7 +686,7 @@ export function showReview() {
 // Expose globally for HTML button
 window.showReview = showReview;
 
-async function processRanking(userId, newPoints) {
+async function processRanking(userId, newPoints, isRemedial = false) {
     const usersRef = collection(db, "santri_users");
 
     // 1. Get Current Ranks (Before Update)
@@ -635,19 +698,42 @@ async function processRanking(userId, newPoints) {
     const preRank = usersPre.findIndex(u => u.id === userId) + 1;
     const preTotal = usersPre.find(u => u.id === userId)?.highscore || 0;
 
-    // 2. Update Score AND Last Exam Date
+    // 2. Update Score AND Last Exam/Remedial Date
     const userRef = doc(db, "santri_users", userId);
     const nowISO = new Date().toISOString();
 
-    await updateDoc(userRef, {
+    const updateData = {
         highscore: increment(newPoints),
-        lastExamDate: nowISO
-    });
+        weeklyScore: newPoints,  // Set weekly score (will be reset every Monday)
+        lastExamScore: newPoints
+    };
+
+    if (isRemedial) {
+        // Remedial tracking
+        updateData.lastRemedialDate = nowISO;
+        updateData.remedialAvailable = false;  // Can't remediate again this week
+    } else {
+        // Regular exam tracking
+        updateData.lastExamDate = nowISO;
+        // Set remedial availability based on score
+        updateData.remedialAvailable = (newPoints < 70);
+    }
+
+    await updateDoc(userRef, updateData);
 
     // Update Local State immediately
     if (state.currentUser) {
         state.currentUser.highscore = preTotal + newPoints;
-        state.currentUser.lastExamDate = nowISO;
+        state.currentUser.weeklyScore = newPoints;
+        state.currentUser.lastExamScore = newPoints;
+
+        if (isRemedial) {
+            state.currentUser.lastRemedialDate = nowISO;
+            state.currentUser.remedialAvailable = false;
+        } else {
+            state.currentUser.lastExamDate = nowISO;
+            state.currentUser.remedialAvailable = (newPoints < 70);
+        }
     }
 
     // 3. Calc Post-Update
