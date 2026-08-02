@@ -12,6 +12,7 @@ let isHostSpectator = false; // true when guru creates room as spectator
 let localQuestion = null; // Cached question for local checking (optimization)
 let roomLevel = 1; // 1 or 2
 let roomTargetScore = 20; // 20, 30, 40, 50
+let mathBacksound = null; // background music (host only)
 
 const PLAYER_COLORS = [
     'text-brand-primary',  // player_0 (orange)
@@ -400,10 +401,29 @@ function subscribeToRoom(roomId) {
 
 function leaveMathGame() {
     if (mathUnsub) mathUnsub();
+    stopMathBacksound();
     currentRoomId = null;
     myRole = null;
     localQuestion = null;
     switchView('menu');
+}
+
+function playMathBacksound() {
+    if (mathBacksound) return;
+    try {
+        mathBacksound = new Audio('/sounds/backsound.mp3');
+        mathBacksound.loop = true;
+        mathBacksound.volume = 0.3;
+        mathBacksound.play().catch(() => { });
+    } catch (e) { console.warn('Math backsound error:', e); }
+}
+
+function stopMathBacksound() {
+    if (mathBacksound) {
+        mathBacksound.pause();
+        mathBacksound.currentTime = 0;
+        mathBacksound = null;
+    }
 }
 
 // Host starts FFA game manually
@@ -565,6 +585,7 @@ function renderMathUI(data) {
             clearInterval(countdownTimer);
             countdownTimer = null;
         }
+        if (isHostSpectator) playMathBacksound();
 
         switchView('math-game');
 
@@ -690,6 +711,7 @@ function renderMathUI(data) {
 
     }
     else if (data.status === 'finished') {
+        stopMathBacksound();
         if (countdownTimer) {
             clearInterval(countdownTimer);
             countdownTimer = null;

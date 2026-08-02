@@ -27,5 +27,11 @@ export const state = {
     users: {
         '00': { name: 'Super Admin', role: 'admin' }
     },
-    vocabulary: []
+    vocabulary: [],
+
+    // App Settings (loaded from Firestore)
+    appSettings: {
+        ccaEnabled: true,
+        mathMode: 'battle' // 'battle' or 'practice'
+    }
 };

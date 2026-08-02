@@ -24,12 +24,14 @@ class FinancialTabView extends GetView<FinancialTabController> {
 
     return Scaffold(
       backgroundColor: context.backgroundColor,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => controller.backupToSheets(),
+        backgroundColor: Colors.teal,
+        child: const Icon(Icons.backup, color: Colors.white),
+      ),
       body: Column(
         children: [
-          // Header with gradient - Show for Fund Request (1) and Expense (2)
-          Obx(() => (controller.selectedSubTab.value == 1 || controller.selectedSubTab.value == 2)
-              ? _buildHeader(context, currencyFormat)
-              : const SizedBox.shrink()),
+          // Header removed - expense form now in Overview
           // Sub-tabs
           _buildSubTabs(context),
           // Content
@@ -41,11 +43,9 @@ class FinancialTabView extends GetView<FinancialTabController> {
 
               switch (controller.selectedSubTab.value) {
                 case 1:
-                  return _buildFundRequestTab(context, currencyFormat);
-                case 2:
-                  return _buildExpenseTab(context, currencyFormat);
-                case 3:
                   return _buildPersonalTab(context, currencyFormat);
+                case 2:
+                  return _buildHistoryTab(context, currencyFormat);
                 default:
                   return _buildOverviewTab(context, currencyFormat);
               }
@@ -100,21 +100,42 @@ class FinancialTabView extends GetView<FinancialTabController> {
                     ),
                   ],
                 ),
-                // Refresh button
-                GestureDetector(
-                  onTap: () => controller.refreshData(),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    // Backup button
+                    GestureDetector(
+                      onTap: () => controller.backupToSheets(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.backup,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.refresh,
-                      color: Colors.white,
-                      size: 22,
+                    const SizedBox(width: 8),
+                    // Refresh button
+                    GestureDetector(
+                      onTap: () => controller.refreshData(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.refresh,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -197,28 +218,19 @@ class FinancialTabView extends GetView<FinancialTabController> {
   /// Build sub-tabs
   Widget _buildSubTabs(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Obx(
-        () => Row(
-          children: [
-            _buildSubTabButton(context, 0, 'Overview', Icons.dashboard),
-            const SizedBox(width: 8),
-            _buildSubTabButton(context, 1, 'Pengajuan', Icons.request_page),
-            const SizedBox(width: 8),
-            _buildSubTabButton(
-              context,
-              2,
-              'Pengeluaran',
-              Icons.remove_circle_outline,
-            ),
-            const SizedBox(width: 8),
-            _buildSubTabButton(
-              context,
-              3,
-              'Me',
-              Icons.person_outline,
-            ),
-          ],
+        () => SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildSubTabButton(context, 0, 'Overview', Icons.dashboard),
+              const SizedBox(width: 6),
+              _buildSubTabButton(context, 1, 'Me', Icons.person_outline),
+              const SizedBox(width: 6),
+              _buildSubTabButton(context, 2, 'Riwayat', Icons.history),
+            ],
+          ),
         ),
       ),
     );
@@ -231,39 +243,37 @@ class FinancialTabView extends GetView<FinancialTabController> {
     IconData icon,
   ) {
     final isSelected = controller.selectedSubTab.value == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => controller.selectedSubTab.value = index,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? (context.isDark ? Colors.teal.shade700 : Colors.teal.shade500)
-                : (context.isDark
-                      ? Colors.grey.shade800
-                      : Colors.grey.shade200),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 16,
+    return GestureDetector(
+      onTap: () => controller.selectedSubTab.value = index,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (context.isDark ? Colors.teal.shade700 : Colors.teal.shade500)
+              : (context.isDark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : context.subtextColor,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: isSelected ? Colors.white : context.subtextColor,
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Colors.white : context.subtextColor,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -495,7 +505,7 @@ class FinancialTabView extends GetView<FinancialTabController> {
               // PRIBADI CARD (Blue Theme)
               Expanded(
                 child: GestureDetector(
-                  onTap: () => controller.selectedSubTab.value = 3,
+                  onTap: () => controller.selectedSubTab.value = 1,
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -636,6 +646,11 @@ class FinancialTabView extends GetView<FinancialTabController> {
           
           const SizedBox(height: 24),
           
+          // Expense Form Section (moved from Pengeluaran tab)
+          _buildExpenseFormCard(context, currencyFormat),
+          
+          const SizedBox(height: 24),
+          
           // Recent Transactions Section
           Padding(
             padding: const EdgeInsets.only(left: 8, bottom: 12),
@@ -650,8 +665,26 @@ class FinancialTabView extends GetView<FinancialTabController> {
           ),
 
           Obx(() {
-            final personalTx = controller.personalTransactions;
-            if (personalTx.isEmpty) {
+            // Combine SiQowwam (expense) and Personal transactions
+            final List<Map<String, dynamic>> combinedTx = [];
+            
+            // Add SiQowwam transactions with source marker
+            for (final tx in controller.transactions) {
+              combinedTx.add({
+                ...tx,
+                '_source': 'siqowwam',
+              });
+            }
+            
+            // Add Personal transactions with source marker
+            for (final tx in controller.personalTransactions) {
+              combinedTx.add({
+                ...tx,
+                '_source': 'personal',
+              });
+            }
+            
+            if (combinedTx.isEmpty) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(32),
@@ -666,12 +699,273 @@ class FinancialTabView extends GetView<FinancialTabController> {
               );
             }
             
+            // Sort by createdAt descending (newest first)
+            combinedTx.sort((a, b) {
+              final aDate = a['createdAt'];
+              final bDate = b['createdAt'];
+              if (aDate == null && bDate == null) return 0;
+              if (aDate == null) return 1;
+              if (bDate == null) return -1;
+              return bDate.compareTo(aDate);
+            });
+            
             return Column(
-              children: personalTx.take(5).map((tx) {
-                return _buildPersonalTransactionCard(context, tx, currencyFormat);
+              children: combinedTx.take(5).map((tx) {
+                return _buildCombinedTransactionCard(context, tx, currencyFormat);
               }).toList(),
             );
           }),
+        ],
+      ),
+    );
+  }
+
+  /// Expense form card widget (used in Overview tab)
+  Widget _buildExpenseFormCard(BuildContext context, NumberFormat currencyFormat) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.remove_circle, color: Colors.red.shade600),
+              const SizedBox(width: 10),
+              Text(
+                'Catat Pengeluaran',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: context.textColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Category selector as horizontal icons
+          Center(
+            child: Text(
+              'Kategori',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.textColor,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Obx(() {
+            final categories = controller.availableCategories.keys.toList();
+            categories.sort((a, b) {
+              if (a == 'Lainnya') return 1;
+              if (b == 'Lainnya') return -1;
+              return a.compareTo(b);
+            });
+
+            return Center(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: categories.map((category) {
+                  final isSelected = controller.selectedCategory.value == category;
+                  final catColor = _getCategoryColor(category);
+                  final icon = _getCategoryIcon(category);
+
+                  return GestureDetector(
+                    onTap: () {
+                      controller.selectedCategory.value = category;
+                      controller.selectedSubcategory.value = null;
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? catColor
+                                : context.isDark
+                                ? catColor.withOpacity(0.25)
+                                : catColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? catColor : catColor.withOpacity(0.5),
+                              width: isSelected ? 2 : 1.5,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: catColor.withValues(alpha: 0.4),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
+                            child: Icon(
+                              icon,
+                              color: isSelected
+                                  ? Colors.white
+                                  : context.isDark
+                                  ? Color.lerp(catColor, Colors.white, 0.4)!
+                                  : catColor,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          category,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? catColor : context.subtextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            );
+          }),
+          const SizedBox(height: 16),
+
+          // Subcategory chips
+          Obx(() {
+            final category = controller.selectedCategory.value;
+            if (category == null) return const SizedBox.shrink();
+
+            final subcategories = controller.availableCategories[category] ?? [];
+            final catColor = _getCategoryColor(category);
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Sub-kategori',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: context.textColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    alignment: WrapAlignment.center,
+                    children: subcategories.map((sub) {
+                      final isSelected = controller.selectedSubcategory.value == sub;
+                      return GestureDetector(
+                        onTap: () {
+                          controller.selectedSubcategory.value = isSelected ? null : sub;
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? catColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? catColor
+                                  : (context.isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            sub,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : context.subtextColor,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            );
+          }),
+          const SizedBox(height: 16),
+
+          // Amount field
+          TextField(
+            controller: controller.expenseAmountController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              _ThousandsSeparatorFormatter(),
+            ],
+            decoration: InputDecoration(
+              labelText: 'Nominal',
+              prefixText: 'Rp ',
+              prefixIcon: const Icon(Icons.attach_money),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: context.isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Description field
+          TextField(
+            controller: controller.expenseDescriptionController,
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: 'Keterangan',
+              prefixIcon: const Icon(Icons.description),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: context.isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Submit button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => controller.createExpense(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Catat Pengeluaran',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1710,6 +2004,225 @@ class FinancialTabView extends GetView<FinancialTabController> {
     );
   }
 
+  /// Combined transaction card for Overview showing both SiQowwam and Personal
+  Widget _buildCombinedTransactionCard(
+    BuildContext context,
+    Map<String, dynamic> tx,
+    NumberFormat currencyFormat,
+  ) {
+    final source = tx['_source'] ?? 'personal';
+    final isSiqowwam = source == 'siqowwam';
+    
+    // For SiQowwam transactions
+    if (isSiqowwam) {
+      final category = tx['category'] ?? tx['mainCategory'] ?? tx['name'] ?? 'Umum';
+      final subCategory = tx['subcategory'] ?? tx['subCategory'] ?? '';
+      final description = tx['description'] ?? '';
+      final amount = (tx['amount'] ?? 0).toDouble();
+      
+      DateTime date;
+      final createdAt = tx['createdAt'];
+      if (createdAt is Timestamp) {
+        date = createdAt.toDate();
+      } else if (createdAt is DateTime) {
+        date = createdAt;
+      } else {
+        date = DateTime.now();
+      }
+      
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.teal.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _getCategoryIcon(category),
+                color: Colors.teal,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          subCategory.isNotEmpty ? '$category - $subCategory' : category,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: context.textColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'SQ',
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.teal),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    DateFormat('dd MMM yyyy, HH:mm').format(date),
+                    style: TextStyle(fontSize: 12, color: context.subtextColor),
+                  ),
+                  if (description.isNotEmpty)
+                    Text(
+                      description,
+                      style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: context.subtextColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            Text(
+              '- Rp ${currencyFormat.format(amount)}',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // For Personal transactions
+    final type = tx['type'];
+    final isIncome = type == FinancialTabController.typeIncome;
+    final isInvestment = type == FinancialTabController.typeInvestment;
+    
+    Color color;
+    if (isIncome) {
+      color = Colors.green;
+    } else if (isInvestment) {
+      color = Colors.blue;
+    } else {
+      color = Colors.red;
+    }
+
+    DateTime date;
+    final txDate = tx['date'];
+    if (txDate is Timestamp) {
+      date = txDate.toDate();
+    } else if (txDate is DateTime) {
+      date = txDate;
+    } else {
+      date = DateTime.now();
+    }
+    final amount = (tx['amount'] ?? 0).toDouble();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              _getPersonalCategoryIcon(tx['category']),
+              color: color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        tx['subcategory'] != null 
+                            ? '${tx['category']} - ${tx['subcategory']}' 
+                            : (tx['category'] ?? 'Umum'),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: context.textColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'ME',
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.purple),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  DateFormat('dd MMM yyyy, HH:mm').format(date),
+                  style: TextStyle(fontSize: 12, color: context.subtextColor),
+                ),
+                if (tx['description'] != null && tx['description'].toString().isNotEmpty)
+                   Text(
+                    tx['description'],
+                    style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: context.subtextColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            '${isIncome ? "+" : "-"} Rp ${currencyFormat.format(amount)}',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
   Color _getPersonalTypeColor(String type) {
     switch (type) {
       case FinancialTabController.typeIncome:
@@ -2096,6 +2609,1501 @@ class FinancialTabView extends GetView<FinancialTabController> {
     );
   }
 
+  /// Build unified History tab with 3 categories
+  Widget _buildHistoryTab(BuildContext context, NumberFormat currencyFormat) {
+    return Column(
+      children: [
+        // Main Category Filter Chips
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Obx(() => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildHistoryFilterChip(context, 'all', 'Semua', Icons.list_alt),
+                const SizedBox(width: 8),
+                _buildHistoryFilterChip(context, 'fund_request', 'Proposal', Icons.request_page),
+                const SizedBox(width: 8),
+                _buildHistoryFilterChip(context, 'expense', 'SiQowwam', Icons.remove_circle),
+                const SizedBox(width: 8),
+                _buildHistoryFilterChip(context, 'personal', 'Personal', Icons.person),
+              ],
+            ),
+          )),
+        ),
+        
+        // Sub-filter for Expense category OR Statistics View for SiQowwam
+        Obx(() {
+          if (controller.selectedHistoryCategory.value == 'expense') {
+            // Show SiQowwam Statistics View
+            return Expanded(
+              child: _buildSiQowwamStatsView(context, currencyFormat),
+            );
+          } else if (controller.selectedHistoryCategory.value == 'personal') {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildPersonalTypeFilter(context, null, 'Semua'),
+                    const SizedBox(width: 6),
+                    _buildPersonalTypeFilter(context, 'income', 'Pemasukan'),
+                    const SizedBox(width: 6),
+                    _buildPersonalTypeFilter(context, 'expense', 'Pengeluaran'),
+                    const SizedBox(width: 6),
+                    _buildPersonalTypeFilter(context, 'investment', 'Investasi'),
+                  ],
+                ),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+        
+        // Show divider and list only when NOT expense category
+        Obx(() {
+          if (controller.selectedHistoryCategory.value == 'expense') {
+            return const SizedBox.shrink();
+          }
+          return const Divider(height: 1);
+        }),
+        
+        // History List (not shown when expense is selected - it has its own view)
+        Obx(() {
+          if (controller.selectedHistoryCategory.value == 'expense') {
+            return const SizedBox.shrink();
+          }
+          if (controller.selectedHistoryCategory.value == 'personal') {
+            return Expanded(
+              child: _buildPersonalStatsView(context, currencyFormat),
+            );
+          }
+          return Expanded(
+            child: _buildHistoryList(context, currencyFormat),
+          );
+        }),
+      ],
+    );
+  }
+  
+  /// Build SiQowwam Statistics View
+  Widget _buildSiQowwamStatsView(BuildContext context, NumberFormat currencyFormat) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    return Column(
+      children: [
+        // Stats Header (scrollable part)
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with Year Selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Statistik Kategori',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: context.textColor,
+                        ),
+                      ),
+                    ),
+                    // Year Button (click to show all year - reset month filter)
+                    Obx(() => GestureDetector(
+                      onTap: () {
+                        // Reset month filter to show all year data
+                        controller.selectedStatsMonth.value = null;
+                        controller.selectedStatsCategory.value = null;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: controller.selectedStatsMonth.value == null 
+                              ? Colors.teal 
+                              : Colors.teal.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${DateTime.now().year}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    )),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Month Filter Chips (Centered)
+                Obx(() => Center(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: List.generate(12, (i) {
+                      final monthNum = i + 1;
+                      final isSelected = controller.selectedStatsMonth.value == monthNum;
+                      return GestureDetector(
+                        onTap: () {
+                          if (isSelected) {
+                            controller.selectedStatsMonth.value = null;
+                          } else {
+                            controller.selectedStatsMonth.value = monthNum;
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? Colors.teal
+                                : (context.isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? Colors.teal : Colors.transparent,
+                            ),
+                          ),
+                          child: Text(
+                            months[i],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.white : context.subtextColor,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                )),
+                
+                const SizedBox(height: 20),
+                
+                // Total Card
+                Obx(() {
+                  final filteredTx = _getFilteredExpenseTransactions();
+                  final total = filteredTx.fold<int>(0, (sum, t) => sum + ((t['amount'] as num?)?.toInt() ?? 0));
+                  final count = filteredTx.length;
+                  
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.teal.shade700, Colors.blue.shade700],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          () {
+                            final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                            final selectedMonth = controller.selectedStatsMonth.value;
+                            final year = controller.selectedStatsYear.value;
+                            if (selectedMonth != null) {
+                              return 'Total Pengeluaran ${months[selectedMonth - 1]} $year';
+                            }
+                            return 'Total Pengeluaran $year';
+                          }(),
+                          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Rp ${currencyFormat.format(total)}',
+                          style: const TextStyle(
+                            color: Colors.greenAccent,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$count Transaksi',
+                          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                
+                const SizedBox(height: 20),
+                
+                // Category Label
+                Center(
+                  child: Text(
+                    'Kategori',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: context.textColor,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Category Icons with Amounts (Clickable)
+                Obx(() {
+                  final filteredTx = _getFilteredExpenseTransactions();
+                  final categories = ['Fasilitas', 'Pendidikan', 'Rumah Tangga', 'Transportasi', 'Lainnya'];
+                  
+                  // Calculate totals per category
+                  final categoryTotals = <String, int>{};
+                  for (final cat in categories) {
+                    categoryTotals[cat] = filteredTx
+                        .where((t) => t['category'] == cat)
+                        .fold<int>(0, (sum, t) => sum + ((t['amount'] as num?)?.toInt() ?? 0));
+                  }
+                  
+                  return Center(
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      alignment: WrapAlignment.center,
+                      children: categories.map((cat) {
+                        final catColor = _getCategoryColor(cat);
+                        final icon = _getCategoryIcon(cat);
+                        final total = categoryTotals[cat] ?? 0;
+                        final isSelected = controller.selectedStatsCategory.value == cat;
+                        
+                        return GestureDetector(
+                          onTap: () {
+                            if (isSelected) {
+                              controller.selectedStatsCategory.value = null;
+                            } else {
+                              controller.selectedStatsCategory.value = cat;
+                            }
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: isSelected 
+                                      ? catColor
+                                      : (context.isDark ? catColor.withOpacity(0.3) : catColor.withOpacity(0.15)),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected ? catColor : catColor.withOpacity(0.5), 
+                                    width: isSelected ? 2.5 : 1.5,
+                                  ),
+                                  boxShadow: isSelected ? [
+                                    BoxShadow(
+                                      color: catColor.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ] : null,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    icon, 
+                                    color: isSelected ? Colors.white : catColor, 
+                                    size: 26,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                cat,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? catColor : context.subtextColor,
+                                ),
+                              ),
+                              Text(
+                                'Rp ${currencyFormat.format(total)}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: total > 0 ? catColor : context.subtextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }),
+                
+                const SizedBox(height: 20),
+                
+                // Sub-category Detail (when category is selected)
+                Obx(() {
+                  final selectedCat = controller.selectedStatsCategory.value;
+                  if (selectedCat == null) return const SizedBox.shrink();
+                  
+                  final filteredTx = _getFilteredExpenseTransactions()
+                      .where((t) => t['category'] == selectedCat)
+                      .toList();
+                  
+                  // Calculate total for this category
+                  final catTotal = filteredTx.fold<int>(0, (sum, t) => sum + ((t['amount'] as num?)?.toInt() ?? 0));
+                  
+                  // Group by sub-category
+                  final subCatTotals = <String, int>{};
+                  for (final tx in filteredTx) {
+                    final subCat = tx['subcategory'] as String? ?? 'Umum';
+                    subCatTotals[subCat] = (subCatTotals[subCat] ?? 0) + ((tx['amount'] as num?)?.toInt() ?? 0);
+                  }
+                  
+                  if (subCatTotals.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'Belum ada transaksi $selectedCat',
+                          style: TextStyle(color: context.subtextColor),
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  final catColor = _getCategoryColor(selectedCat);
+                  final catIcon = _getCategoryIcon(selectedCat);
+                  
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category Header
+                        Row(
+                          children: [
+                            Icon(catIcon, color: catColor, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              selectedCat,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: catColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Progress bar
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: 1.0,
+                            backgroundColor: Colors.grey.shade600,
+                            valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                            minHeight: 4,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Sub-categories list
+                        ...subCatTotals.entries.map((entry) {
+                          final subCat = entry.key;
+                          final subTotal = entry.value;
+                          final percentage = catTotal > 0 ? (subTotal / catTotal * 100) : 0.0;
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        subCat,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: context.textColor,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Rp ${currencyFormat.format(subTotal)}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: context.textColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                // Progress bar for sub-category
+                                Stack(
+                                  children: [
+                                    Container(
+                                      height: 6,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade700,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    FractionallySizedBox(
+                                      widthFactor: percentage / 100,
+                                      child: Container(
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          color: catColor,
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${percentage.toStringAsFixed(1)}%',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: context.subtextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  );
+                }),
+                
+                // Transaction List (below sub-category)
+                Obx(() {
+                  final selectedCat = controller.selectedStatsCategory.value;
+                  if (selectedCat == null) return const SizedBox.shrink();
+                  
+                  final filteredTx = _getFilteredExpenseTransactions()
+                      .where((t) => t['category'] == selectedCat)
+                      .toList();
+                  
+                  if (filteredTx.isEmpty) return const SizedBox.shrink();
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      Text(
+                        'Riwayat Transaksi',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: context.textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...filteredTx.map((tx) => _buildExpenseHistoryCard(context, tx, currencyFormat)),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build Personal Statistics View
+  Widget _buildPersonalStatsView(BuildContext context, NumberFormat currencyFormat) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    return Column(
+      children: [
+        // Stats Header (scrollable part)
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with Year Selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Statistik Pribadi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: context.textColor,
+                        ),
+                      ),
+                    ),
+                    // Year Button
+                    Obx(() => GestureDetector(
+                      onTap: () {
+                        // Reset month filter to show all year data
+                        controller.selectedPersonalStatsMonth.value = null;
+                        controller.selectedPersonalStatsCategory.value = null;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: controller.selectedPersonalStatsMonth.value == null 
+                              ? Colors.blue 
+                              : Colors.blue.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${controller.selectedPersonalStatsYear.value}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    )),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Month Filter Chips
+                Obx(() => Center(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: List.generate(12, (i) {
+                      final monthNum = i + 1;
+                      final isSelected = controller.selectedPersonalStatsMonth.value == monthNum;
+                      return GestureDetector(
+                        onTap: () {
+                          if (isSelected) {
+                            controller.selectedPersonalStatsMonth.value = null;
+                          } else {
+                            controller.selectedPersonalStatsMonth.value = monthNum;
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? Colors.blue
+                                : (context.isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? Colors.blue : Colors.transparent,
+                            ),
+                          ),
+                          child: Text(
+                            months[i],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.white : context.subtextColor,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                )),
+                
+                const SizedBox(height: 20),
+                
+                // Total Card
+                Obx(() {
+                  final filteredTx = _getFilteredPersonalTransactions();
+                  
+                  // Calculate total based on current type filter (visual representation)
+                  // The backend list is already filtered by type if selected
+                  // But we want to show net flow? Or just sum of absolute values?
+                  // SiQowwam shows 'Total Pengeluaran'. 
+                  // Here if 'Semua' is selected, we might want to show Net Balance for period?
+                  // If 'Expense' selected, show Total Expense.
+                  
+                  final type = controller.selectedPersonalHistoryType.value;
+                  double total = 0;
+                  int count = filteredTx.length;
+                  
+                  if (type == null) {
+                    // Net Balance for period
+                    total = filteredTx.fold<double>(0, (sum, t) {
+                      final amount = ((t['amount'] as num?)?.toDouble() ?? 0);
+                      final tType = t['type'];
+                      if (tType == 'income') return sum + amount;
+                      return sum - amount;
+                    });
+                  } else {
+                     // Total for specfic type (absolute sum)
+                     total = filteredTx.fold<double>(0, (sum, t) => sum + ((t['amount'] as num?)?.toDouble() ?? 0));
+                  }
+                  
+                  // Color based on type or net
+                  Color cardStartColor = Colors.blue.shade700;
+                  Color cardEndColor = Colors.blue.shade900;
+                  String title = 'Total Transaksi';
+                  
+                  if (type == 'income') {
+                    cardStartColor = Colors.green.shade600;
+                    cardEndColor = Colors.green.shade800;
+                    title = 'Total Pemasukan';
+                  } else if (type == 'expense') {
+                    cardStartColor = Colors.red.shade600;
+                    cardEndColor = Colors.red.shade800;
+                    title = 'Total Pengeluaran';
+                  } else if (type == 'investment') {
+                    cardStartColor = Colors.purple.shade600;
+                    cardEndColor = Colors.purple.shade800;
+                    title = 'Total Investasi';
+                  } else {
+                     if (total < 0) {
+                        cardStartColor = Colors.red.shade600;
+                        cardEndColor = Colors.red.shade800;
+                        title = 'Defisit Periode Ini';
+                     } else {
+                        cardStartColor = Colors.teal.shade600;
+                        cardEndColor = Colors.teal.shade800;
+                        title = 'Surplus Periode Ini';
+                     }
+                  }
+                  
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [cardStartColor, cardEndColor],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                         BoxShadow(
+                            color: cardEndColor.withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                         )
+                      ]
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          () {
+                            final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                            final selectedMonth = controller.selectedPersonalStatsMonth.value;
+                            final year = controller.selectedPersonalStatsYear.value;
+                            if (selectedMonth != null) {
+                              return '$title ${months[selectedMonth - 1]} $year';
+                            }
+                            return '$title $year';
+                          }(),
+                          style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Rp ${currencyFormat.format(total.abs().toInt())}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                         const SizedBox(height: 4),
+                        Text(
+                          '$count Transaksi',
+                          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                
+                const SizedBox(height: 24),
+                
+                // Category Label
+                Center(
+                  child: Text(
+                    'Kategori',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: context.textColor,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Category Icons
+                Obx(() {
+                  final filteredTx = _getFilteredPersonalTransactions();
+                  final type = controller.selectedPersonalHistoryType.value;
+                  
+                  // Use predefined categories based on selected type
+                  List<String> categories;
+                  if (type == 'income') {
+                    categories = FinancialTabController.personalCategories['income'] ?? [];
+                  } else if (type == 'expense') {
+                    categories = FinancialTabController.personalCategories['expense'] ?? [];
+                  } else if (type == 'investment') {
+                    categories = FinancialTabController.personalCategories['investment'] ?? [];
+                  } else {
+                    // "Semua" - combine all types or show from transactions
+                    categories = filteredTx.map((t) => t['category'] as String? ?? 'Umum').toSet().toList();
+                    categories.sort();
+                  }
+                  
+                  if (categories.isEmpty) {
+                     return Center(
+                        child: Padding(
+                           padding: const EdgeInsets.symmetric(vertical: 20),
+                           child: Text('Tidak ada data kategori', style: TextStyle(color: context.subtextColor)),
+                        ),
+                     );
+                  }
+                  
+                  // Calculate totals per category
+                  final categoryTotals = <String, double>{};
+                  for (final cat in categories) {
+                    categoryTotals[cat] = filteredTx
+                        .where((t) => t['category'] == cat)
+                        .fold<double>(0, (sum, t) => sum + ((t['amount'] as num?)?.toDouble() ?? 0));
+                  }
+                  
+                  return Center(
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      alignment: WrapAlignment.center,
+                      children: categories.map((cat) {
+                        // Use the selected type for color, or infer from transaction
+                        final selectedType = controller.selectedPersonalHistoryType.value;
+                        String catType;
+                        if (selectedType != null) {
+                          catType = selectedType;
+                        } else {
+                          final sampleTx = filteredTx.firstWhere((t) => t['category'] == cat, orElse: () => {});
+                          catType = sampleTx['type'] as String? ?? 'expense';
+                        }
+                        
+                        // Icon
+                        final icon = _getPersonalCategoryIcon(cat);
+                        
+                        // Color
+                        final catColor = _getPersonalTypeColor(catType);
+                        
+                        final total = categoryTotals[cat] ?? 0;
+                        final isSelected = controller.selectedPersonalStatsCategory.value == cat;
+                        
+                        return GestureDetector(
+                          onTap: () {
+                            if (isSelected) {
+                              controller.selectedPersonalStatsCategory.value = null;
+                            } else {
+                              controller.selectedPersonalStatsCategory.value = cat;
+                            }
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: isSelected 
+                                      ? catColor
+                                      : (context.isDark ? catColor.withOpacity(0.3) : catColor.withOpacity(0.1)),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected ? catColor : catColor.withOpacity(0.5), 
+                                    width: isSelected ? 2.5 : 1.5,
+                                  ),
+                                  boxShadow: isSelected ? [
+                                    BoxShadow(
+                                      color: catColor.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ] : null,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    icon, 
+                                    color: isSelected ? Colors.white : catColor, 
+                                    size: 26,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                cat,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? catColor : context.subtextColor,
+                                ),
+                              ),
+                              Text(
+                                'Rp ${currencyFormat.format(total.toInt())}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: total > 0 ? catColor : context.subtextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }),
+                
+                const SizedBox(height: 20),
+                
+                 // Sub-category Detail (when category is selected)
+                Obx(() {
+                  final selectedCat = controller.selectedPersonalStatsCategory.value;
+                  if (selectedCat == null) return const SizedBox.shrink();
+                  
+                  final filteredTx = _getFilteredPersonalTransactions()
+                      .where((t) => t['category'] == selectedCat)
+                      .toList();
+                  
+                  // Calculate total for this category
+                  final catTotal = filteredTx.fold<double>(0, (sum, t) => sum + ((t['amount'] as num?)?.toDouble() ?? 0));
+                  
+                  // Group by sub-category
+                  final subCatTotals = <String, double>{};
+                  for (final tx in filteredTx) {
+                    final subCat = tx['subcategory'] as String? ?? 'Umum';
+                    subCatTotals[subCat] = (subCatTotals[subCat] ?? 0) + ((tx['amount'] as num?)?.toDouble() ?? 0);
+                  }
+                  
+                   // Determine color based on first item
+                  final sampleTx = filteredTx.firstWhere((t) => true, orElse: () => {});
+                  final type = sampleTx['type'] ?? 'expense';
+                  final catColor = _getPersonalTypeColor(type);
+                  final catIcon = _getPersonalCategoryIcon(selectedCat);
+
+                  if (subCatTotals.isEmpty) {
+                    return Center(child: Text('Detail tidak tersedia', style: TextStyle(color: context.subtextColor)));
+                  }
+                  
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category Header
+                        Row(
+                          children: [
+                            Icon(catIcon, color: catColor, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              selectedCat,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: catColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Progress bar total
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: 1.0,
+                            backgroundColor: Colors.grey.shade600,
+                            valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                            minHeight: 4,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Sub-categories list
+                        ...subCatTotals.entries.map((entry) {
+                          final subCat = entry.key;
+                          final subTotal = entry.value;
+                          final percentage = catTotal > 0 ? (subTotal / catTotal * 100) : 0.0;
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        subCat,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: context.textColor,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Rp ${currencyFormat.format(subTotal.toInt())}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: context.textColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                // Progress bar for sub-category
+                                Stack(
+                                  children: [
+                                    Container(
+                                      height: 6,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade700,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    FractionallySizedBox(
+                                      widthFactor: percentage / 100,
+                                      child: Container(
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          color: catColor,
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${percentage.toStringAsFixed(1)}%',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: context.subtextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  );
+                }),
+                
+                 // Transaction List (below sub-category)
+                Obx(() {
+                  final selectedCat = controller.selectedPersonalStatsCategory.value;
+                  if (selectedCat == null) return const SizedBox.shrink();
+                  
+                  final filteredTx = _getFilteredPersonalTransactions()
+                      .where((t) => t['category'] == selectedCat)
+                      .toList();
+                  
+                  if (filteredTx.isEmpty) return const SizedBox.shrink();
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      Text(
+                        'Riwayat Transaksi',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: context.textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...filteredTx.map((tx) => _buildPersonalHistoryCard(context, tx, currencyFormat)),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  /// Get filtered expense transactions based on current year and selected month
+  List<Map<String, dynamic>> _getFilteredExpenseTransactions() {
+    final year = DateTime.now().year;
+    final month = controller.selectedStatsMonth.value;
+    
+    return controller.transactions.where((t) {
+      final date = (t['createdAt'] as Timestamp?)?.toDate();
+      if (date == null) return false;
+      
+      if (date.year != year) return false;
+      if (month != null && date.month != month) return false;
+      
+      return true;
+    }).toList();
+  }
+  
+  /// Get filtered personal transactions based on selected year/month/type
+  List<Map<String, dynamic>> _getFilteredPersonalTransactions() {
+    final year = controller.selectedPersonalStatsYear.value;
+    final month = controller.selectedPersonalStatsMonth.value;
+    final type = controller.selectedPersonalHistoryType.value; // Filter by type if selected
+    
+    return controller.personalTransactions.where((t) {
+      final date = (t['createdAt'] as Timestamp?)?.toDate();
+      if (date == null) return false;
+      
+      if (date.year != year) return false;
+      if (month != null && date.month != month) return false;
+      if (type != null && t['type'] != type) return false;
+      
+      return true;
+    }).toList();
+  }
+
+  Widget _buildHistoryFilterChip(BuildContext context, String value, String label, IconData icon) {
+    final isSelected = controller.selectedHistoryCategory.value == value;
+    return GestureDetector(
+      onTap: () {
+        controller.selectedHistoryCategory.value = value;
+        controller.selectedExpenseHistoryCategory.value = null;
+        controller.selectedPersonalHistoryType.value = null;
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? Colors.teal
+              : (context.isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: isSelected ? Colors.white : context.subtextColor),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.white : context.subtextColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpenseSubFilter(BuildContext context, String? value, String label) {
+    final isSelected = controller.selectedExpenseHistoryCategory.value == value;
+    return GestureDetector(
+      onTap: () => controller.selectedExpenseHistoryCategory.value = value,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? Colors.orange.shade600
+              : (context.isDark ? Colors.grey.shade700 : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? Colors.orange : Colors.grey.withOpacity(0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : context.subtextColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonalTypeFilter(BuildContext context, String? value, String label) {
+    final isSelected = controller.selectedPersonalHistoryType.value == value;
+    Color chipColor;
+    if (value == 'income') {
+      chipColor = Colors.green;
+    } else if (value == 'expense') {
+      chipColor = Colors.red;
+    } else if (value == 'investment') {
+      chipColor = Colors.purple;
+    } else {
+      chipColor = Colors.blue;
+    }
+    
+    return GestureDetector(
+      onTap: () => controller.selectedPersonalHistoryType.value = value,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? chipColor
+              : (context.isDark ? Colors.grey.shade700 : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? chipColor : Colors.grey.withOpacity(0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : context.subtextColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryList(BuildContext context, NumberFormat currencyFormat) {
+    final category = controller.selectedHistoryCategory.value;
+    
+    List<Map<String, dynamic>> items = [];
+    
+    if (category == 'all' || category == 'fund_request') {
+      items.addAll(controller.fundRequests.map((r) => {...r, '_type': 'fund_request'}));
+    }
+    if (category == 'all' || category == 'expense') {
+      var expenseList = controller.transactions.toList();
+      final expenseCatFilter = controller.selectedExpenseHistoryCategory.value;
+      if (expenseCatFilter != null) {
+        expenseList = expenseList.where((t) => t['category'] == expenseCatFilter).toList();
+      }
+      items.addAll(expenseList.map((t) => {...t, '_type': 'expense'}));
+    }
+    if (category == 'all' || category == 'personal') {
+      var personalList = controller.personalTransactions.toList();
+      final personalTypeFilter = controller.selectedPersonalHistoryType.value;
+      if (personalTypeFilter != null) {
+        personalList = personalList.where((t) => t['type'] == personalTypeFilter).toList();
+      }
+      items.addAll(personalList.map((t) => {...t, '_type': 'personal'}));
+    }
+    
+    // Sort by date descending
+    items.sort((a, b) {
+      final aDate = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+      final bDate = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+      return bDate.compareTo(aDate);
+    });
+    
+    if (items.isEmpty) {
+      return _buildEmptyState(context, 'Belum ada riwayat', Icons.history);
+    }
+    
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final itemType = item['_type'] as String;
+        
+        if (itemType == 'fund_request') {
+          return _buildFundRequestHistoryCard(context, item, currencyFormat);
+        } else if (itemType == 'expense') {
+          return _buildExpenseHistoryCard(context, item, currencyFormat);
+        } else {
+          return _buildPersonalHistoryCard(context, item, currencyFormat);
+        }
+      },
+    );
+  }
+
+  Widget _buildFundRequestHistoryCard(BuildContext context, Map<String, dynamic> item, NumberFormat currencyFormat) {
+    final status = item['status'] ?? 'pending';
+    final amount = ((item['amount'] ?? 0) as num).toDouble();
+    final description = item['description'] ?? '';
+    final createdAt = (item['createdAt'] as Timestamp?)?.toDate();
+    
+    Color statusColor;
+    IconData statusIcon;
+    String statusLabel;
+    switch (status) {
+      case 'approved':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        statusLabel = 'Disetujui';
+        break;
+      case 'rejected':
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel;
+        statusLabel = 'Ditolak';
+        break;
+      default:
+        statusColor = Colors.orange;
+        statusIcon = Icons.schedule;
+        statusLabel = 'Pending';
+    }
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.request_page, color: statusColor, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('Pengajuan Dana', style: TextStyle(fontSize: 9, color: Colors.teal, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 10, color: statusColor),
+                          const SizedBox(width: 3),
+                          Text(statusLabel, style: TextStyle(fontSize: 9, color: statusColor, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(description, style: TextStyle(color: context.textColor, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (createdAt != null) ...[
+                  const SizedBox(height: 4),
+                  Text(DateFormat('dd MMM yyyy, HH:mm').format(createdAt), style: TextStyle(fontSize: 10, color: context.subtextColor)),
+                ],
+              ],
+            ),
+          ),
+          Text(
+            'Rp ${currencyFormat.format(amount.toInt())}',
+            style: TextStyle(fontWeight: FontWeight.bold, color: statusColor, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpenseHistoryCard(BuildContext context, Map<String, dynamic> item, NumberFormat currencyFormat) {
+    final amount = ((item['amount'] ?? 0) as num).toDouble();
+    final category = item['category'] ?? 'Lainnya';
+    final subcategory = item['subcategory'];
+    final description = item['description'] ?? '';
+    final createdAt = (item['createdAt'] as Timestamp?)?.toDate();
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: _getCategoryColor(category).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(_getCategoryIcon(category), color: _getCategoryColor(category), size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('SIQowwam', style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getCategoryColor(category).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(subcategory ?? category, style: TextStyle(fontSize: 9, color: _getCategoryColor(category), fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(description, style: TextStyle(color: context.textColor, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (createdAt != null) ...[
+                  const SizedBox(height: 4),
+                  Text(DateFormat('dd MMM yyyy, HH:mm').format(createdAt), style: TextStyle(fontSize: 10, color: context.subtextColor)),
+                ],
+              ],
+            ),
+          ),
+          Text(
+            '-Rp ${currencyFormat.format(amount.toInt())}',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalHistoryCard(BuildContext context, Map<String, dynamic> item, NumberFormat currencyFormat) {
+    final amount = ((item['amount'] ?? 0) as num).toDouble();
+    final type = item['type'] ?? 'expense';
+    final category = item['category'] ?? '';
+    final description = item['description'] ?? '';
+    final createdAt = (item['createdAt'] as Timestamp?)?.toDate();
+    
+    final isIncome = type == 'income';
+    final isInvest = type == 'investment';
+    Color typeColor;
+    IconData typeIcon;
+    String typeLabel;
+    
+    if (isIncome) {
+      typeColor = Colors.green;
+      typeLabel = 'Pemasukan';
+    } else if (isInvest) {
+      typeColor = Colors.purple;
+      typeLabel = 'Investasi';
+    } else {
+      typeColor = Colors.red;
+      typeLabel = 'Pengeluaran';
+    }
+    
+    // Use category icon instead of type arrow
+    typeIcon = _getPersonalCategoryIcon(category);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: typeColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: typeColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(typeIcon, color: typeColor, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('Pribadi', style: TextStyle(fontSize: 9, color: Colors.blue, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: typeColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('$typeLabel${category.isNotEmpty ? " • $category" : ""}', style: TextStyle(fontSize: 9, color: typeColor, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(description.isNotEmpty ? description : category, style: TextStyle(color: context.textColor, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (createdAt != null) ...[
+                  const SizedBox(height: 4),
+                  Text(DateFormat('dd MMM yyyy, HH:mm').format(createdAt), style: TextStyle(fontSize: 10, color: context.subtextColor)),
+                ],
+              ],
+            ),
+          ),
+          Text(
+            '${isIncome ? '+' : '-'}Rp ${currencyFormat.format(amount.toInt())}',
+            style: TextStyle(fontWeight: FontWeight.bold, color: typeColor, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
 
 }
 
@@ -2116,5 +4124,50 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
     );
+  }
+  IconData _getPersonalCategoryIcon(String category) {
+    switch (category) {
+      case 'Honor':
+        return Icons.work;
+      case 'Emoney':
+        return Icons.credit_card;
+      case 'Business':
+        return Icons.store;
+      case 'Transport':
+        return Icons.motorcycle;
+      case 'Mandi':
+        return Icons.bathtub;
+      case 'Jajan':
+        return Icons.fastfood;
+      case 'Pakaian':
+        return Icons.checkroom;
+      case 'Pulsa':
+        return Icons.phone_android;
+      case 'Elektronik':
+        return Icons.electrical_services;
+      case 'Book':
+        return Icons.menu_book;
+      case 'Masjid':
+        return Icons.mosque;
+      case 'Monthly':
+        return Icons.calendar_today;
+      case 'Share':
+        return Icons.share;
+      default:
+        return Icons.category;
+    }
+  }
+
+  Color _getPersonalTypeColor(String type) {
+    switch (type) {
+      case 'income':
+        return Colors.green;
+      case 'expense':
+        return Colors.red;
+      case 'investment':
+        return Colors.purple;
+      default:
+        return Colors.blue;
+    }
   }
 }

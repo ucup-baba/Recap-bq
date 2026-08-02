@@ -523,6 +523,22 @@ service cloud.firestore {
       // Anyone can read/write (real-time multiplayer, no auth required for simplicity)
       allow read, write: if true;
     }
+    
+    // CCA Rooms (Bahasasantri.com - Cerdas Cermat Agama)
+    match /cca_rooms/{roomId} {
+      // Anyone can read/write (real-time multiplayer, no auth required for simplicity)
+      allow read, write: if true;
+    }
+    
+    // CCA Final Rooms (Bahasasantri.com - Final CCA Babak 3)
+    match /cca_final_rooms/{roomId} {
+      allow read, write: if true;
+    }
+    
+    // App Settings (Bahasasantri.com - Admin toggles for CCA/Math)
+    match /app_settings/{docId} {
+      allow read, write: if true;
+    }
   }
 }
 

@@ -34,7 +34,7 @@
     <link rel="shortcut icon" href="images/icon-512.png">
 
     <!-- Tailwind v4 Compiled CSS -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=3.6">
 
     <!-- External Resources -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -209,12 +209,34 @@
                                     ⚔️
                                 </div>
                                 <div class="flex-1 text-white">
-                                    <h3 class="font-bold text-lg">Math Battle 1v1</h3>
-                                    <p class="text-white/80 text-xs">Duel Perkalian Siapa Cepat!</p>
+                                    <h3 class="font-bold text-lg">Math Battle</h3>
+                                    <p class="text-white/80 text-xs">1v1 atau Free-for-All, siapa cepat menang!</p>
                                 </div>
                                 <div
                                     class="w-10 h-10 rounded-full bg-white text-rose-500 flex items-center justify-center transform group-hover:translate-x-1 transition-transform">
                                     <i class="fas fa-bolt"></i>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- CCA BUTTON -->
+                        <button id="btn-cca"
+                            class="w-full rounded-3xl p-1 shadow-lg hover:shadow-xl transition-all group text-left mb-24"
+                            style="background:linear-gradient(to right,#10b981,#14b8a6)">
+                            <div class="p-5 flex items-center gap-4"
+                                style="border-radius:1.3rem;border:2px dashed rgba(255,255,255,0.3)">
+                                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+                                    style="background:rgba(255,255,255,0.2);color:white">
+                                    🕌
+                                </div>
+                                <div class="flex-1" style="color:white">
+                                    <h3 class="font-bold text-lg">Cerdas Cermat Agama</h3>
+                                    <p class="text-xs" style="color:rgba(255,255,255,0.8)">Lomba pengetahuan Islam per
+                                        tim!</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center transition-transform"
+                                    style="background:white;color:#14b8a6">
+                                    <i class="fas fa-star"></i>
                                 </div>
                             </div>
                         </button>
@@ -332,13 +354,13 @@
 
             <!-- MATH LOBBY VIEW -->
             <div id="view-math-lobby" class="hidden-view absolute inset-0 flex-col bg-white z-50">
-                <div class="p-6 pt-12">
+                <div class="p-6 pt-12 overflow-y-auto h-full pb-20">
                     <button onclick="switchView('menu')"
                         class="mb-8 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors">
                         <i class="fas fa-arrow-left text-gray-600"></i>
                     </button>
-                    <h2 class="text-3xl font-black text-brand-dark mb-2">Math Battle</h2>
-                    <p class="text-gray-500 mb-12">Tantang temanmu duel perkalian!</p>
+                    <h2 class="text-3xl font-black text-brand-dark mb-2">Math Battle ⚔️</h2>
+                    <p class="text-gray-500 mb-8">Operasi hitung (+, −, ×, ÷) siapa cepat!</p>
 
                     <div class="space-y-4">
                         <button onclick="createMathRoom()"
@@ -359,7 +381,7 @@
                     <!-- Math Battle Leaderboard -->
                     <div class="mt-8">
                         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🏆 Top Champions</h3>
-                        <div id="math-leaderboard" class="space-y-2">
+                        <div id="math-lobby-leaderboard" class="space-y-2">
                             <div class="skeleton skeleton-card"></div>
                             <div class="skeleton skeleton-card"></div>
                             <div class="skeleton skeleton-card"></div>
@@ -371,77 +393,80 @@
             <!-- MATH WAIT ROOM -->
             <div id="view-math-room"
                 class="hidden-view absolute inset-0 flex flex-col items-center justify-center bg-brand-dark text-white z-50 p-6">
-                <div class="text-center">
+                <div class="text-center w-full max-w-xs">
                     <p class="text-white/50 uppercase tracking-widest text-xs font-bold mb-4">KODE ROOM</p>
                     <h1 id="math-room-code"
-                        class="text-6xl font-black tracking-widest mb-8 text-brand-primary font-display">....</h1>
-                    <div class="bg-white/10 rounded-3xl p-6 w-full max-w-xs backdrop-blur-sm">
+                        class="text-6xl font-black tracking-widest mb-8 text-brand-primary font-display">....
+                    </h1>
+                    <div class="bg-white/10 rounded-3xl p-6 w-full backdrop-blur-sm">
                         <ul id="math-player-list" class="space-y-3 text-center">
                             <li class="font-bold text-brand-primary">Player 1</li>
                             <li class="text-gray-400 italic">Menunggu...</li>
                         </ul>
                     </div>
+                    <!-- Start button container (FFA host only) -->
+                    <div id="math-start-btn-container" class="mt-6"></div>
                     <button onclick="leaveMathGame()"
-                        class="mt-12 text-gray-400 hover:text-white underline">Batalkan</button>
+                        class="mt-6 text-gray-400 hover:text-white underline text-sm">Batalkan</button>
                 </div>
             </div>
 
             <!-- MATH GAMEPLAY -->
             <div id="view-math-game" class="hidden-view absolute inset-0 flex-col bg-gray-50 z-50">
-                <!-- Header Scores -->
-                <div class="bg-white p-6 shadow-sm z-10 flex justify-between items-end border-b border-gray-100">
-                    <div class="text-center">
-                        <div id="score-p1" class="text-3xl font-black text-brand-primary">0</div>
-                        <div id="name-p1" class="text-xs font-bold text-gray-400">Player 1</div>
-                    </div>
-                    <div class="text-2xl font-black text-brand-dark/20">VS</div>
-                    <div class="text-center">
-                        <div id="score-p2" class="text-3xl font-black text-rose-500">0</div>
-                        <div id="name-p2" class="text-xs font-bold text-gray-400">Player 2</div>
+                <!-- Dynamic Scoreboard -->
+                <div class="bg-white p-4 shadow-sm z-10 border-b border-gray-100">
+                    <div id="math-scoreboard" class="space-y-2 max-h-40 overflow-y-auto hide-scrollbar">
+                        <!-- Dynamically rendered by JS -->
                     </div>
                 </div>
 
                 <!-- Question Area -->
                 <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
                     <div id="math-question"
-                        class="text-6xl font-black text-brand-dark mb-6 font-display animate-bounce-short">? x ?</div>
+                        class="text-[8rem] leading-none font-black text-brand-dark mb-4 font-display">? + ?</div>
                     <!-- Input Display -->
                     <div id="math-input-display"
-                        class="text-4xl font-bold text-gray-700 h-16 border-b-4 border-gray-200 min-w-[100px] flex items-center justify-center">
+                        class="text-[6rem] font-bold text-gray-700 h-32 border-b-8 border-gray-200 min-w-[150px] flex items-center justify-center">
                         ?</div>
-                    <div id="math-feedback" class="h-8 text-red-500 font-bold mt-4 hidden">Salah!</div>
+
                 </div>
 
                 <!-- Keypad -->
-                <div class="bg-white p-6 pb-12 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-                    <div class="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+                <div id="math-keypad-container"
+                    class="bg-white p-4 pb-8 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                    <div class="grid grid-cols-3 gap-2 max-w-sm mx-auto">
                         <button onclick="pressMathKey('1')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">1</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">1</button>
                         <button onclick="pressMathKey('2')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">2</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">2</button>
                         <button onclick="pressMathKey('3')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">3</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">3</button>
                         <button onclick="pressMathKey('4')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">4</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">4</button>
                         <button onclick="pressMathKey('5')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">5</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">5</button>
                         <button onclick="pressMathKey('6')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">6</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">6</button>
                         <button onclick="pressMathKey('7')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">7</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">7</button>
                         <button onclick="pressMathKey('8')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">8</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">8</button>
                         <button onclick="pressMathKey('9')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">9</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">9</button>
                         <button onclick="clearMathInput()"
-                            class="h-16 rounded-xl bg-red-50 font-bold text-xl text-red-500 shadow-sm border-b-4 border-red-200 active:border-b-0 active:translate-y-1 transition-all">C</button>
+                            class="h-14 rounded-xl bg-red-50 font-bold text-xl text-red-500 shadow-sm border-b-4 border-red-200 active:border-b-0 active:translate-y-1 transition-all">C</button>
                         <button onclick="pressMathKey('0')"
-                            class="h-16 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">0</button>
+                            class="h-14 rounded-xl bg-gray-50 font-bold text-xl text-brand-dark shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all">0</button>
                         <button onclick="backspaceMathInput()"
-                            class="h-16 rounded-xl bg-gray-100 font-bold text-xl text-gray-500 shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all"><i
+                            class="h-14 rounded-xl bg-gray-100 font-bold text-xl text-gray-500 shadow-sm border-b-4 border-gray-200 active:border-b-0 active:translate-y-1 transition-all"><i
                                 class="fas fa-backspace"></i></button>
                     </div>
                 </div>
+            </div>
+
+            <!-- CCA VIEW -->
+            <div id="view-cca" class="hidden-view absolute inset-0 flex-col bg-gray-50 z-50">
+                <div id="cca-game-area" class="h-full overflow-y-auto"></div>
             </div>
 
             <!-- QUIZ VIEW -->
@@ -637,6 +662,10 @@
                             class="flex-1 py-3 px-4 rounded-xl bg-brand-primary text-white shadow-md transition-all whitespace-nowrap">
                             Akun
                         </button>
+                        <button id="btn-tab-settings" onclick="switchAdminTab('settings')"
+                            class="flex-1 py-3 px-4 rounded-xl text-gray-400 hover:bg-gray-100 transition-all whitespace-nowrap">
+                            ⚙️
+                        </button>
                     </div>
                 </div>
 
@@ -661,6 +690,83 @@
                                     <!-- Populated by JS -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB: SETTINGS -->
+                    <div id="admin-tab-settings" class="hidden space-y-4">
+                        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                            <h3 class="font-bold text-gray-800 mb-5 flex items-center gap-2">
+                                <i class="fas fa-cog text-brand-primary"></i> Pengaturan Fitur
+                            </h3>
+
+                            <!-- CCA Toggle -->
+                            <div class="flex items-center justify-between p-4 rounded-2xl mb-4"
+                                style="background:#ecfdf5;border:1px solid #a7f3d0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg"
+                                        style="background:#10b981">
+                                        🕌</div>
+                                    <div>
+                                        <p class="font-bold text-brand-dark">Cerdas Cermat Agama</p>
+                                        <p class="text-xs text-gray-400">Tampilkan menu CCA untuk santri</p>
+                                    </div>
+                                </div>
+                                <div id="toggle-cca" onclick="toggleSwitch('cca')"
+                                    style="width:44px;height:24px;border-radius:12px;background:#10b981;cursor:pointer;position:relative;transition:background 0.3s"
+                                    data-on="true">
+                                    <div
+                                        style="width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:2px;left:22px;transition:left 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2)">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Final CCA Button -->
+                            <button onclick="showFinalCCASetup()"
+                                class="w-full flex items-center justify-between p-4 rounded-2xl mb-4 transition-all"
+                                style="background:#fffbeb;border:1px solid #fcd34d">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg"
+                                        style="background:linear-gradient(to right,#f59e0b,#f97316)">
+                                        🏆</div>
+                                    <div>
+                                        <p class="font-bold text-brand-dark">Final CCA (Babak 3)</p>
+                                        <p class="text-xs text-gray-400">50 soal rebutan · Benar +20 · Salah -10</p>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                                    style="background:#fef3c7;color:#f59e0b">
+                                    <i class="fas fa-arrow-right text-sm"></i>
+                                </div>
+                            </button>
+
+                            <!-- Math Mode Toggle -->
+                            <div class="flex items-center justify-between p-4 rounded-2xl mb-4"
+                                style="background:#fdf2f8;border:1px solid #fbcfe8">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg"
+                                        style="background:#ec4899">
+                                        ⚔️</div>
+                                    <div>
+                                        <p class="font-bold text-brand-dark">Math Champion</p>
+                                        <p class="text-xs text-gray-400" id="math-mode-desc">Mode: Battle (semua
+                                            operasi)</p>
+                                    </div>
+                                </div>
+                                <div id="toggle-math-mode" onclick="toggleSwitch('math')"
+                                    style="width:44px;height:24px;border-radius:12px;background:#ec4899;cursor:pointer;position:relative;transition:background 0.3s"
+                                    data-on="true">
+                                    <div
+                                        style="width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:2px;left:22px;transition:left 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2)">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-blue-600 text-xs flex items-center gap-2">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Perubahan berlaku langsung untuk semua santri.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -1070,7 +1176,7 @@
     </div>
 
     <!-- CORE LOGIC (Modular) -->
-    <script type="module" src="js/app.js?v=2.9"></script>
+    <script type="module" src="js/app.js?v=3.6"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </body>
 

@@ -1,5 +1,5 @@
 import { db } from './config.js';
-import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { collection, doc, setDoc, getDoc, deleteDoc, updateDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { state } from './state.js';
 import { showNotification } from './dialogs.js';
 
@@ -11,7 +11,7 @@ export function initAdmin() {
     checkAndResetWeeklyScores();
     // Expose Tab Switcher
     window.switchAdminTab = (tab) => {
-        ['ujian', 'tes', 'ranking', 'akun'].forEach(t => {
+        ['ujian', 'tes', 'ranking', 'akun', 'settings'].forEach(t => {
             const content = document.getElementById('admin-tab-' + t);
             const btn = document.getElementById('btn-tab-' + t);
             if (content && btn) {
@@ -98,6 +98,9 @@ export function initAdmin() {
             }
         });
     }
+
+    // Load admin settings
+    loadAdminSettings();
 }
 
 // ========================================
@@ -554,5 +557,105 @@ function showAdminSkeleton() {
     const mathRanking = document.getElementById('admin-math-ranking-list');
     if (mathRanking) {
         mathRanking.innerHTML = skeletonRows;
+    }
+}
+// ========================================
+// APP SETTINGS (CCA Toggle, Math Mode)
+// ========================================
+
+function setSwitchVisual(el, isOn, colorOn) {
+    if (!el) return;
+    el.dataset.on = isOn ? 'true' : 'false';
+    el.style.background = isOn ? colorOn : '#d1d5db';
+    const knob = el.querySelector('div');
+    if (knob) knob.style.left = isOn ? '22px' : '2px';
+}
+
+window.toggleSwitch = function (type) {
+    if (type === 'cca') {
+        const el = document.getElementById('toggle-cca');
+        const isOn = el?.dataset.on !== 'true';
+        setSwitchVisual(el, isOn, '#10b981');
+    } else if (type === 'math') {
+        const el = document.getElementById('toggle-math-mode');
+        const isOn = el?.dataset.on !== 'true';
+        setSwitchVisual(el, isOn, '#ec4899');
+    }
+    saveAdminSettings();
+}
+
+export async function loadAdminSettings() {
+    try {
+        const snap = await getDoc(doc(db, 'app_settings', 'general'));
+        if (snap.exists()) {
+            const data = snap.data();
+            state.appSettings = {
+                ccaEnabled: data.ccaEnabled !== false,
+                mathMode: data.mathMode || 'battle'
+            };
+        }
+        // Sync toggles in UI (for admin)
+        const ccaToggle = document.getElementById('toggle-cca');
+        const mathToggle = document.getElementById('toggle-math-mode');
+        const mathDesc = document.getElementById('math-mode-desc');
+
+        setSwitchVisual(ccaToggle, state.appSettings.ccaEnabled, '#10b981');
+        setSwitchVisual(mathToggle, state.appSettings.mathMode === 'battle', '#ec4899');
+
+        if (mathDesc) mathDesc.textContent = state.appSettings.mathMode === 'battle'
+            ? 'Mode: Battle (semua operasi)' : 'Mode: Latihan (perkalian saja)';
+
+        // Apply CCA visibility
+        const btnCCA = document.getElementById('btn-cca');
+        if (btnCCA) btnCCA.style.display = state.appSettings.ccaEnabled ? '' : 'none';
+
+        // Apply Math button label
+        applyMathLabel();
+    } catch (e) {
+        console.error('Error loading settings:', e);
+    }
+}
+
+function applyMathLabel() {
+    const btnMath = document.getElementById('btn-math-battle');
+    if (!btnMath) return;
+    const mathTitle = btnMath.querySelector('h3');
+    const mathSubtitle = btnMath.querySelector('p');
+    if (state.appSettings.mathMode === 'practice') {
+        if (mathTitle) mathTitle.textContent = 'Latihan Perkalian';
+        if (mathSubtitle) mathSubtitle.textContent = 'Latih perkalian 1-12!';
+    } else {
+        if (mathTitle) mathTitle.textContent = 'Math Battle';
+        if (mathSubtitle) mathSubtitle.textContent = '1v1 atau Free-for-All, siapa cepat menang!';
+    }
+}
+
+async function saveAdminSettings() {
+    const ccaEnabled = document.getElementById('toggle-cca')?.dataset.on === 'true';
+    const isBattle = document.getElementById('toggle-math-mode')?.dataset.on === 'true';
+    const mathMode = isBattle ? 'battle' : 'practice';
+
+    state.appSettings = { ccaEnabled, mathMode };
+
+    try {
+        await setDoc(doc(db, 'app_settings', 'general'), {
+            ccaEnabled,
+            mathMode,
+            updatedAt: new Date().toISOString()
+        });
+
+        // Apply changes immediately
+        const btnCCA = document.getElementById('btn-cca');
+        if (btnCCA) btnCCA.style.display = ccaEnabled ? '' : 'none';
+
+        const mathDesc = document.getElementById('math-mode-desc');
+        if (mathDesc) mathDesc.textContent = isBattle
+            ? 'Mode: Battle (semua operasi)' : 'Mode: Latihan (perkalian saja)';
+
+        applyMathLabel();
+        showNotification('Pengaturan tersimpan!', 'Berhasil', 'success');
+    } catch (e) {
+        console.error('Error saving settings:', e);
+        showNotification('Gagal menyimpan pengaturan', 'Error', 'error');
     }
 }

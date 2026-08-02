@@ -4,7 +4,7 @@ import { getWeekStart } from './quiz.js';
 import { showNotification, showConfirmation } from './dialogs.js';
 
 export function switchView(viewName) {
-    const views = ['login', 'menu', 'quiz', 'result', 'review', 'admin', 'math-lobby', 'math-room', 'math-game'];
+    const views = ['login', 'menu', 'quiz', 'result', 'review', 'admin', 'math-lobby', 'math-room', 'math-game', 'cca'];
     views.forEach(v => {
         const el = document.getElementById('view-' + v);
         if (el) {

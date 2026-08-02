@@ -3,9 +3,11 @@ import { state } from './state.js';
 import { fetchVocab } from './config.js';
 import { switchView } from './ui.js';
 import { nextQuestion, prevQuestion, startQuiz } from './quiz.js';
-import { initAdmin } from './admin.js';
+import { initAdmin, loadAdminSettings } from './admin.js';
 import { unlockAudio, requestMicPermission, speakCurrentWord, toggleRecording } from './audio.js';
 import { initMath } from './math.js';
+import { initCCA } from './cca.js';
+import { initCCAFinal } from './cca-final.js';
 import { showConfirmation } from './dialogs.js';
 
 // Global Exposure for HTML onclick events
@@ -19,10 +21,13 @@ window.toggleRecording = toggleRecording;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("App v5: Math Battle Ready");
+    console.log("App v6: CCA + Math Battle Ready");
     await fetchVocab();
     initAdmin();
     initMath(); // Load Math Logic
+    initCCA(); // Load CCA Logic
+    initCCAFinal(); // Load CCA Final Logic
+    loadAdminSettings(); // Load app settings (CCA toggle, Math mode)
 
     // Login Handling
     const loginBtn = document.getElementById('btn-login');
@@ -72,10 +77,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Math Battle Button
+    // Math Battle Button - Show mode picker first
     const btnMath = document.getElementById('btn-math-battle');
     if (btnMath) {
-        btnMath.addEventListener('click', () => switchView('math-lobby'));
+        btnMath.addEventListener('click', async () => {
+            const mode = await window.showMathModePicker();
+            if (!mode) return;
+
+            if (mode === 'spectate') {
+                // Join existing room as spectator
+                window.spectateRoom();
+                return;
+            }
+
+            // Set game mode globally
+            window._mathGameMode = mode;
+            if (window.setMathGameMode) window.setMathGameMode(mode === 'guru' ? 'ffa' : mode);
+            if (window.setMathHostSpectator) window.setMathHostSpectator(mode === 'guru');
+            switchView('math-lobby');
+        });
+    }
+
+    // CCA Button - Show mode picker
+    const btnCCA = document.getElementById('btn-cca');
+    if (btnCCA) {
+        btnCCA.addEventListener('click', async () => {
+            const mode = await window.showCCAModePicker();
+            if (!mode) return;
+
+            if (mode === 'create') {
+                switchView('cca');
+                window.createCCARoom();
+            } else if (mode === 'join') {
+                switchView('cca');
+                window.joinCCARoom();
+            } else if (mode === 'join-final') {
+                window.joinFinalCCARoom();
+            }
+        });
     }
 });
 

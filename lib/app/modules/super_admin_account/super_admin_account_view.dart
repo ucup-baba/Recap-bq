@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_pages.dart';
@@ -78,6 +79,9 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
                   const SizedBox(height: 12),
                   // Reset Finance button
                   _buildResetFinanceButton(context),
+                  const SizedBox(height: 12),
+                  // Google Sheets Backup button
+                  _buildGoogleSheetsButton(context),
                   const SizedBox(height: 12),
                   // Logout button
                   _buildLogoutButton(context),
@@ -321,6 +325,46 @@ class SuperAdminAccountView extends GetView<SuperAdminAccountController> {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.orange),
         onTap: () => _showResetFinanceConfirmation(context),
+      ),
+    );
+  }
+
+  Widget _buildGoogleSheetsButton(BuildContext context) {
+    // URL spreadsheet backup
+    const sheetsUrl = 'https://docs.google.com/spreadsheets/d/15HgHiznFPIP30QOPmzL2UkoABiv-t74vuMJf15j9pU4/edit?usp=sharing';
+    
+    return Card(
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: context.isDark ? context.cardColor : Colors.green.shade50,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.shade100,
+          child: const Icon(Icons.table_chart, color: Colors.green),
+        ),
+        title: const Text(
+          'Lihat Backup Keuangan',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+        ),
+        subtitle: const Text(
+          'Buka Google Spreadsheet backup',
+          style: TextStyle(fontSize: 12),
+        ),
+        trailing: const Icon(Icons.open_in_new, color: Colors.green),
+        onTap: () async {
+          final uri = Uri.parse(sheetsUrl);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } else {
+            Get.snackbar(
+              'Error',
+              'Tidak dapat membuka URL',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red.shade100,
+            );
+          }
+        },
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/sheets_backup_service.dart';
 
 /// Financial Tab Controller for Super Admin
 /// Handles fund requests and expense recording integrated with SIQowwam
@@ -47,7 +48,22 @@ class FinancialTabController extends GetxController {
 
   // UI state
   final isLoading = true.obs;
-  final selectedSubTab = 0.obs; // 0: Overview, 1: Request, 2: Expense
+  final selectedSubTab = 0.obs; // 0: Overview, 1: Me, 2: History
+  
+  // History tab filter state
+  final selectedHistoryCategory = 'all'.obs; // 'all', 'fund_request', 'expense', 'personal'
+  final selectedExpenseHistoryCategory = RxnString(); // null = all, or specific category like 'Pendidikan'
+  final selectedPersonalHistoryType = RxnString(); // null = all, 'income', 'expense', 'investment'
+  
+  // SiQowwam statistics filter
+  final selectedStatsYear = DateTime.now().year.obs;
+  final selectedStatsMonth = RxnInt(); // null = all months
+  final selectedStatsCategory = RxnString(); // null = all categories, or specific like 'Pendidikan'
+
+  // Personal statistics filter
+  final selectedPersonalStatsYear = DateTime.now().year.obs;
+  final selectedPersonalStatsMonth = RxnInt(); // null = all months
+  final selectedPersonalStatsCategory = RxnString(); // null = all categories
 
   // Form controllers
   final fundAmountController = TextEditingController();
@@ -469,6 +485,20 @@ class FinancialTabController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade100,
       );
+      
+      // Auto-backup the new expense to Google Sheets
+      SheetsBackupService.backupToSheet(
+        sheetName: 'SiQowwam',
+        transactions: [{
+          'createdAt': Timestamp.fromDate(now),
+          'category': category,
+          'subCategory': subcategory ?? '',
+          'description': description,
+          'amount': amount,
+          'type': 'Expense',
+        }],
+      );
+      
       return true;
     } catch (e) {
       Get.snackbar(
@@ -913,6 +943,20 @@ class FinancialTabController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade100,
       );
+      
+      // Auto-backup the new transaction to Google Sheets
+      SheetsBackupService.backupToSheet(
+        sheetName: 'Personal',
+        transactions: [{
+          'createdAt': Timestamp.fromDate(now),
+          'category': category,
+          'subCategory': subcategory ?? '',
+          'description': description,
+          'amount': amount,
+          'type': type,
+        }],
+      );
+      
       return true;
     } catch (e) {
       Get.snackbar(
@@ -922,6 +966,76 @@ class FinancialTabController extends GetxController {
         backgroundColor: Colors.red.shade100,
       );
       return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Backup all transactions to Google Sheets
+  Future<void> backupToSheets() async {
+    try {
+      isLoading.value = true;
+      
+      // Backup SiQowwam transactions (expenses + fund requests)
+      final siqowwamData = <Map<String, dynamic>>[];
+      
+      // Add expense transactions
+      for (final tx in transactions) {
+        siqowwamData.add({
+          'createdAt': tx['createdAt'],
+          'category': tx['mainCategory'] ?? '',
+          'subCategory': tx['subCategory'] ?? '',
+          'description': tx['name'] ?? tx['description'] ?? '',
+          'amount': tx['amount'] ?? 0,
+          'type': 'Expense',
+        });
+      }
+      
+      // Add approved fund requests
+      for (final fr in fundRequests.where((f) => f['status'] == 'approved')) {
+        siqowwamData.add({
+          'createdAt': fr['createdAt'],
+          'category': fr['mainCategory'] ?? '',
+          'subCategory': fr['subCategory'] ?? '',
+          'description': fr['name'] ?? '',
+          'amount': fr['amount'] ?? 0,
+          'type': 'Fund Request',
+        });
+      }
+      
+      final siqowwamSuccess = await SheetsBackupService.backupToSheet(
+        sheetName: 'SiQowwam',
+        transactions: siqowwamData,
+      );
+      
+      // Backup Personal transactions
+      final personalSuccess = await SheetsBackupService.backupToSheet(
+        sheetName: 'Personal',
+        transactions: personalTransactions.toList(),
+      );
+      
+      if (siqowwamSuccess && personalSuccess) {
+        Get.snackbar(
+          'Sukses',
+          'Backup ke Google Sheets berhasil!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade100,
+        );
+      } else {
+        Get.snackbar(
+          'Partial',
+          'Beberapa data gagal di-backup',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange.shade100,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal backup: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
     } finally {
       isLoading.value = false;
     }
